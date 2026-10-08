@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Extraction Shooter"
-run/main_scene="res://scenes/dev/platform_test.tscn"
+run/main_scene="res://scenes/dev/dev_menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 
 [debug]
@@ -29,6 +29,10 @@ window/handheld/orientation=4
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gui]
+
+theme/custom_font="res://assets/fonts/NotoSansKR.ttf"
 
 [rendering]
 

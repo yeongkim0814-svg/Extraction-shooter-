@@ -4,4 +4,4 @@
 
 | 에셋 | 저장소 경로 | 출처 (URL) | 라이선스 | 저작자 | 추가일 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| Noto Sans KR (가변 폰트, 약 10.4 MB) | assets/fonts/NotoSansKR.ttf | https://github.com/google/fonts/tree/main/ofl/notosanskr | OFL-1.1 | Google (The Noto Project Authors) | 2026-10-08 |

@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # build/web을 로컬 http.server로 서빙하고 헤드리스 Chromium 스모크 테스트 실행.
+# 사용법: tools/web_smoke.sh [platform|inventory] [기대 마커]
+#   platform (기본): ?scene=platform 로 열고 "PLATFORM_TEST:" 로그를 기다린다.
+#   inventory: ?scene=inventory 로 열고 "INVENTORY_DEMO: ready" 후 마우스 드래그로 아이템을 옮겨 본다.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+SCENE="${1:-platform}"
+MARKER="${2:-}"
 [ -f build/web/index.html ] || { echo "build/web 없음: tools/export_web.sh 먼저 실행" >&2; exit 1; }
 if ! node -e "require('playwright')" 2>/dev/null; then
   GLOBAL_ROOT="$(npm root -g 2>/dev/null || true)"
@@ -12,4 +17,4 @@ python3 -m http.server "$PORT" --bind 127.0.0.1 --directory build/web >/dev/null
 SRV=$!
 trap 'kill $SRV 2>/dev/null || true' EXIT
 sleep 1
-node tools/web_smoke.mjs "http://127.0.0.1:$PORT/index.html" build/web_smoke.png build/web_smoke_console.log
+node tools/web_smoke.mjs "http://127.0.0.1:$PORT/index.html" "$SCENE" "$MARKER"
