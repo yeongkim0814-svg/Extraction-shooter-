@@ -14,7 +14,6 @@ var _info_timer: float = 0.0
 func _ready() -> void:
 	_build_environment()
 	_build_light()
-	_build_geometry()
 	_build_camera()
 	_build_overlay()
 	_update_label()
@@ -72,53 +71,6 @@ func _build_light() -> void:
 	sun.directional_shadow_max_distance = 40.0
 	sun.rotation_degrees = Vector3(-50.0, -30.0, 0.0)
 	add_child(sun)
-
-
-func _make_mat(color: Color, rough: float, metal: float, emissive: bool = false) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = color
-	m.roughness = rough
-	m.metallic = metal
-	if emissive:
-		m.emission_enabled = true
-		m.emission = color
-		m.emission_energy_multiplier = 2.0
-	return m
-
-
-func _add_mesh(mesh: Mesh, mat: Material, pos: Vector3) -> void:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.position = pos
-	add_child(mi)
-
-
-func _build_geometry() -> void:
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(60.0, 60.0)
-	_add_mesh(plane, _make_mat(Color(0.3, 0.3, 0.29), 0.95, 0.0), Vector3.ZERO)
-
-	var concrete: StandardMaterial3D = _make_mat(Color(0.6, 0.6, 0.58), 0.9, 0.0)
-	var steel: StandardMaterial3D = _make_mat(Color(0.8, 0.82, 0.85), 0.25, 1.0)
-	var rust: StandardMaterial3D = _make_mat(Color(0.55, 0.3, 0.18), 0.7, 0.6)
-	var glow: StandardMaterial3D = _make_mat(Color(0.2, 0.9, 1.0), 0.4, 0.0, true)
-
-	var box := BoxMesh.new()
-	box.size = Vector3(2.0, 2.0, 2.0)
-	var tall := BoxMesh.new()
-	tall.size = Vector3(1.5, 4.0, 1.5)
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.8
-	cyl.bottom_radius = 0.8
-	cyl.height = 2.5
-
-	_add_mesh(box, concrete, Vector3(-3.0, 1.0, -1.0))
-	_add_mesh(tall, concrete, Vector3(3.5, 2.0, -2.5))
-	_add_mesh(cyl, steel, Vector3(0.0, 1.25, 2.5))
-	_add_mesh(cyl, rust, Vector3(-4.0, 1.25, 3.0))
-	_add_mesh(box, steel, Vector3(2.5, 1.0, 3.5))
-	_add_mesh(cyl, glow, Vector3(0.0, 1.25, -3.0))
 
 
 func _build_camera() -> void:

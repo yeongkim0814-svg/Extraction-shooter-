@@ -1,6 +1,108 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/game/dev/platform_test.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/game/dev/platform_test.gd" id="1_nf2kq"]
 
-[node name="PlatformTest" type="Node3D"]
-script = ExtResource("1")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wr26e"]
+albedo_color = Color(0.3, 0.3, 0.29, 1)
+roughness = 0.95
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_b66af"]
+lightmap_size_hint = Vector2i(302, 302)
+add_uv2 = true
+size = Vector2(60, 60)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7umos"]
+albedo_color = Color(0.6, 0.6, 0.58, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_3re8x"]
+lightmap_size_hint = Vector2i(24, 36)
+add_uv2 = true
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_1u7mq"]
+lightmap_size_hint = Vector2i(19, 53)
+add_uv2 = true
+size = Vector3(1.5, 4, 1.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_muy38"]
+albedo_color = Color(0.8, 0.82, 0.85, 1)
+metallic = 1.0
+roughness = 0.25
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_c2lpm"]
+lightmap_size_hint = Vector2i(27, 24)
+add_uv2 = true
+top_radius = 0.8
+bottom_radius = 0.8
+height = 2.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6xxak"]
+albedo_color = Color(0.55, 0.3, 0.18, 1)
+metallic = 0.6
+roughness = 0.7
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_70ruv"]
+lightmap_size_hint = Vector2i(27, 24)
+add_uv2 = true
+top_radius = 0.8
+bottom_radius = 0.8
+height = 2.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_qoe85"]
+lightmap_size_hint = Vector2i(24, 36)
+add_uv2 = true
+size = Vector3(2, 2, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kuxjc"]
+albedo_color = Color(0.2, 0.9, 1, 1)
+roughness = 0.4
+emission_enabled = true
+emission = Color(0.2, 0.9, 1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_a25w6"]
+lightmap_size_hint = Vector2i(27, 24)
+add_uv2 = true
+top_radius = 0.8
+bottom_radius = 0.8
+height = 2.5
+
+[node name="PlatformTest" type="Node3D" unique_id=1972785625]
+script = ExtResource("1_nf2kq")
+
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=355623053]
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=1088960568]
+material_override = SubResource("StandardMaterial3D_wr26e")
+mesh = SubResource("PlaneMesh_b66af")
+
+[node name="CrateConcrete" type="MeshInstance3D" parent="." unique_id=646990862]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1, -1)
+material_override = SubResource("StandardMaterial3D_7umos")
+mesh = SubResource("BoxMesh_3re8x")
+
+[node name="PillarConcrete" type="MeshInstance3D" parent="." unique_id=1602934172]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 2, -2.5)
+material_override = SubResource("StandardMaterial3D_7umos")
+mesh = SubResource("BoxMesh_1u7mq")
+
+[node name="DrumSteel" type="MeshInstance3D" parent="." unique_id=1539933304]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 2.5)
+material_override = SubResource("StandardMaterial3D_muy38")
+mesh = SubResource("CylinderMesh_c2lpm")
+
+[node name="DrumRust" type="MeshInstance3D" parent="." unique_id=1788756944]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1.25, 3)
+material_override = SubResource("StandardMaterial3D_6xxak")
+mesh = SubResource("CylinderMesh_70ruv")
+
+[node name="CrateSteel" type="MeshInstance3D" parent="." unique_id=1925437678]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1, 3.5)
+material_override = SubResource("StandardMaterial3D_muy38")
+mesh = SubResource("BoxMesh_qoe85")
+
+[node name="DrumGlow" type="MeshInstance3D" parent="." unique_id=1833314313]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -3)
+material_override = SubResource("StandardMaterial3D_kuxjc")
+mesh = SubResource("CylinderMesh_a25w6")
