@@ -16,6 +16,10 @@ var rotated: bool = false
 var container_key: StringName = &""
 ## def.grids에 대응하는 내부 그리드 (컨테이너 아이템만).
 var grids: Array[ItemGrid] = []
+## 무기 아이템의 부품 트리 (무기만, 아니면 null).
+var weapon: WeaponAssembly = null
+## 탄창 아이템의 장전 상태 (탄창만, 아니면 null).
+var magazine: Magazine = null
 
 
 func _init(p_id: int, p_def: ItemDef, p_stack_count: int = 1) -> void:
