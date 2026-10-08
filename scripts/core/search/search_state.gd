@@ -100,6 +100,9 @@ func tick(delta: float) -> TickResult:
 			result.revealed.append(item)
 			_current_id = 0
 			_progress = 0.0
+	# 마지막 아이템을 시간이 딱 맞게 끝낸 경우에도 바로 수색을 끝낸다.
+	if searching and _current_item() == null:
+		searching = false
 	return result
 
 
