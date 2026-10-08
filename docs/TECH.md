@@ -95,11 +95,10 @@ docs/
 
 ### weapons
 - `WeaponPartDef` (Resource): 자식 소켓 목록, 스탯 수정치(가산·배율), 크기 기여분, 모델 씬 경로
-- `WeaponAssembly`: 부품 트리
-- `CompatibilityRules`: 소켓 타입 + 허용 목록 + 충돌 규칙
-- `StatCalculator`: 트리 전체 합산 → 반동·인체공학·무게·정확도·소음
-- `AssemblySize`: 부품 구성에 따른 인벤토리 크기
-- `Magazine`: 탄을 담는 컨테이너
+- `WeaponAssembly`: 부품 트리 (노드는 소켓 이름 경로로 지정). 호환성 검사(소켓 종류·허용 목록·양방향 충돌), 스탯 합산 `compute_stats()`((기본 + 가산) × 배율, 스탯별 하한), 인벤토리 크기 `compute_size()`를 함께 담당
+- `WeaponStats`: 스탯 이름 상수 (스탯은 Dictionary라 데이터만으로 추가 가능)
+- `AmmoDef`: 구경·데미지·관통력·산탄 수
+- `Magazine`: 탄을 한 발씩 기록 (탄종 혼합, 마지막에 넣은 탄부터 발사)
 - `DamageModel`: 탄 관통력 vs 방탄 등급
 
 ### search
@@ -109,7 +108,9 @@ docs/
 
 ### raid
 - `RaidSession` 상태머신: Hideout → Loadout → Raid → Extracted | Dead → Results
-- `ExtractionRule`, `DeathResolver`(보안 컨테이너 보존), `RaidResultTransfer`(스태시 부족 시 소실 경고)
+- `ExtractionPoint` + `ExtractionTracker`(대기 시간·조건 플래그), `DeathResolver`(보안 컨테이너만 보존)
+- 레이드 중에는 `Inventory.stash_locked`로 스태시를 잠근다. 소지품은 탈출 후에도 장비에 그대로 남으므로 별도 이전 단계가 없다
+- 루팅 컨테이너 ↔ 플레이어 인벤토리 간 이동은 M9에서 권한자 명령으로 추가
 
 ### loot
 - `LootTable` (Resource): 가중치 기반, 시드 고정
@@ -117,6 +118,9 @@ docs/
 ### ai_decision
 - 블랙보드 + 상태 전이 규칙 (순찰·의심·교전·엄폐·수색·복귀) → 헤드리스 테스트
 - 감지(레이캐스트·시야각)·이동(`NavigationAgent3D`)은 game 레이어
+
+### content
+- `ContentDatabase`: 아이템·부품·탄종 정의를 id로 조회 (저장 로드·네트워크 동기화용)
 
 ### save
 - 저장 데이터는 Dictionary DTO + `version` 필드 + 마이그레이션 체인, `JSON`으로 직렬화해 `user://`에 기록
