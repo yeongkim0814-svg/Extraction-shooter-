@@ -14,6 +14,8 @@ const STASH := &"stash"
 const POCKET_COUNT := 4
 
 var equipment := EquipmentSlots.new()
+## 레이드 중에는 true: 스태시(와 그 안의 컨테이너 내용물)에 넣기·꺼내기·변경이 모두 막힌다.
+var stash_locked: bool = false
 var _root_grids: Dictionary[StringName, ItemGrid] = {}
 ## 이 인벤토리 어딘가에 들어 있는 모든 아이템 (중첩 포함).
 var _items: Dictionary[int, ItemInstance] = {}
@@ -120,6 +122,8 @@ func move_item(item_id: int, key: StringName, cell: Vector2i, p_rotated: bool) -
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(item):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
 	var error: StringName = _check_grid_target(item, key)
 	if error != &"":
 		return CommandResult.failure(error)
@@ -142,6 +146,8 @@ func equip(item_id: int, slot: EquipmentSlots.Slot) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(item):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
 	if equipment.get_item(slot) == item:
 		return CommandResult.success()
 	var error: StringName = _check_slot_target(item, slot)
@@ -160,6 +166,8 @@ func merge(source_id: int, target_id: int) -> CommandResult:
 	var target: ItemInstance = get_item(target_id)
 	if source == null or target == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(source) or _is_locked(target):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
 	if not source.can_stack_with(target):
 		return CommandResult.failure(CommandResult.NOT_STACKABLE)
 	var amount: int = mini(source.stack_count, target.free_stack_space())
@@ -181,6 +189,8 @@ func split(item_id: int, amount: int, new_id: int, key: StringName, cell: Vector
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(item):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
 	if amount <= 0 or amount >= item.stack_count:
 		return CommandResult.failure(CommandResult.INVALID_AMOUNT)
 	var part := ItemInstance.new(new_id, item.def, amount)
@@ -198,6 +208,8 @@ func discard(item_id: int) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(item):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
 	return CommandResult.success(_remove(item))
 
 
@@ -231,6 +243,8 @@ func is_consistent() -> bool:
 func _check_grid_target(item: ItemInstance, key: StringName) -> StringName:
 	if get_grid(key) == null:
 		return CommandResult.UNKNOWN_CONTAINER
+	if stash_locked and _root_container_of_key(key) == STASH:
+		return CommandResult.STASH_LOCKED
 	if item.def.is_container() and _parse_item_grid_key(key).x >= 0:
 		return CommandResult.NESTING_NOT_ALLOWED
 	return &""
@@ -243,6 +257,24 @@ func _has_nested_container(item: ItemInstance) -> bool:
 			if child.def.is_container():
 				return true
 	return false
+
+
+## 키가 가리키는 컨테이너를 따라 올라가 최상위 컨테이너 키(스태시·주머니·슬롯)를 돌려준다.
+func _root_container_of_key(key: StringName) -> StringName:
+	var current: StringName = key
+	for _depth: int in range(8):
+		var parsed: Vector2i = _parse_item_grid_key(current)
+		if parsed.x < 0:
+			return current
+		var owner: ItemInstance = _items.get(parsed.x)
+		if owner == null:
+			return &""
+		current = owner.container_key
+	return &""
+
+
+func _is_locked(item: ItemInstance) -> bool:
+	return stash_locked and _root_container_of_key(item.container_key) == STASH
 
 
 func _check_slot_target(item: ItemInstance, slot: EquipmentSlots.Slot) -> StringName:

@@ -11,6 +11,7 @@ const SLOT_OCCUPIED := &"slot_occupied"
 const NOT_STACKABLE := &"not_stackable"
 const INVALID_AMOUNT := &"invalid_amount"
 const ALREADY_ADDED := &"already_added"
+const STASH_LOCKED := &"stash_locked"
 const NOT_IMPLEMENTED := &"not_implemented"
 
 var ok: bool

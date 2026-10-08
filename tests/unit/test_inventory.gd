@@ -1203,3 +1203,27 @@ func test_prefilled_container_holding_container_is_rejected() -> void:
 			CommandResult.NESTING_NOT_ALLOWED)
 	assert_eq(inv.get_items().size(), 0)
 	assert_true(inv.is_consistent())
+
+
+# --- 스태시 잠금 (레이드 중) ---
+
+func test_locked_stash_blocks_all_changes_in_and_out() -> void:
+	var inv := Inventory.new(Vector2i(10, 10))
+	var pack := _backpack()
+	var inside := _plain(1, 1, &"inside")
+	var outside := _plain(1, 1, &"outside")
+	assert_true(inv.add_item(pack, Inventory.STASH, Vector2i.ZERO, false).ok)
+	assert_true(inv.add_item(inside, Inventory.item_grid_key(pack.id, 0), Vector2i.ZERO, false).ok)
+	assert_true(inv.add_item(outside, Inventory.pocket_key(0), Vector2i.ZERO, false).ok)
+	inv.stash_locked = true
+	var locked: StringName = CommandResult.STASH_LOCKED
+	assert_eq(inv.move_item(outside.id, Inventory.STASH, Vector2i(5, 5), false).error, locked)
+	assert_eq(inv.move_item(outside.id, Inventory.item_grid_key(pack.id, 0), Vector2i(2, 2), false).error, locked)
+	assert_eq(inv.move_item(inside.id, Inventory.pocket_key(1), Vector2i.ZERO, false).error, locked)
+	assert_eq(inv.equip(pack.id, EquipmentSlots.Slot.BACKPACK).error, locked)
+	assert_eq(inv.discard(inside.id).error, locked)
+	assert_eq(inv.add_item(_plain(), Inventory.STASH, Vector2i(9, 9), false).error, locked)
+	assert_true(inv.move_item(outside.id, Inventory.pocket_key(1), Vector2i.ZERO, false).ok)
+	inv.stash_locked = false
+	assert_true(inv.move_item(inside.id, Inventory.pocket_key(2), Vector2i.ZERO, false).ok)
+	assert_true(inv.is_consistent())
