@@ -75,6 +75,8 @@ func grid_keys() -> Array[StringName]:
 func add_item(item: ItemInstance, key: StringName, cell: Vector2i, p_rotated: bool) -> CommandResult:
 	if _items.has(item.id):
 		return CommandResult.failure(CommandResult.ALREADY_ADDED)
+	if _has_nested_container(item):
+		return CommandResult.failure(CommandResult.NESTING_NOT_ALLOWED)
 	var error: StringName = _check_grid_target(item, key)
 	if error != &"":
 		return CommandResult.failure(error)
@@ -102,6 +104,8 @@ func auto_add_item(item: ItemInstance, keys: Array[StringName]) -> CommandResult
 func add_equipped(item: ItemInstance, slot: EquipmentSlots.Slot) -> CommandResult:
 	if _items.has(item.id):
 		return CommandResult.failure(CommandResult.ALREADY_ADDED)
+	if _has_nested_container(item):
+		return CommandResult.failure(CommandResult.NESTING_NOT_ALLOWED)
 	var error: StringName = _check_slot_target(item, slot)
 	if error != &"":
 		return CommandResult.failure(error)
@@ -232,6 +236,15 @@ func _check_grid_target(item: ItemInstance, key: StringName) -> StringName:
 	return &""
 
 
+## 미리 채워진 컨테이너(루팅 스폰 등)가 중첩 규칙을 어기는 내용물을 갖고 있는지.
+func _has_nested_container(item: ItemInstance) -> bool:
+	for grid: ItemGrid in item.grids:
+		for child: ItemInstance in grid.get_items():
+			if child.def.is_container():
+				return true
+	return false
+
+
 func _check_slot_target(item: ItemInstance, slot: EquipmentSlots.Slot) -> StringName:
 	if not EquipmentSlots.accepts(slot, item.def):
 		return CommandResult.SLOT_NOT_ALLOWED
@@ -245,7 +258,12 @@ func _parse_item_grid_key(key: StringName) -> Vector2i:
 	if parts.size() != 3 or parts[0] != "item" \
 			or not parts[1].is_valid_int() or not parts[2].is_valid_int():
 		return Vector2i(-1, -1)
-	return Vector2i(parts[1].to_int(), parts[2].to_int())
+	var item_id: int = parts[1].to_int()
+	var index: int = parts[2].to_int()
+	# 정규 형태만 허용: 음수·앞자리 0("item_05_0") 등은 거부해 키 하나가 그리드 하나에만 대응하게 한다.
+	if item_id <= 0 or index < 0 or str(item_id) != parts[1] or str(index) != parts[2]:
+		return Vector2i(-1, -1)
+	return Vector2i(item_id, index)
 
 
 ## 현재 컨테이너(그리드 또는 슬롯)에서 꺼낸다. 등록은 유지한다.

@@ -1178,3 +1178,28 @@ func _all_reachable(inv: Inventory) -> bool:
 			if grid == null or not grid.has_item(item):
 				return false
 	return true
+
+
+# --- 회귀: 키 정규 형태, 미리 채워진 컨테이너 ---
+
+func test_get_grid_rejects_non_canonical_item_keys() -> void:
+	var inv := Inventory.new(Vector2i(10, 10))
+	var pack := _backpack()
+	assert_true(inv.add_item(pack, Inventory.STASH, Vector2i.ZERO, false).ok)
+	assert_not_null(inv.get_grid(Inventory.item_grid_key(pack.id, 0)))
+	assert_null(inv.get_grid(StringName("item_0%d_0" % pack.id)))
+	assert_null(inv.get_grid(StringName("item_%d_00" % pack.id)))
+	assert_null(inv.get_grid(StringName("item_%d_+0" % pack.id)))
+
+
+func test_prefilled_container_holding_container_is_rejected() -> void:
+	var inv := Inventory.new(Vector2i(10, 10))
+	var outer := _backpack(6, 6)
+	var inner := _backpack(2, 2)
+	assert_true(outer.grids[0].try_place(inner, Vector2i.ZERO, false))
+	assert_eq(inv.add_item(outer, Inventory.STASH, Vector2i.ZERO, false).error,
+			CommandResult.NESTING_NOT_ALLOWED)
+	assert_eq(inv.add_equipped(outer, EquipmentSlots.Slot.BACKPACK).error,
+			CommandResult.NESTING_NOT_ALLOWED)
+	assert_eq(inv.get_items().size(), 0)
+	assert_true(inv.is_consistent())
