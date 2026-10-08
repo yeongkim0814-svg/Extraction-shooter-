@@ -118,7 +118,7 @@ Godot은 임포트 시 메시 LOD를 자동 생성한다 (수동 LOD 제작 불�
 3. Nomad Sculpt 직접 제작 → 부족한 부분만 Blender
 
 - 모든 외부 에셋은 [ASSET_LICENSES.md](ASSET_LICENSES.md)에 출처·라이선스 기록
-- 바이너리(glb·png·wav·ogg 등)는 **Git LFS**로 관리
+- 바이너리는 일반 Git으로 관리 (클라우드 환경에서 LFS 업로드 불가, MVP 에셋은 작음). 대형 에셋이 늘면 재검토
 
 ## 8. 오디오
 
