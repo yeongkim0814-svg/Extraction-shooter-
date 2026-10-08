@@ -4,6 +4,7 @@ config_version=5
 [application]
 
 config/name="Extraction Shooter"
+run/main_scene="res://scenes/dev/platform_test.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 
 [debug]
