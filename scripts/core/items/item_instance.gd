@@ -8,9 +8,14 @@ const NOT_PLACED := Vector2i(-1, -1)
 var id: int
 var def: ItemDef
 var stack_count: int
+var found_in_raid: bool = false
 ## 그리드 안에서의 좌상단 칸과 회전 여부. 그리드에 없으면 NOT_PLACED.
 var position: Vector2i = NOT_PLACED
 var rotated: bool = false
+## 현재 들어 있는 그리드 또는 장비 슬롯의 키 (Inventory가 관리). 어디에도 없으면 &"".
+var container_key: StringName = &""
+## def.grids에 대응하는 내부 그리드 (컨테이너 아이템만).
+var grids: Array[ItemGrid] = []
 
 
 func _init(p_id: int, p_def: ItemDef, p_stack_count: int = 1) -> void:
@@ -18,6 +23,8 @@ func _init(p_id: int, p_def: ItemDef, p_stack_count: int = 1) -> void:
 	id = p_id
 	def = p_def
 	stack_count = clampi(p_stack_count, 1, p_def.max_stack)
+	for size: Vector2i in p_def.grids:
+		grids.append(ItemGrid.new(size.x, size.y))
 
 
 ## 회전 여부에 따른 점유 크기 (가로, 세로).
