@@ -1,0 +1,17 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  gut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/godot
+          key: godot-4.4.1-stable-linux-x86_64
+      - run: tools/install_godot.sh
+      - run: tools/run_tests.sh

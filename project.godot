@@ -1,0 +1,30 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="Extraction Shooter"
+config/features=PackedStringArray("4.4", "Mobile")
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+gdscript/warnings/exclude_addons=true
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
