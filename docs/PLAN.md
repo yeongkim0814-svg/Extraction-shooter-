@@ -7,7 +7,7 @@
 | 항목 | 결정 |
 |---|---|
 | 장르 | Extraction shooter, 테트리스형(그리드) 인벤토리·스태시 |
-| 엔진 | **Godot 4.4.x**, GDScript(정적 타입) |
+| 엔진 | **Godot 4.7.x**, GDScript(정적 타입) |
 | 렌더러 | Android = Mobile, 웹 = Compatibility |
 | 시점 | FPS |
 | 플랫폼 | 모바일(폰·태블릿) + 웹. 우선순위 Android → 데스크톱 웹 → 모바일 웹 |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Godot 4.4.1 설치 (idempotent). 바이너리 경로를 stdout 마지막 줄에 출력한다.
+# Godot 4.7.2 설치 (idempotent). 바이너리 경로를 stdout 마지막 줄에 출력한다.
 set -euo pipefail
-VERSION="4.4.1-stable"
+VERSION="4.7.2-stable"
 DIR="${GODOT_DIR:-$HOME/.local/godot}"
 BIN="$DIR/Godot_v${VERSION}_linux.x86_64"
 if [ ! -x "$BIN" ]; then

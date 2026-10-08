@@ -2,7 +2,7 @@
 
 ## 1. 스택
 
-- **Godot 4.4.x** (stable 고정, 사용자·컨테이너·CI 모두 같은 버전)
+- **Godot 4.7.x** (stable 고정, 사용자·컨테이너·CI 모두 같은 버전)
 - 언어: **GDScript, 정적 타입 강제** (`debug/gdscript/warnings/untyped_declaration = error`)
   - C#을 쓰지 않는 이유: Godot 4의 C# 프로젝트는 웹 내보내기를 지원하지 않음
 - 렌더러: Android = **Mobile**, 웹 = **Compatibility** (웹은 Compatibility만 지원)

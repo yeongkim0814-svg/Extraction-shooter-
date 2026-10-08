@@ -10,6 +10,6 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.local/godot
-          key: godot-4.4.1-stable-linux-x86_64
+          key: godot-4.7.2-stable-linux-x86_64
       - run: tools/install_godot.sh
       - run: tools/run_tests.sh

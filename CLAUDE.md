@@ -12,7 +12,7 @@
 - 아주 작은 수정은 에이전트를 띄우지 않고 직접 한다.
 
 ## 프로젝트 규약
-- 엔진: Godot 4.4.x, 정적 타입 GDScript (`untyped_declaration` = error)
+- 엔진: Godot 4.7.x, 정적 타입 GDScript (`untyped_declaration` = error)
 - `scripts/core/`는 RefCounted 기반 순수 로직. Node·씬 트리 의존 금지
 - 테스트: GUT, `tools/run_tests.sh`로 헤드리스 실행
 - 설계 문서: `docs/PLAN.md`(로드맵), `docs/GDD.md`, `docs/ART.md`, `docs/TECH.md`
