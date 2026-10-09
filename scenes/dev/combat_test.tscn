@@ -1,0 +1,156 @@
+[gd_scene load_steps=20 format=3]
+[ext_resource type="Script" path="res://scripts/game/dev/combat_test.gd" id="1_test"]
+[ext_resource type="PackedScene" path="res://scenes/game/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="4_touch"]
+[ext_resource type="Script" path="res://scripts/game/combat/target_dummy.gd" id="5_dummy"]
+[ext_resource type="Script" path="res://scripts/game/player/desktop_input.gd" id="6_desktop"]
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.35, 0.5, 0.75, 1)
+sky_horizon_color = Color(0.7, 0.75, 0.8, 1)
+ground_horizon_color = Color(0.7, 0.75, 0.8, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.63, 0.66, 1)
+ambient_light_energy = 0.9
+tonemap_mode = 3
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.34, 0.36, 0.4, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_wall"]
+albedo_color = Color(0.52, 0.53, 0.56, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_cover"]
+albedo_color = Color(0.55, 0.44, 0.28, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_ramp"]
+albedo_color = Color(0.38, 0.5, 0.45, 1)
+roughness = 0.9
+
+[node name="CombatTest" type="Node3D"]
+script = ExtResource("1_test")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9, 0.6, 0)
+position = Vector3(0, 12, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 50.0
+
+[node name="SpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 18)
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+use_collision = true
+size = Vector3(40, 0.2, 40)
+material = SubResource("Mat_floor")
+
+[node name="WallNorth" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -20.25)
+use_collision = true
+size = Vector3(40.5, 2.5, 0.5)
+material = SubResource("Mat_wall")
+
+[node name="WallSouth" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 20.25)
+use_collision = true
+size = Vector3(40.5, 2.5, 0.5)
+material = SubResource("Mat_wall")
+
+[node name="WallEast" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.25, 1.25, 0)
+use_collision = true
+size = Vector3(0.5, 2.5, 40.5)
+material = SubResource("Mat_wall")
+
+[node name="WallWest" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.25, 1.25, 0)
+use_collision = true
+size = Vector3(0.5, 2.5, 40.5)
+material = SubResource("Mat_wall")
+
+[node name="CoverA" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.6, 12)
+use_collision = true
+size = Vector3(2, 1.2, 0.6)
+material = SubResource("Mat_cover")
+
+[node name="CoverB" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.6, 4)
+use_collision = true
+size = Vector3(2.4, 1.2, 0.6)
+material = SubResource("Mat_cover")
+
+[node name="CoverC" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.9, -6)
+use_collision = true
+size = Vector3(1.5, 1.8, 1.5)
+material = SubResource("Mat_cover")
+
+[node name="CoverD" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.5, -12)
+use_collision = true
+size = Vector3(3, 1.0, 0.8)
+material = SubResource("Mat_cover")
+
+[node name="Platform" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.75, -6)
+use_collision = true
+size = Vector3(6, 1.5, 6)
+material = SubResource("Mat_ramp")
+
+[node name="Ramp" type="CSGBox3D" parent="Geometry"]
+rotation = Vector3(0.245, 0, 0)
+position = Vector3(13, 0.65, 0)
+use_collision = true
+size = Vector3(4, 0.2, 6.19)
+material = SubResource("Mat_ramp")
+
+[node name="Targets" type="Node3D" parent="."]
+
+[node name="Dummy10m" type="StaticBody3D" parent="Targets"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, 8.0)
+script = ExtResource("5_dummy")
+target_name = "dummy10"
+armor_class = 0
+body_color = Color(0.92, 0.58, 0.22, 1)
+
+[node name="Dummy20m" type="StaticBody3D" parent="Targets"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.78, 0, -1.81)
+script = ExtResource("5_dummy")
+target_name = "dummy20"
+armor_class = 3
+body_color = Color(0.3, 0.55, 0.9, 1)
+
+[node name="Dummy35m" type="StaticBody3D" parent="Targets"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.66, 0, -16.81)
+script = ExtResource("5_dummy")
+target_name = "dummy35"
+armor_class = 5
+body_color = Color(0.6, 0.35, 0.85, 1)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="DesktopInput" type="Node" parent="."]
+script = ExtResource("6_desktop")
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Hud" parent="UI" instance=ExtResource("3_hud")]
+
+[node name="TouchControls" parent="UI" instance=ExtResource("4_touch")]

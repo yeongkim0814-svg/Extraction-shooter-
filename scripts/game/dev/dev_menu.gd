@@ -1,17 +1,19 @@
 extends Control
 ## 개발용 시작 메뉴. 버튼으로 데모 씬을 열거나, 실행 인자로 바로 연다:
-##   네이티브: godot -- --scene=inventory | --scene=platform
-##   웹:      index.html?scene=inventory | ?scene=platform
+##   네이티브: godot -- --scene=inventory | --scene=platform | --scene=combat
+##   웹:      index.html?scene=inventory | ?scene=platform | ?scene=combat
 
 const SCENES: Dictionary[String, String] = {
 	"platform": "res://scenes/dev/platform_test.tscn",
 	"inventory": "res://scenes/dev/inventory_demo.tscn",
+	"combat": "res://scenes/dev/combat_test.tscn",
 }
 
 
 func _ready() -> void:
 	%PlatformButton.pressed.connect(_open.bind("platform"))
 	%InventoryButton.pressed.connect(_open.bind("inventory"))
+	%CombatButton.pressed.connect(_open.bind("combat"))
 	var requested: String = _requested_scene()
 	if SCENES.has(requested):
 		# 씬 트리가 준비된 뒤에 전환한다

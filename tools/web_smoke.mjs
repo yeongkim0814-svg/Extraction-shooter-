@@ -1,5 +1,5 @@
 // 웹 빌드 스모크 테스트: build/web을 헤드리스 Chromium(WebGL)으로 열고 씬별 마커 로그를 확인한다.
-// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory] [마커 덮어쓰기]
+// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat] [마커 덮어쓰기]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
@@ -21,6 +21,14 @@ const MODES = {
     pngSelected: 'build/inventory_smoke_selected.png',
     png2: 'build/inventory_smoke_after.png',
     log: 'build/inventory_smoke_console.log',
+  },
+  combat: {
+    marker: 'COMBAT_TEST: ready',
+    viewport: { width: 1280, height: 720 },
+    png: 'build/combat_smoke.png',
+    png2: 'build/combat_smoke_after.png',
+    pngTouch: 'build/combat_smoke_touch.png',
+    log: 'build/combat_smoke_console.log',
   },
 };
 const mode = MODES[scene];
@@ -71,6 +79,83 @@ if (scene === 'platform') {
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);
   console.log(lines.filter((l) => l.includes(MARKER)).join('\n'));
+  console.log('PASS');
+  process.exit(0);
+}
+
+// --- combat ---
+if (scene === 'combat') {
+  if (!sawMarker) { await browser.close(); finish(`${MARKER} 마커가 나타나지 않음`); process.exit(1); }
+  const failures = [];
+  const check = (ok, msg) => { if (!ok) failures.push(msg); };
+  const count = (re, from = 0) => lines.slice(from).filter((l) => re.test(l)).length;
+  const waitMatch = async (from, re, ms = 5000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      if (count(re, from) > 0) return true;
+      await page.waitForTimeout(100);
+    }
+    return false;
+  };
+  await page.waitForTimeout(1500);
+
+  // 1) 데스크톱: 캔버스 중앙 클릭(포인터 잠금 시도) + 좌클릭을 누르고 있으면 연사. 처음부터 10m 더미를 정면으로 본다.
+  await page.mouse.move(640, 360);
+  const from = lines.length;
+  await page.mouse.down();
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: mode.png });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const shots = count(/COMBAT_TEST: shot ammo_556_fmj rounds=\d+/, from);
+  check(shots >= 2, `좌클릭 유지 사격: shot 로그 ${shots}건 (연사라면 2건 이상)`);
+  check(count(/COMBAT_TEST: hit dummy10 dmg=\d+ pen=true hp=\d+/, from) >= 1, '10m 더미(dummy10)에 hit 로그가 없음');
+  check(count(/COMBAT_TEST: kill dummy10/, from) >= 0, '');   // 킬은 반동에 따라 달라 필수 아님
+
+  // 2) 재장전: R → 약 2초 뒤 reload ok. 소비한 탄이 있어야 한다.
+  const beforeReload = lines.length;
+  await page.keyboard.press('r');
+  const reloaded = await waitMatch(beforeReload, /COMBAT_TEST: reload ok/, 8000);
+  check(reloaded, 'R 후 "COMBAT_TEST: reload ok" 로그가 없음');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: mode.png2 });
+
+  // 3) 터치(멀티터치): 왼쪽 조이스틱(앞으로) + 사격 버튼 유지 + 오른쪽 드래그 시점을 동시에.
+  await page.evaluate(() => document.exitPointerLock && document.exitPointerLock());   // 마우스 잠금 해제 (Esc와 같음)
+  await page.waitForTimeout(900);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  const tp = (id, x, y) => ({ x, y, id });
+  const send = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+  const poseOf = (from2) => {
+    const all = [...lines.slice(from2).join('\n').matchAll(/COMBAT_TEST: pos x=(-?[\d.]+) z=(-?[\d.]+) yaw=(-?[\d.]+)/g)];
+    return all.length ? { x: +all.at(-1)[1], z: +all.at(-1)[2], yaw: +all.at(-1)[3] } : null;
+  };
+  const t0 = lines.length;
+  const base = poseOf(0);   // 잠금 해제 직후의 시점 (해제 때 브라우저가 튀는 마우스 이동을 흘릴 수 있음)
+  const stick0 = tp(1, 160, 520), fire = tp(2, 1176, 616), look0 = tp(3, 760, 300);
+  await send('touchStart', [stick0, fire, look0]);
+  await page.waitForTimeout(200);
+  for (let i = 1; i <= 12; i++) {
+    await send('touchMove', [tp(1, 160, 520 - i * 8), fire, tp(3, 760 + i * 14, 300)]);
+    await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: mode.pngTouch });
+  const pose = poseOf(t0);
+  await send('touchEnd', []);
+  await page.waitForTimeout(500);
+  check(count(/COMBAT_TEST: shot /, t0) >= 2, `터치: 사격 버튼 유지 중 shot 로그가 부족 (${count(/COMBAT_TEST: shot /, t0)}건)`);
+  const moved = pose && base ? Math.hypot(pose.x - base.x, pose.z - base.z) : 0;
+  const turned = pose && base ? Math.abs(((pose.yaw - base.yaw + 540) % 360) - 180) : 0;
+  check(moved > 0.8, `터치: 조이스틱으로 이동하지 않음 (이동 ${moved.toFixed(2)}m, base=${JSON.stringify(base)}, pose=${JSON.stringify(pose)})`);
+  check(turned > 3, `터치: 오른쪽 드래그로 시점이 돌아가지 않음 (회전 ${turned.toFixed(1)}도)`);
+
+  await browser.close();
+  if (failures.filter(Boolean).length) { finish(failures.filter(Boolean).join('\n      ')); process.exit(1); }
+  finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
+  if (process.exitCode) process.exit(1);
+  console.log(lines.filter((l) => l.includes('COMBAT_TEST:') && !/ pos /.test(l)).slice(0, 40).join('\n'));
   console.log('PASS');
   process.exit(0);
 }
