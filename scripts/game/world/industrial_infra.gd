@@ -22,8 +22,12 @@ const RAIL_X: float = 81.9
 # --- 지면·담장·도로 ---
 
 static func build_ground(m: IndustrialMap) -> void:
+	if m.add_zone(&"ground"):
+		# 구역 씬(ZoneGround)이 눈에 보이는 바닥·도로·웅덩이를 맡는다. 발 밑 충돌 판은 그대로 둔다.
+		m.collider(Vector3(0, -0.2, 0), Vector3(HALF * 2.0, 0.4, HALF * 2.0))
+		_weed_lines(m)
+		return
 	m.box(Vector3(0, -0.2, 0), Vector3(HALF * 2.0, 0.4, HALF * 2.0), GROUND)
-	_perimeter(m)
 	# 콘크리트 판 (야적장·공장 앞마당·창고 앞)
 	m.overlay(6.0, 38.0, -27.0, 33.0, CONCRETE, 0.0)
 	m.overlay(-46.0, 12.0, -48.0, -37.0, CONCRETE, 0.0)
@@ -43,6 +47,11 @@ static func build_ground(m: IndustrialMap) -> void:
 		m.overlay(-0.08, 0.08, z, z + 1.8, PAINT_WHITE, 0.01)
 		z += 4.0
 	_puddles(m)
+	_weed_lines(m)
+
+
+## 잡초 구간 (담장 안쪽 가장자리, 철길 옆, 건물 밑동). 구역 씬 여부와 상관없이 같다.
+static func _weed_lines(m: IndustrialMap) -> void:
 	# 잡초 구간 (담장 안쪽 가장자리, 철길 옆, 건물 밑동)
 	var e: float = HALF - 1.6
 	m.weed_lines.append_array([Vector3(-e, 0, -e), Vector3(e, 0, -e), Vector3(-e, 0, e), Vector3(-7, 0, e),
@@ -95,6 +104,7 @@ static func _puddles(m: IndustrialMap) -> void:
 # --- 철길·배관 랙·크레인·철탑 ---
 
 static func build(m: IndustrialMap) -> void:
+	_perimeter(m)
 	_railway(m)
 	_rack_x(m, -40.0, 40.0, -31.0)
 	_rack_z(m, -64.0, -10.0, -52.0)

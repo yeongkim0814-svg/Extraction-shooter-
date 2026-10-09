@@ -36,6 +36,7 @@ func _bake(zone: StringName) -> bool:
 	if not ZoneCatalog.build(zone, zb):
 		print("ZONE: FAIL %s (정의 없음)" % zone)
 		return false
+	_cell_m = zb.cell_m
 	var dir: String = "%s/%s" % [OUT_DIR, zone]
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 	_clear_dir(dir)
@@ -69,6 +70,7 @@ func _bake(zone: StringName) -> bool:
 	root.name = "Zone" + String(zone).to_pascal_case()
 	var cell_count: int = 0
 	var over: int = 0
+	var cell_tris: int = 0
 	for key: Vector2i in cells:
 		var mesh := ArrayMesh.new()
 		var per_mat: Dictionary = cells[key]
@@ -79,6 +81,8 @@ func _bake(zone: StringName) -> bool:
 			mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
 		if mesh.lightmap_unwrap(Transform3D.IDENTITY, TEXEL_SIZE) != OK:
 			push_warning("ZONE: lightmap_unwrap 실패 %s %s" % [zone, key])
+		for si: int in range(mesh.get_surface_count()):
+			cell_tris += int((mesh.surface_get_arrays(si)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3)
 		var hint: Vector2i = mesh.get_lightmap_size_hint()
 		if hint.x > HINT_WARN or hint.y > HINT_WARN:
 			over += 1
@@ -92,6 +96,8 @@ func _bake(zone: StringName) -> bool:
 		mi.name = "Cell_%d_%d" % [key.x + 1000, key.y + 1000]
 		mi.mesh = mesh
 		mi.gi_mode = GeometryInstance3D.GI_MODE_STATIC
+		if not zb.cast_shadows:
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(mi)
 		cell_count += 1
 	root.add_child(body)
@@ -117,16 +123,20 @@ func _bake(zone: StringName) -> bool:
 		root.free()
 		return false
 	root.free()
-	print("ZONE: %s pieces=%d customs=%d cells=%d shapes=%d lights=%d tris=%d big_hints=%d" % [
-		zone, zb.pieces.size(), zb.customs.size(), cell_count, shape_count, zb.lights.size(), tris, over])
+	print("ZONE: %s pieces=%d customs=%d cells=%d shapes=%d lights=%d tris=%d (칸 메시 합 %d) big_hints=%d" % [
+		zone, zb.pieces.size(), zb.customs.size(), cell_count, shape_count, zb.lights.size(), tris, cell_tris, over])
 	return true
 
 
-static func _cell_of(p: Vector3) -> Vector2i:
-	return Vector2i(floori(p.x / CELL_M), floori(p.z / CELL_M))
+## 지금 굽는 구역의 칸 크기 (ZoneBuilder.cell_m).
+var _cell_m: float = CELL_M
 
 
-static func _tool_for(cells: Dictionary[Vector2i, Dictionary], key: Vector2i, mat: Material) -> SurfaceTool:
+func _cell_of(p: Vector3) -> Vector2i:
+	return Vector2i(floori(p.x / _cell_m), floori(p.z / _cell_m))
+
+
+func _tool_for(cells: Dictionary[Vector2i, Dictionary], key: Vector2i, mat: Material) -> SurfaceTool:
 	if not cells.has(key):
 		cells[key] = {}
 	var per_mat: Dictionary = cells[key]
@@ -138,15 +148,15 @@ static func _tool_for(cells: Dictionary[Vector2i, Dictionary], key: Vector2i, ma
 
 
 ## 부품 메시 전체를 부품 중심이 속한 칸 하나에 넣는다 (부품을 쪼개지 않는다).
-static func _add_mesh(cells: Dictionary[Vector2i, Dictionary], mesh: ArrayMesh, xform: Transform3D) -> void:
+func _add_mesh(cells: Dictionary[Vector2i, Dictionary], mesh: ArrayMesh, xform: Transform3D) -> void:
 	var key: Vector2i = _cell_of(xform * mesh.get_aabb().get_center())
 	for s: int in range(mesh.get_surface_count()):
 		_tool_for(cells, key, mesh.surface_get_material(s)).append_from(mesh, s, xform)
 
 
 ## 큰 메시(바닥·맞춤 지오메트리)는 MeshChunker로 칸마다 잘라 넣는다.
-static func _add_split(cells: Dictionary[Vector2i, Dictionary], mesh: ArrayMesh) -> void:
-	for part: ArrayMesh in MeshChunker.split_mesh(mesh, CELL_M):
+func _add_split(cells: Dictionary[Vector2i, Dictionary], mesh: ArrayMesh) -> void:
+	for part: ArrayMesh in MeshChunker.split_mesh(mesh, _cell_m):
 		_add_mesh(cells, part, Transform3D.IDENTITY)
 
 

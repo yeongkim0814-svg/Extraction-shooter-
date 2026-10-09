@@ -23,12 +23,16 @@ var zone_name: StringName
 var pieces: Array[Array] = []
 ## 맞춤 지오메트리: 이름 -> KitBuild.
 var customs: Dictionary[String, KitBuild] = {}
-## 바닥: [재질 ID, Rect2(xz), y].
+## 바닥: [재질 ID, Rect2(xz), y, 정점 색].
 var grounds: Array[Array] = []
 ## 빛: [이름, 종류, Transform3D]. 램프 부품 표식에서 자동으로 채우고, light()로 직접 넣을 수도 있다.
 var lights: Array[Array] = []
 ## 빛 세기 배율 (구역 분위기 조절).
 var light_scale: float = 1.0
+## 굽기 칸 크기 (m). 넓고 성긴 구역(바닥·시설)은 키워서 그리기 호출을 줄인다.
+var cell_m: float = 16.0
+## 칸 메시가 그림자를 드리울지 (바닥만 있는 구역은 끈다: 그림자 패스 그리기 호출 절감).
+var cast_shadows: bool = true
 
 var _kit_cache: Dictionary[StringName, KitBuild] = {}
 
@@ -70,8 +74,9 @@ func custom(custom_name: String) -> KitBuild:
 	return customs[custom_name]
 
 
-func ground(id: StringName, rect: Rect2, y: float = 0.015) -> void:
-	grounds.append([id, rect, y])
+## 바닥 판. tint = kit_ground 정점 색 (흰색 = 마른 맨바닥, R 낮춤 = 젖음, G 낮춤 = 흙, B 낮춤 = 이끼).
+func ground(id: StringName, rect: Rect2, y: float = 0.015, tint: Color = Color.WHITE) -> void:
+	grounds.append([id, rect, y, tint])
 
 
 func light(light_name: String, kind: String, pos: Vector3) -> void:
@@ -118,9 +123,10 @@ func ground_mesh(rec: Array) -> ArrayMesh:
 	var mb := MeshBuilder.new()
 	mb.with_tangents = true
 	mb.surface(KitMaterials.get_material(rec[0] as StringName))
+	mb.color(rec[3] as Color)
 	var r: Rect2 = rec[1]
 	var y: float = rec[2]
-	mb.subdiv_max = 4.0
+	mb.subdiv_max = 8.0
 	mb.add_quad(Transform3D.IDENTITY, Vector3(r.position.x, y, r.position.y), Vector3(r.end.x, y, r.position.y),
 			Vector3(r.end.x, y, r.end.y), Vector3(r.position.x, y, r.end.y), Vector3.UP)
 	return mb.build()
