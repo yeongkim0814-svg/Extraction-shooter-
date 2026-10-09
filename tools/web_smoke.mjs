@@ -1,5 +1,5 @@
 // 웹 빌드 스모크 테스트: build/web을 헤드리스 Chromium(WebGL)으로 열고 씬별 마커 로그를 확인한다.
-// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod|ai|raid] [마커 덮어쓰기]
+// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod|ai|raid|style] [마커 덮어쓰기]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
@@ -51,6 +51,14 @@ const MODES = {
     pngSearch: 'build/raid_smoke_search.png',
     pngResults: 'build/raid_smoke_results.png',
     log: 'build/raid_smoke_console.log',
+  },
+  // 스타일 비교: ?scene=style_a 3컷 → ?scene=style_b 3컷 (1·2·3 키) → build/style_{a,b}_{1,2,3}.png + 렌더 통계 확인
+  style: {
+    marker: 'STYLE: ready',
+    urlScene: 'style_a',
+    viewport: { width: 1280, height: 720 },
+    png: 'build/style_a_1.png',
+    log: 'build/style_smoke_console.log',
   },
   // 인벤토리 데모에서 소총 선택 → 모딩 → 소음기 장착/분리 (MOD_SCREEN 로그와 weapon_changed 이벤트 확인)
   mod: {
@@ -469,6 +477,55 @@ if (scene === 'ai') {
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);
   console.log(lines.filter((l) => /AI_TEST: (enemy_dead|loot_)/.test(l)).join('\n'));
+  console.log('PASS');
+  process.exit(0);
+}
+
+// --- style ---
+if (scene === 'style') {
+  const failures = [];
+  const check = (ok, msg) => { if (!ok) failures.push(msg); };
+  const waitMatch = async (from, re, ms) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const m = re.exec(lines.slice(from).join('\n'));
+      if (m) return m;
+      await page.waitForTimeout(100);
+    }
+    return null;
+  };
+  const stats = {};
+  for (const letter of ['a', 'b']) {
+    let from = 0;
+    if (letter === 'b') {
+      from = lines.length;
+      await page.goto(`${baseUrl}?scene=style_b`);
+    }
+    const ready = await waitMatch(from, new RegExp(`STYLE: ready ${letter}`), 90000);
+    check(!!ready, `"STYLE: ready ${letter}"가 90초 안에 없음`);
+    if (!ready) break;
+    await page.waitForTimeout(2500);
+    await page.mouse.move(640, 360);
+    for (const n of [1, 2, 3]) {
+      const s0 = lines.length;
+      await page.keyboard.press(String(n));
+      const hit = await waitMatch(s0, new RegExp(`STYLE: shot ${n}\\b[\\s\\S]*STYLE: render draw_calls=(\\d+) primitives=(\\d+)`), 20000);
+      check(!!hit, `${letter} ${n}번 키 뒤에 "STYLE: shot ${n}" + render 통계가 없음`);
+      if (hit) {
+        stats[`${letter}${n}`] = { draw_calls: +hit[1], primitives: +hit[2] };
+        check(+hit[1] > 0 && +hit[2] > 0, `${letter}${n} 렌더 통계가 0`);
+      }
+      await page.waitForTimeout(2500);
+      await page.screenshot({ path: `build/style_${letter}_${n}.png` });
+    }
+  }
+  await browser.close();
+  check(has('STYLE: decals'), '"STYLE: decals" 로그 없음');
+  if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }
+  finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
+  if (process.exitCode) process.exit(1);
+  console.log(lines.filter((l) => /STYLE: /.test(l)).join('\n'));
+  console.log(JSON.stringify(stats));
   console.log('PASS');
   process.exit(0);
 }
