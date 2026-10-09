@@ -4,6 +4,7 @@ extends Control
 
 var _item: ItemInstance = null
 var _rotated: bool = false
+var _cell: int = InventoryItemPainter.CELL_SIZE
 
 
 func _ready() -> void:
@@ -11,17 +12,18 @@ func _ready() -> void:
 	visible = false
 
 
-func show_item(item: ItemInstance, p_rotated: bool) -> void:
+func show_item(item: ItemInstance, p_rotated: bool, p_cell: int = InventoryItemPainter.CELL_SIZE) -> void:
 	_item = item
 	_rotated = p_rotated
-	size = Vector2(item.size_for(p_rotated) * InventoryItemPainter.CELL_SIZE)
+	_cell = p_cell
+	size = Vector2(item.size_for(p_rotated) * _cell)
 	visible = true
 	queue_redraw()
 
 
 func set_rotated(p_rotated: bool) -> void:
 	if _item != null:
-		show_item(_item, p_rotated)
+		show_item(_item, p_rotated, _cell)
 
 
 func hide_ghost() -> void:

@@ -3,9 +3,13 @@ extends RefCounted
 ## 아이템 하나를 CanvasItem 위에 그리는 공용 도우미 (그리드 뷰·장비 슬롯·드래그 고스트가 함께 쓴다).
 ## def.icon이 있으면 아이콘, 없으면 카테고리 색 블록 + 이름.
 
-## 그리드 한 칸의 한 변 (논리 픽셀). 1280x720 기준 48 → 화면이 커지면 stretch로 같이 커진다.
-## 터치 최소 크기 44dp 이상을 유지한다.
+## 그리드 한 칸의 기본 한 변 (논리 픽셀). 실제 화면(InventoryScreen)은 가용 너비에서 칸 크기를 계산해 쓰며
+## MIN_CELL_SIZE 아래로는 줄이지 않는다. 터치 최소 크기 44dp 근처를 유지한다.
 const CELL_SIZE: int = 48
+const MIN_CELL_SIZE: int = 40
+const MAX_CELL_SIZE: int = 56
+## 선택한 아이템의 윤곽선 색.
+const SELECT_COLOR := Color(1.0, 0.86, 0.15)
 
 const _CATEGORY_COLORS: Dictionary[ItemDef.Category, Color] = {
 	ItemDef.Category.MISC: Color("6b7280"),
@@ -56,6 +60,13 @@ static func draw_item(canvas: CanvasItem, font: Font, item: ItemInstance, rect: 
 				Color(0, 0, 0, 0.9 * alpha))
 		canvas.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_RIGHT, width, 13,
 				Color(1, 1, 0.8, alpha))
+
+
+## 선택 표시: 아이템 영역을 굵은 윤곽선과 옅은 색으로 강조한다.
+static func draw_selection(canvas: CanvasItem, rect: Rect2) -> void:
+	canvas.draw_rect(rect.grow(-1.5), Color(SELECT_COLOR, 0.14))
+	canvas.draw_rect(rect.grow(-1.5), Color(0, 0, 0, 0.8), false, 5.0)
+	canvas.draw_rect(rect.grow(-1.5), SELECT_COLOR, false, 3.0)
 
 
 static func _draw_label(canvas: CanvasItem, font: Font, text: String, inner: Rect2, alpha: float) -> void:

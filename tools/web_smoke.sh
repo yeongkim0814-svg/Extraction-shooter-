@@ -2,7 +2,7 @@
 # build/web을 로컬 http.server로 서빙하고 헤드리스 Chromium 스모크 테스트 실행.
 # 사용법: tools/web_smoke.sh [platform|inventory] [기대 마커]
 #   platform (기본): ?scene=platform 로 열고 "PLATFORM_TEST:" 로그를 기다린다.
-#   inventory: ?scene=inventory 로 열고 "INVENTORY_DEMO: ready" 후 마우스 드래그로 아이템을 옮겨 본다.
+#   inventory: ?scene=inventory 로 열고 "INVENTORY_DEMO: ready" 후 드래그·탭 선택 이동·장착/해제·터치·스크롤을 확인한다.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SCENE="${1:-platform}"
