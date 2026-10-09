@@ -9,6 +9,8 @@ extends RefCounted
 ## - UV는 변환 전 로컬 좌표(미터)를 면 방향에 따라 투영한다 (박스 투영). 재질의 uv1_scale로 타일 크기를 정한다.
 ##   world_uv가 true면 월드 위치(도형 축 정렬)를 기준으로 투영한다.
 ## - flat_shading이 true면 면마다 하나의 법선(로우폴리), false면 모따기 부분을 부드럽게 잇는다.
+## - trim_strips가 있으면 UV를 트림시트 줄에 사상한다 (TrimUv): 면마다 줄 하나, U = 월드 미터 / TILE_M, V = 줄 범위.
+## - subdiv_max > 0이면 긴 삼각형을 그 길이 이하로 쪼갠다 (정점 단위 베이크 AO가 큰 면에서도 변화를 담도록).
 ## - 정점 색은 tint(팔레트)와 높이 그라데이션(아래쪽을 어둡게)을 곱해 넣는다. 정점 색을 안 쓰는 재질엔 영향이 없다.
 
 ## 한 재질에 해당하는 정점 배열 묶음.
@@ -33,6 +35,19 @@ var gradient_low: float = 0.0
 var gradient_high: float = 0.0
 var gradient_dark: float = 0.0
 
+## 트림시트 사상: 면 6개(TrimUv.PX..NZ)에 대한 줄의 V 범위. 비어 있으면 끈다.
+var trim_strips: PackedVector2Array = PackedVector2Array()
+## 트림 U 1.0이 가리키는 실제 길이 (m).
+var trim_tile_m: float = TrimLayout.TILE_M
+## 도형 위치로 U를 어긋나게 해 같은 소품이 똑같이 보이지 않게 한다.
+var trim_jitter: bool = false
+## 회전체 옆면을 축 방향 사상으로 (긴 파이프). false면 둘레 감기 (드럼통).
+var trim_axial: bool = false
+## 0보다 크면 이 길이(m)보다 긴 변을 가진 삼각형을 쪼갠다.
+var subdiv_max: float = 0.0
+
+var _lo: Vector3 = Vector3.ZERO
+var _hi: Vector3 = Vector3.ZERO
 var _surfaces: Array[Surface] = []
 var _index: Dictionary[Material, int] = {}
 var _current: Surface
@@ -64,6 +79,11 @@ func set_gradient(y_low: float, y_high: float, dark: float) -> MeshBuilder:
 	return self
 
 
+## 표면 목록 (정점 색 베이크처럼 만든 뒤 정점 배열을 손보는 코드용).
+func surfaces() -> Array[Surface]:
+	return _surfaces
+
+
 ## 만든 표면 수.
 func surface_count() -> int:
 	return _surfaces.size()
@@ -74,6 +94,8 @@ func surface_count() -> int:
 ## 모따기 박스. chamfer가 0이면 평평한 상자. segments가 1이면 45도 면 하나, 2 이상이면 둥글게.
 func add_box(xform: Transform3D, size: Vector3, chamfer: float = 0.0, segments: int = 1) -> void:
 	var h: Vector3 = size * 0.5
+	_lo = -h
+	_hi = h
 	var c: float = minf(chamfer, minf(h.x, minf(h.y, h.z)) * 0.98)
 	if c <= 0.0005:
 		_plain_box(xform, h)
@@ -183,6 +205,15 @@ func _plain_box(xform: Transform3D, h: Vector3) -> void:
 ## 원기둥·원뿔대·모따기 통을 모두 이걸로 만든다.
 func add_revolve(xform: Transform3D, profile: PackedVector2Array, sides: int) -> void:
 	var n: int = maxi(sides, 3)
+	var ymin: float = INF
+	var ymax: float = -INF
+	var rmax: float = 0.0
+	for pt: Vector2 in profile:
+		ymin = minf(ymin, pt.y)
+		ymax = maxf(ymax, pt.y)
+		rmax = maxf(rmax, pt.x)
+	var trim_on: bool = not trim_strips.is_empty()
+	var jit: float = _jitter(xform)
 	for k: int in range(profile.size() - 1):
 		var a: Vector2 = profile[k]
 		var b: Vector2 = profile[k + 1]
@@ -198,13 +229,44 @@ func add_revolve(xform: Transform3D, profile: PackedVector2Array, sides: int) ->
 			var p11 := Vector3(cos(t1) * b.x, b.y, sin(t1) * b.x)
 			var n0 := Vector3(cos(t0) * out2.x, out2.y, sin(t0) * out2.x)
 			var n1 := Vector3(cos(t1) * out2.x, out2.y, sin(t1) * out2.x)
+			var uv00 := Vector2.ZERO
+			var uv10 := Vector2.ZERO
+			var uv01 := Vector2.ZERO
+			var uv11 := Vector2.ZERO
+			if trim_on:
+				var f0: float = float(i) / float(n)
+				var f1: float = float(i + 1) / float(n)
+				if absf(out2.y) > 0.7:
+					var cap_strip: Vector2 = trim_strips[TrimUv.PY if out2.y > 0.0 else TrimUv.NY]
+					uv00 = TrimUv.map_cap(p00.x, p00.z, rmax, cap_strip, trim_tile_m)
+					uv10 = TrimUv.map_cap(p10.x, p10.z, rmax, cap_strip, trim_tile_m)
+					uv01 = TrimUv.map_cap(p01.x, p01.z, rmax, cap_strip, trim_tile_m)
+					uv11 = TrimUv.map_cap(p11.x, p11.z, rmax, cap_strip, trim_tile_m)
+				else:
+					var side: Vector2 = trim_strips[TrimUv.PX]
+					var ta: float = _frac_y(a.y, ymin, ymax)
+					var tb: float = _frac_y(b.y, ymin, ymax)
+					if trim_axial:
+						uv00 = TrimUv.map_axial(f0, a.y - ymin, side, trim_tile_m)
+						uv10 = TrimUv.map_axial(f1, a.y - ymin, side, trim_tile_m)
+						uv01 = TrimUv.map_axial(f0, b.y - ymin, side, trim_tile_m)
+						uv11 = TrimUv.map_axial(f1, b.y - ymin, side, trim_tile_m)
+					else:
+						uv00 = TrimUv.map_wrap(f0, rmax, ta, side, trim_tile_m)
+						uv10 = TrimUv.map_wrap(f1, rmax, ta, side, trim_tile_m)
+						uv01 = TrimUv.map_wrap(f0, rmax, tb, side, trim_tile_m)
+						uv11 = TrimUv.map_wrap(f1, rmax, tb, side, trim_tile_m)
+				uv00.x += jit
+				uv10.x += jit
+				uv01.x += jit
+				uv11.x += jit
 			if a.x <= 0.00001:
-				_emit(xform, p00, p11, p01, n0, n1, n0)
+				_emit(xform, p00, p11, p01, n0, n1, n0, _uv3(trim_on, uv00, uv11, uv01))
 			elif b.x <= 0.00001:
-				_emit(xform, p00, p10, p01, n0, n1, n0)
+				_emit(xform, p00, p10, p01, n0, n1, n0, _uv3(trim_on, uv00, uv10, uv01))
 			else:
-				_emit(xform, p00, p10, p01, n0, n1, n0)
-				_emit(xform, p10, p11, p01, n1, n1, n0)
+				_emit(xform, p00, p10, p01, n0, n1, n0, _uv3(trim_on, uv00, uv10, uv01))
+				_emit(xform, p10, p11, p01, n1, n1, n0, _uv3(trim_on, uv10, uv11, uv01))
 
 
 ## 원기둥 (Y축, 가운데가 원점). bevel > 0이면 양 끝을 모따기한다.
@@ -227,6 +289,13 @@ func add_cylinder(xform: Transform3D, radius: float, height: float, sides: int, 
 ## 2D 프로파일(로컬 XY, 반시계)을 로컬 Z로 length만큼 (가운데 기준) 압출한다. 항상 면마다 법선 하나.
 func add_prism(xform: Transform3D, profile: PackedVector2Array, length: float) -> void:
 	var hz: float = length * 0.5
+	var pmin := Vector2(INF, INF)
+	var pmax := Vector2(-INF, -INF)
+	for pt: Vector2 in profile:
+		pmin = Vector2(minf(pmin.x, pt.x), minf(pmin.y, pt.y))
+		pmax = Vector2(maxf(pmax.x, pt.x), maxf(pmax.y, pt.y))
+	_lo = Vector3(pmin.x, pmin.y, -hz)
+	_hi = Vector3(pmax.x, pmax.y, hz)
 	var count: int = profile.size()
 	for i: int in range(count):
 		var a: Vector2 = profile[i]
@@ -253,19 +322,44 @@ func add_prism(xform: Transform3D, profile: PackedVector2Array, length: float) -
 
 ## 임의 사각형 한 장 (바깥쪽 법선 힌트 필요). 정점은 a-b-c-d 순서.
 func add_quad(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, d: Vector3, outward: Vector3) -> void:
+	_set_bounds([a, b, c, d])
 	_emit(xform, a, b, c, outward, outward, outward)
 	_emit(xform, a, c, d, outward, outward, outward)
 
 
 ## 임의 삼각형 한 장.
 func add_triangle(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, outward: Vector3) -> void:
+	_set_bounds([a, b, c])
 	_emit(xform, a, b, c, outward, outward, outward)
 
 
 # --- 방출 ---
 
 ## 삼각형 하나를 현재 표면에 넣는다. hint 법선은 바깥 방향 판정과 부드러운 법선에 쓴다.
-func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, nb: Vector3, nc: Vector3) -> void:
+func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, nb: Vector3, nc: Vector3,
+		uvs: PackedVector2Array = PackedVector2Array()) -> void:
+	if subdiv_max > 0.0 and uvs.is_empty():
+		var lim: float = subdiv_max * subdiv_max
+		var eab: float = a.distance_squared_to(b)
+		var ebc: float = b.distance_squared_to(c)
+		var eca: float = c.distance_squared_to(a)
+		if maxf(eab, maxf(ebc, eca)) > lim:
+			if eab >= ebc and eab >= eca:
+				var m: Vector3 = (a + b) * 0.5
+				var nm: Vector3 = (na + nb).normalized()
+				_emit(xform, a, m, c, na, nm, nc)
+				_emit(xform, m, b, c, nm, nb, nc)
+			elif ebc >= eca:
+				var m2: Vector3 = (b + c) * 0.5
+				var nm2: Vector3 = (nb + nc).normalized()
+				_emit(xform, a, b, m2, na, nb, nm2)
+				_emit(xform, a, m2, c, na, nm2, nc)
+			else:
+				var m3: Vector3 = (c + a) * 0.5
+				var nm3: Vector3 = (nc + na).normalized()
+				_emit(xform, a, b, m3, na, nb, nm3)
+				_emit(xform, m3, b, c, nm3, nb, nc)
+			return
 	var face: Vector3 = (b - a).cross(c - a)
 	if face.length_squared() < 1e-12:
 		return
@@ -278,6 +372,8 @@ func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, 
 		var tn: Vector3 = nb
 		nb = nc
 		nc = tn
+		if uvs.size() == 3:
+			uvs = PackedVector2Array([uvs[0], uvs[2], uvs[1]])
 		face = -face
 	var flat_n: Vector3 = -face.normalized()
 	var surf: Surface = _current
@@ -286,15 +382,48 @@ func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, 
 	var uv_shift: Vector3 = xform.basis.orthonormalized().transposed() * xform.origin if world_uv else Vector3.ZERO
 	var pts: Array[Vector3] = [a, b, c]
 	var nrm: Array[Vector3] = [na, nb, nc]
+	var trim_on: bool = not trim_strips.is_empty() and uvs.size() != 3
+	var jit: float = _jitter(xform) if trim_on else 0.0
 	for v: int in range(3):
 		var p: Vector3 = pts[v]
 		var wp: Vector3 = xform * p
 		surf.verts.append(wp)
 		var nl: Vector3 = flat_n if flat_shading else nrm[v].normalized()
 		surf.normals.append((basis_n * nl).normalized())
-		surf.uvs.append(_project_uv(p + uv_shift, flat_n))
+		if uvs.size() == 3:
+			surf.uvs.append(uvs[v])
+		elif trim_on:
+			var uv: Vector2 = TrimUv.map_planar(p, _lo, _hi, TrimUv.face_of(nrm[v]), trim_strips[TrimUv.face_of(nrm[v])], trim_tile_m)
+			surf.uvs.append(Vector2(uv.x + jit, uv.y))
+		else:
+			surf.uvs.append(_project_uv(p + uv_shift, flat_n))
 		surf.colors.append(_vertex_color(wp.y))
 	triangle_count += 1
+
+
+## 도형 위치에서 정한 U 어긋남 (0..1, 줄은 가로로 이어지므로 아무 값이나 쓸 수 있다).
+func _jitter(xform: Transform3D) -> float:
+	if not trim_jitter:
+		return 0.0
+	return fposmod(xform.origin.x * 0.173 + xform.origin.y * 0.071 + xform.origin.z * 0.311, 1.0)
+
+
+func _set_bounds(points: Array[Vector3]) -> void:
+	_lo = points[0]
+	_hi = points[0]
+	for p: Vector3 in points:
+		_lo = Vector3(minf(_lo.x, p.x), minf(_lo.y, p.y), minf(_lo.z, p.z))
+		_hi = Vector3(maxf(_hi.x, p.x), maxf(_hi.y, p.y), maxf(_hi.z, p.z))
+
+
+static func _frac_y(y: float, lo: float, hi: float) -> float:
+	return clampf((y - lo) / maxf(hi - lo, 0.00001), 0.0, 1.0)
+
+
+static func _uv3(on: bool, a: Vector2, b: Vector2, c: Vector2) -> PackedVector2Array:
+	if not on:
+		return PackedVector2Array()
+	return PackedVector2Array([a, b, c])
 
 
 static func _project_uv(p: Vector3, n: Vector3) -> Vector2:

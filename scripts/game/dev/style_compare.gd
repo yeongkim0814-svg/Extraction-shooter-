@@ -5,12 +5,15 @@ extends Node3D
 ##   B "스타일라이즈드": 텍스처 없는 팔레트 + 로우폴리 모따기 + 조금 더 짙은 안개·또렷한 빛
 ##   C "레트로 로우폴리": tools/gen_pixel_textures.py의 32~64 px 픽셀 텍스처(최근접) + 로우폴리 지오메트리 + 해질녘 하늘·안개·낮은 태양
 ##                      + 전체 화면 후처리(retro_post.gdshader). 룩 구성은 RetroLook, 재질은 RetroMaterials.
-## A·B의 하늘·환경·안개·태양은 산업단지 맵(M10) 것을 그대로 쓴다. 스타일은 URL ?scene=style_a|style_b|style_c
+##                D "트림시트 스타일라이즈드 PBR": tools/gen_trim_sheets.py의 트림시트 두 장 + 재칠 셰이더(trim_recolor) + 굵고 둥근 모따기
+##                      + 정점 베이크 AO(StyleBake, 라이트맵 대용) + 따뜻한 램프·차가운 낮빛 + 담쟁이·고사리 알파 카드 + 먼지 입자.
+##                      기법은 Godot 4 데모 "Abandoned Spaceship"(Perfoon, MIT)을 따른다. 재질은 TrimMaterials, 소품 배치는 A·B·C와 공유하되 D 분기가 있다.
+## A·B의 하늘·환경·안개·태양은 산업단지 맵(M10) 것을 그대로 쓴다. 스타일은 URL ?scene=style_a|style_b|style_c|style_d
 ## (또는 실행 인자 --scene=style_b)로 고르고, 없으면 내보낸 값(style)을 쓴다.
 ## 고정 카메라 3컷: 1 개요(공장·더미 뒤), 2 컨테이너·웅덩이·트럭 클로즈업, 3 문 안쪽 어두운 내부.
 ## N 키(또는 터치/클릭)로 다음 컷, 1·2·3 키로 직접 이동, 스타일 C에선 P 키로 후처리 켜기/끄기. 로그 접두사 "STYLE: " (ready / shot / render).
 
-enum Style { A, B, C }
+enum Style { A, B, C, D }
 
 const PREFIX: String = "STYLE: "
 const ENV_PATH: String = "res://assets/env/industrial_env.tres"
@@ -25,6 +28,10 @@ const SHOTS: Array[Dictionary] = [
 
 ## 개발 메뉴 버튼이 고른 스타일 (-1이면 URL·실행 인자·내보낸 값을 따른다).
 static var forced_style: int = -1
+## 라이트맵 굽기용 씬을 만드는 모드 (tools/build_style_d_bake_scene.gd): 정점 베이크를 끄고 입자·카메라를 만들지 않는다.
+static var bake_scene_mode: bool = false
+## 정점 베이크 값을 바꾼 조절 손잡이 (튜닝용 로그에 찍힌다).
+const BAKE_RAYS: int = 6
 
 var _kit: StyleKit
 var _camera: Camera3D
@@ -32,26 +39,41 @@ var _sun: DirectionalLight3D
 var _shot: int = 0
 var _decals_ok: bool = false
 var _post: RetroPost
+## 스타일 D 램프 위치 (정점 따뜻함·빛 번짐용): [{pos, radius}].
+var _lamps: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	style = requested_style(style)
+	if style == Style.D:
+		TrimMaterials.vertex_bake_enabled = not bake_scene_mode
+		_lamps = StyleFactory.D_LAMPS.duplicate()
+		_lamps.append_array(StyleFactory.D_GLOW_ONLY)
 	_kit = StyleKit.new(style as int)
 	_build_environment()
 	_build_ground()
 	_build_yard()
 	_build_factory()
 	StyleSkyline.build(_kit)
+	if style == Style.D and not bake_scene_mode and not StyleBake.lightmap_present(self):
+		await StyleBake.run(self, _kit, _lamps, BAKE_RAYS)
 	_kit.commit(self)
 	_build_lights()
 	_build_smoke()
 	_build_decals()
+	if style == Style.D:
+		_build_extras_d()
 	_build_camera()
 	if style == Style.C:
 		_post = RetroPost.new()
 		add_child(_post)
 	print(PREFIX + "ready " + style_letter())
 	print(PREFIX + "geometry triangles=%d groups=%d" % [_kit.triangle_total(), _kit.groups.size()])
+	if OS.get_cmdline_user_args().has("--verbose-groups"):
+		for gname: StringName in _kit.groups:
+			print(PREFIX + "group %s tris=%d" % [gname, (_kit.groups[gname] as MeshBuilder).triangle_count])
+	if bake_scene_mode:
+		return
 	for _i: int in range(3):
 		await get_tree().process_frame
 	_go_shot(0)
@@ -84,6 +106,8 @@ func style_letter() -> String:
 			return "a"
 		Style.B:
 			return "b"
+		Style.D:
+			return "d"
 	return "c"
 
 
@@ -108,6 +132,8 @@ static func requested_style(default_style: Style) -> Style:
 			return Style.B
 		"style_c":
 			return Style.C
+		"style_d":
+			return Style.D
 	return default_style
 
 
@@ -116,6 +142,9 @@ static func requested_style(default_style: Style) -> Style:
 func _build_environment() -> void:
 	if style == Style.C:
 		_build_environment_retro()
+		return
+	if style == Style.D:
+		_build_environment_trim()
 		return
 	var env: Environment = (load(ENV_PATH) as Environment).duplicate() as Environment
 	if style == Style.B:
@@ -154,6 +183,40 @@ func _build_environment() -> void:
 	add_child(_sun)
 
 
+## 스타일 D: M10 흐린 산업단지 환경 + 은은한 글로우 + 차가운 낮빛 태양. 실내는 따뜻한 램프가 대비를 만든다.
+func _build_environment_trim() -> void:
+	var env: Environment = (load(ENV_PATH) as Environment).duplicate() as Environment
+	env.glow_intensity = 0.28
+	env.glow_strength = 0.8
+	env.glow_hdr_threshold = 1.15
+	env.ambient_light_energy = 0.8
+	env.fog_light_color = Color(0.42, 0.5, 0.56)
+	env.adjustment_saturation = 0.9
+	var we := WorldEnvironment.new()
+	we.name = "WorldEnvironment"
+	we.environment = env
+	add_child(we)
+	_sun = DirectionalLight3D.new()
+	_sun.name = "Sun"
+	_sun.add_to_group(&"sun")
+	_sun.position = Vector3(0.0, 12.0, 0.0)
+	_sun.basis = Basis.looking_at(Vector3(0.62, -0.5, -0.6).normalized(), Vector3.UP)
+	_sun.light_color = Color(0.86, 0.92, 1.0)
+	_sun.light_energy = 1.35
+	_sun.shadow_enabled = true
+	_sun.shadow_bias = 0.04
+	_sun.shadow_normal_bias = 1.4
+	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	_sun.directional_shadow_split_1 = 0.28
+	_sun.directional_shadow_blend_splits = true
+	_sun.directional_shadow_max_distance = 45.0
+	_sun.light_angular_distance = 1.2
+	_sun.shadow_blur = 1.6
+	# 라이트맵 굽기 씬에서는 직접광은 실시간, 간접광만 굽는다
+	_sun.light_bake_mode = Light3D.BAKE_DYNAMIC
+	add_child(_sun)
+
+
 ## 스타일 C: 해질녘 하늘 + 청회색 안개 + 차가운 앰비언트 + 낮은 따뜻한 태양.
 func _build_environment_retro() -> void:
 	var we := WorldEnvironment.new()
@@ -166,6 +229,9 @@ func _build_environment_retro() -> void:
 
 
 func _build_lights() -> void:
+	if style == Style.D:
+		_build_lights_trim()
+		return
 	# 매단 램프 (공장 안)
 	var lamp := OmniLight3D.new()
 	lamp.name = "HangingLamp"
@@ -195,6 +261,21 @@ func _build_lights() -> void:
 	spot.look_at(Vector3(-5.2, 0.0, -15.6), Vector3.UP)
 
 
+## 스타일 D 조명: 따뜻한 램프 실제 빛 둘(정적 베이크 대상, 그림자 없음). 나머지 실내 밝기는 정점 베이크·바운스·빛줄기 카드가 맡는다.
+func _build_lights_trim() -> void:
+	for i: int in range(StyleFactory.D_LAMPS.size()):
+		var lamp := OmniLight3D.new()
+		lamp.name = "Lamp%d" % (i + 1)
+		lamp.position = (StyleFactory.D_LAMPS[i]["pos"] as Vector3) + Vector3(0.0, 0.1, 0.0)
+		lamp.light_color = Color(1.0, 0.64, 0.32)
+		lamp.light_energy = 7.0 if i == 0 else 5.0
+		lamp.omni_range = 13.0 if i == 0 else 10.0
+		lamp.omni_attenuation = 1.3
+		lamp.shadow_enabled = false
+		lamp.light_bake_mode = Light3D.BAKE_STATIC
+		add_child(lamp)
+
+
 func _build_smoke() -> void:
 	if style == Style.C:
 		return  # C의 연기는 StyleSkyline이 각진 덩어리로 만든다
@@ -203,6 +284,22 @@ func _build_smoke() -> void:
 		plume.name = "Smoke%d" % int(p.x)
 		plume.position = p
 		add_child(plume)
+
+
+## 스타일 D 덧붙임: 반사 프로브(한 번만 갱신), 떠다니는 먼지.
+func _build_extras_d() -> void:
+	for spec: Array in [[Vector3(0.0, 3.0, 2.0), Vector3(30.0, 8.0, 26.0)], [Vector3(0.0, 4.5, -18.0), Vector3(23.0, 9.0, 14.0)]]:
+		var probe := ReflectionProbe.new()
+		probe.name = "ReflectionProbe"
+		probe.position = spec[0]
+		probe.size = spec[1]
+		probe.update_mode = ReflectionProbe.UPDATE_ONCE
+		probe.intensity = 0.7
+		probe.box_projection = true
+		add_child(probe)
+	if not bake_scene_mode:
+		add_child(StyleDust.make(Vector3(-5.2, 3.2, -16.0), Vector3(4.2, 3.0, 3.4)))
+		add_child(StyleDust.make(Vector3(-1.4, 4.0, -21.4), Vector3(1.4, 3.0, 1.4)))
 
 
 func _build_camera() -> void:
@@ -239,13 +336,16 @@ func _build_ground() -> void:
 	var gr: MeshBuilder = k.g(&"ground")
 	# 마당 아스팔트, 공장 앞 콘크리트 포장
 	StyleFactory.slab(k, gr, StyleMaterialSet.ASPHALT, Vector3(-12.0, -0.3, -11.0), Vector3(12.0, 0.0, 12.0))
-	StyleFactory.slab(k, gr, StyleMaterialSet.CONCRETE, Vector3(-12.0, -0.3, -11.0), Vector3(12.0, 0.025, -7.6), 0.012)
+	var paving: StringName = StyleMaterialSet.PAVING if style == Style.D else StyleMaterialSet.CONCRETE
+	StyleFactory.slab(k, gr, paving, Vector3(-12.0, -0.3, -11.0), Vector3(12.0, 0.025, -7.6), 0.012)
 	# 마당 가장자리 연석과 차선 띠
 	StyleFactory.slab(k, gr, StyleMaterialSet.CONCRETE, Vector3(-12.2, -0.3, -7.6), Vector3(-11.9, 0.14, 12.0), 0.02)
 	if style == Style.B:
 		_dress_ground_lowpoly(k, gr)
 	elif style == Style.C:
 		_dress_ground_retro(k, gr)
+	elif style == Style.D:
+		_dress_ground_trim(k, gr)
 	for i: int in range(6):
 		StyleFactory.slab(k, gr, StyleMaterialSet.BAND_WHITE, Vector3(-0.1, 0.0, 10.4 - i * 2.2), Vector3(0.1, 0.012, 11.6 - i * 2.2))
 
@@ -302,6 +402,23 @@ func _dress_ground_retro(k: StyleKit, gr: MeshBuilder) -> void:
 		k.cyl(gr, StyleMaterialSet.RUBBER, Transform3D(Basis.IDENTITY, Vector3(-11.0 + (i % 2) * 0.1, 0.12 + i * 0.24, 9.8)), 0.4, 0.24, 8, 8, 0.05)
 
 
+## 스타일 D 바닥 장식: 밝은 포장 보수 패치·맨홀·타이어. 색 변주는 텍스처(디테일)와 재질 색이 맡는다.
+func _dress_ground_trim(k: StyleKit, gr: MeshBuilder) -> void:
+	var patches: Array[Array] = [
+		[Vector3(-6.5, 0.0, 9.0), Vector3(-2.0, 0.012, 11.8)],
+		[Vector3(4.0, 0.0, -0.8), Vector3(8.5, 0.012, 1.8)],
+		[Vector3(-10.0, 0.0, -3.0), Vector3(-5.5, 0.012, -0.5)],
+		[Vector3(0.0, 0.0, 6.0), Vector3(3.2, 0.012, 8.4)],
+	]
+	for p: Array in patches:
+		k.box(gr, StyleMaterialSet.PAVING, Transform3D(Basis.IDENTITY, ((p[0] as Vector3) + (p[1] as Vector3)) * 0.5),
+				(p[1] as Vector3) - (p[0] as Vector3), 0.004)
+	k.cyl(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(-3.4, 0.02, -3.4)), 0.5, 0.04, 14, 8, 0.012)
+	k.cyl(gr, StyleMaterialSet.STEEL, Transform3D(Basis.IDENTITY, Vector3(-3.4, 0.045, -3.4)), 0.34, 0.02, 14, 8)
+	for i: int in range(3):
+		k.cyl(gr, StyleMaterialSet.RUBBER, Transform3D(Basis.IDENTITY, Vector3(-11.0 + (i % 2) * 0.1, 0.12 + i * 0.24, 9.8)), 0.4, 0.24, 14, 8, 0.05)
+
+
 # --- 마당 ---
 
 func _build_yard() -> void:
@@ -324,6 +441,11 @@ func _build_yard() -> void:
 	StyleYard.puddle(k, Vector3(1.0, 0.0, 2.6), 2.3, 1.45)
 	var spots: Array[Vector3] = [Vector3(-11.2, 0.0, -1.8), Vector3(10.2, 0.0, -6.8), Vector3(9.6, 0.0, 6.0),
 			Vector3(-6.8, 0.0, 8.2), Vector3(3.4, 0.0, -8.2), Vector3(-2.6, 0.0, -8.0), Vector3(11.0, 0.0, 1.6)]
+	if style == Style.D:
+		# 울타리·컨테이너·방벽 발치 (가장자리를 따라)
+		spots.append_array([Vector3(11.6, 0.0, -3.0), Vector3(11.7, 0.0, 3.5), Vector3(11.5, 0.0, 9.0), Vector3(3.8, 0.0, -1.0),
+				Vector3(8.7, 0.0, -0.6), Vector3(-5.0, 0.0, -7.2), Vector3(-9.6, 0.0, -8.6), Vector3(7.7, 0.0, 4.2), Vector3(-0.2, 0.0, -9.8),
+				Vector3(-3.4, 0.0, -9.9), Vector3(5.6, 0.0, -9.9), Vector3(-7.8, 0.0, -9.8)])
 	for i: int in range(spots.size()):
 		StyleYard.weed_clump(k, spots[i], 100 + i, 1.0 + 0.2 * (i % 3))
 
@@ -333,6 +455,8 @@ func _build_factory() -> void:
 	StyleFactory.build_interior_structure(_kit)
 	StyleFactory.build_interior_props(_kit)
 	StyleFactory.build_light_shaft(_kit)
+	if style == Style.D:
+		StyleFactory.build_ivy(_kit)
 
 
 # --- 데칼 (스타일 A) ---

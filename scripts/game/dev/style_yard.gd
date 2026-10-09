@@ -89,8 +89,8 @@ static func zigzag_profile(length: float, pitch: float, amp: float) -> PackedVec
 # --- 팔레트 / 상자 ---
 
 static func pallet(k: StyleKit, gr: MeshBuilder, base: Transform3D) -> void:
-	var wood: StringName = StyleMaterialSet.WOOD
-	var dark: StringName = StyleMaterialSet.WOOD_DARK
+	var wood: StringName = StyleMaterialSet.PALLET if k.is_d else StyleMaterialSet.WOOD
+	var dark: StringName = StyleMaterialSet.PALLET_DARK if k.is_d else StyleMaterialSet.WOOD_DARK
 	for z: float in [-0.35, 0.0, 0.35]:
 		k.box(gr, dark, StyleKit.loc(base, Vector3(0.0, 0.011, z)), Vector3(1.2, 0.022, 0.1), 0.0)
 	for x: float in [-0.55, 0.0, 0.55]:
@@ -103,8 +103,8 @@ static func pallet(k: StyleKit, gr: MeshBuilder, base: Transform3D) -> void:
 
 ## 상자: 널빤지 몸통 + 모서리 각재 + 가로 띠.
 static func crate(k: StyleKit, gr: MeshBuilder, base: Transform3D, size: Vector3) -> void:
-	var wood: StringName = StyleMaterialSet.WOOD
-	var dark: StringName = StyleMaterialSet.WOOD_DARK
+	var wood: StringName = StyleMaterialSet.CRATE if k.is_d else StyleMaterialSet.WOOD
+	var dark: StringName = StyleMaterialSet.CRATE_DARK if k.is_d else StyleMaterialSet.WOOD_DARK
 	k.box(gr, wood, StyleKit.loc(base, Vector3(0.0, size.y * 0.5, 0.0)), size - Vector3(0.06, 0.0, 0.06), 0.0)
 	for sx: int in [-1, 1]:
 		for sz: int in [-1, 1]:
@@ -142,6 +142,9 @@ static func barrier(k: StyleKit, pos: Vector3, yaw: float) -> void:
 	var profile := PackedVector2Array([
 		Vector2(-0.32, 0.0), Vector2(0.32, 0.0), Vector2(0.32, 0.12), Vector2(0.16, 0.5),
 		Vector2(0.11, 0.82), Vector2(-0.11, 0.82), Vector2(-0.16, 0.5), Vector2(-0.32, 0.12)])
+	if k.is_d:
+		_barrier_trim(k, gr, base, profile)
+		return
 	k.mats.apply(gr, StyleMaterialSet.CONCRETE)
 	gr.add_prism(base, profile, 3.0)
 	if k.is_a:
@@ -151,6 +154,19 @@ static func barrier(k: StyleKit, pos: Vector3, yaw: float) -> void:
 		# 경고 띠 (빗금 대신 단순한 주황 블록)
 		for i: int in range(3):
 			k.box(gr, StyleMaterialSet.HAZARD, StyleKit.loc(base, Vector3(0.0, 0.55, -1.0 + i * 1.0)), Vector3(0.4, 0.14, 0.34), 0.0)
+
+
+## 스타일 D 방벽: 단면을 높이로 세 토막 내 콘크리트 - 경고 줄무늬 띠 - 콘크리트로 붙인다 (띠는 트림시트의 hazard 줄).
+static func _barrier_trim(k: StyleKit, gr: MeshBuilder, base: Transform3D, profile: PackedVector2Array) -> void:
+	var cuts: Array[Vector2] = [Vector2(-0.01, 0.3), Vector2(0.3, 0.56), Vector2(0.56, 0.9)]
+	var ids: Array[StringName] = [StyleMaterialSet.CONCRETE, StyleMaterialSet.HAZARD, StyleMaterialSet.CONCRETE]
+	for i: int in range(cuts.size()):
+		var rect := PackedVector2Array([Vector2(-1.0, cuts[i].x), Vector2(1.0, cuts[i].x), Vector2(1.0, cuts[i].y), Vector2(-1.0, cuts[i].y)])
+		var parts: Array[PackedVector2Array] = Geometry2D.intersect_polygons(profile, rect)
+		if parts.is_empty():
+			continue
+		k.apply(gr, ids[i])
+		gr.add_prism(base, parts[0], 3.0)
 
 
 # --- 드럼통 ---
@@ -319,11 +335,12 @@ static func weed_clump(k: StyleKit, pos: Vector3, seed_value: int, scale: float 
 	var gr: MeshBuilder = k.g(&"weeds")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	k.mats.apply(gr, StyleMaterialSet.WEED)
-	if k.is_a:
+	k.mats.apply(gr, StyleMaterialSet.FERN if k.is_d else StyleMaterialSet.WEED)
+	if k.is_a or k.is_d:
 		# 알파 컷 교차 판 3장: 단위 크기 판을 스케일로 키운다 (UV는 재질의 uv1_offset이 0..1로 맞춘다)
-		for i: int in range(3):
-			var yaw: float = PI * float(i) / 3.0 + rng.randf() * 0.4
+		var cards: int = 5 if k.is_d else 3
+		for i: int in range(cards):
+			var yaw: float = PI * float(i) / float(cards) + rng.randf() * 0.4
 			var w: float = rng.randf_range(0.8, 1.15) * scale
 			var h: float = rng.randf_range(0.7, 1.0) * scale
 			var base := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(w, h, w)), pos)

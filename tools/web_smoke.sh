@@ -6,7 +6,7 @@
 #   mod: ?scene=inventory 로 열고 소총 선택 → 모딩 → 소음기 장착(weapon_changed 이벤트·6x2) → 분리 → 닫기를 확인한다 (MOD_SCREEN 로그).
 #   ai: ?scene=ai 로 열고 내비메시·적 교전(COMBAT/enemy_shot/player_hit)을 확인한 뒤 K로 적 처치 → F 루팅 화면 → 닫기 버튼을 확인한다 (AI_TEST 로그).
 #   raid: ?scene=raid 로 열고 "RAID: ready" 후 구성(boxes/polys/containers/enemies) → K 전멸 → G·F 컨테이너 열기 → 수색 공개·중단·재개·완료 → 아이템 끌어오기 → T 정문 탈출 → 결과 화면을 확인한다 (RAID 로그).
-#   style: ?scene=style_a 로 열어 "STYLE: ready a" 후 1·2·3 키로 세 컷(STYLE: shot n + render 통계)을 찍고, ?scene=style_b, ?scene=style_c 로 같은 걸 반복한다 → build/style_{a,b,c}_{1,2,3}.png.
+#   style: ?scene=style_a 로 열어 "STYLE: ready a" 후 1·2·3 키로 세 컷(STYLE: shot n + render 통계)을 찍고, ?scene=style_b, style_c, style_d 로 같은 걸 반복한다 (D는 STYLE: vertex_ao 로그도 확인) → build/style_{a,b,c,d}_{1,2,3}.png (STYLE_LETTERS=d 처럼 환경변수로 일부만 돌릴 수 있다).
 #   inventory: ?scene=inventory 로 열고 "INVENTORY_DEMO: ready" 후 드래그·탭 선택 이동·장착/해제·터치·스크롤을 확인한다.
 set -euo pipefail
 cd "$(dirname "$0")/.."

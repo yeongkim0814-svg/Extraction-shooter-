@@ -52,12 +52,12 @@ const MODES = {
     pngResults: 'build/raid_smoke_results.png',
     log: 'build/raid_smoke_console.log',
   },
-  // 스타일 비교: ?scene=style_a 3컷 → style_b → style_c (각 1·2·3 키) → build/style_{a,b,c}_{1,2,3}.png + 렌더 통계 확인
+  // 스타일 비교: ?scene=style_a 3컷 → style_b → style_c → style_d (각 1·2·3 키) → build/style_{a,b,c,d}_{1,2,3}.png + 렌더 통계 확인
   style: {
     marker: 'STYLE: ready',
-    urlScene: 'style_a',
+    urlScene: `style_${(process.env.STYLE_LETTERS || 'abcd')[0]}`,
     viewport: { width: 1280, height: 720 },
-    png: 'build/style_a_1.png',
+    png: `build/style_${(process.env.STYLE_LETTERS || 'abcd')[0]}_1.png`,
     log: 'build/style_smoke_console.log',
   },
   // 인벤토리 데모에서 소총 선택 → 모딩 → 소음기 장착/분리 (MOD_SCREEN 로그와 weapon_changed 이벤트 확인)
@@ -495,9 +495,10 @@ if (scene === 'style') {
     return null;
   };
   const stats = {};
-  for (const letter of ['a', 'b', 'c']) {
+  const letters = (process.env.STYLE_LETTERS || 'abcd').split('');
+  for (const letter of letters) {
     let from = 0;
-    if (letter !== 'a') {
+    if (letter !== letters[0]) {
       from = lines.length;
       await page.goto(`${baseUrl}?scene=style_${letter}`);
     }
@@ -521,6 +522,7 @@ if (scene === 'style') {
   }
   await browser.close();
   check(has('STYLE: decals'), '"STYLE: decals" 로그 없음');
+  check(!letters.includes('d') || has('STYLE: vertex_ao vertices='), '"STYLE: vertex_ao" 로그 없음 (스타일 D 정점 베이크)');
   if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);

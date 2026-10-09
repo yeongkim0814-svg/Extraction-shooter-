@@ -1,7 +1,7 @@
 extends Control
 ## 개발용 시작 메뉴. 버튼으로 데모 씬을 열거나, 실행 인자로 바로 연다:
-##   네이티브: godot -- --scene=inventory | --scene=platform | --scene=combat | --scene=ai | --scene=raid | --scene=style_a | --scene=style_b | --scene=style_c
-##   웹:      index.html?scene=inventory | ?scene=platform | ?scene=combat | ?scene=ai | ?scene=raid | ?scene=style_a | ?scene=style_b | ?scene=style_c
+##   네이티브: godot -- --scene=inventory | --scene=platform | --scene=combat | --scene=ai | --scene=raid | --scene=style_a | --scene=style_b | --scene=style_c | --scene=style_d | --scene=style_d_bake
+##   웹:      index.html?scene=inventory | ?scene=platform | ?scene=combat | ?scene=ai | ?scene=raid | ?scene=style_a | ?scene=style_b | ?scene=style_c | ?scene=style_d | ?scene=style_d_bake
 
 const SCENES: Dictionary[String, String] = {
 	"platform": "res://scenes/dev/platform_test.tscn",
@@ -12,6 +12,8 @@ const SCENES: Dictionary[String, String] = {
 	"style_a": "res://scenes/dev/style_compare.tscn",
 	"style_b": "res://scenes/dev/style_compare.tscn",
 	"style_c": "res://scenes/dev/style_compare.tscn",
+	"style_d": "res://scenes/dev/style_compare.tscn",
+	"style_d_bake": "res://scenes/dev/style_d_bake.tscn",
 }
 
 
@@ -24,6 +26,8 @@ func _ready() -> void:
 	%StyleAButton.pressed.connect(_open.bind("style_a"))
 	%StyleBButton.pressed.connect(_open.bind("style_b"))
 	%StyleCButton.pressed.connect(_open.bind("style_c"))
+	%StyleDButton.pressed.connect(_open.bind("style_d"))
+	%StyleDBakeButton.pressed.connect(_open.bind("style_d_bake"))
 	var requested: String = _requested_scene()
 	if SCENES.has(requested):
 		# 씬 트리가 준비된 뒤에 전환한다
@@ -39,6 +43,8 @@ func _open(scene_name: String) -> void:
 			StyleCompare.forced_style = StyleCompare.Style.B
 		"style_c":
 			StyleCompare.forced_style = StyleCompare.Style.C
+		"style_d":
+			StyleCompare.forced_style = StyleCompare.Style.D
 		_:
 			StyleCompare.forced_style = -1
 	get_tree().change_scene_to_file(SCENES[scene_name])

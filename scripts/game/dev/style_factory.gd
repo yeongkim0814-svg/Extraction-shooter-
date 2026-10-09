@@ -20,9 +20,43 @@ const SIDE_WINDOW_Y0: float = 5.2
 const SIDE_WINDOW_Y1: float = 7.4
 
 
-## 최소·최대 모서리로 슬래브 하나.
-static func slab(k: StyleKit, gr: MeshBuilder, id: StringName, lo: Vector3, hi: Vector3, bevel: float = 0.0) -> void:
+## 스타일 D의 램프 (실제 OmniLight 둘 + 따뜻함 굽기용). pos는 전구 위치(갓 아래), radius는 바운스 반경.
+const D_LAMPS: Array[Dictionary] = [
+	{"pos": Vector3(1.2, 5.86, -15.5), "radius": 9.0},
+	{"pos": Vector3(-4.0, 5.86, -21.0), "radius": 8.0},
+]
+## 램프 메시만 있고 빛은 없는 것 (가로등): 정점 따뜻함에만 쓴다.
+const D_GLOW_ONLY: Array[Dictionary] = [
+	{"pos": Vector3(-9.35, 6.2, 7.0), "radius": 5.0},
+]
+
+
+## 최소·최대 모서리로 슬래브 하나. strip은 스타일 D에서 옆면 줄을 고른다 (비면 재질 기본).
+static func slab(k: StyleKit, gr: MeshBuilder, id: StringName, lo: Vector3, hi: Vector3, bevel: float = 0.0,
+		strip: StringName = &"") -> void:
+	if k.is_d:
+		_slab_trim(k, gr, id, lo, hi, bevel, strip)
+		return
 	k.box(gr, id, Transform3D(Basis.IDENTITY, (lo + hi) * 0.5), hi - lo, bevel)
+
+
+## 스타일 D 슬래브: 줄 자연 높이의 2배보다 높으면 같은 높이의 판으로 쌓는다 (줄이 세로로 심하게 늘어나지 않게).
+## 판 사이 모따기가 콘크리트 층 이음처럼 보인다. 바닥형(월드 평면) 재질은 쌓지 않는다.
+static func _slab_trim(k: StyleKit, gr: MeshBuilder, id: StringName, lo: Vector3, hi: Vector3, bevel: float, strip: StringName) -> void:
+	var tm: TrimMaterials = k.mats as TrimMaterials
+	var side: StringName = strip if strip != &"" else tm.default_side(id)
+	var height: float = hi.y - lo.y
+	var pieces: int = 1
+	if not tm.is_ground(id) and side != &"":
+		pieces = maxi(1, ceili(height / (tm.strip_height_m(id, side) * 2.6)))
+	for i: int in range(pieces):
+		var y0: float = lo.y + height * float(i) / float(pieces)
+		var y1: float = lo.y + height * float(i + 1) / float(pieces)
+		var a := Vector3(lo.x, y0, lo.z)
+		var b := Vector3(hi.x, y1, hi.z)
+		if side != &"":
+			k.use_strips(id, side)
+		k.box(gr, id, Transform3D(Basis.IDENTITY, (a + b) * 0.5), b - a, bevel)
 
 
 static func build_shell(k: StyleKit) -> void:
@@ -36,17 +70,23 @@ static func build_shell(k: StyleKit) -> void:
 	slab(k, gr, brick, Vector3(DOOR_X1, 0.0, front_in), Vector3(HALF_W, WALL_H, front_out))
 	slab(k, gr, brick, Vector3(DOOR_X0, DOOR_H, front_in), Vector3(DOOR_X1, WALL_H, front_out))
 	# 콘크리트 기단, 중간 띠, 처마
-	slab(k, gr, conc, Vector3(-HALF_W - 0.1, 0.0, front_out - 0.3), Vector3(DOOR_X0 - 0.2, 1.0, front_out + 0.12), 0.03)
-	slab(k, gr, conc, Vector3(DOOR_X1 + 0.2, 0.0, front_out - 0.3), Vector3(HALF_W + 0.1, 1.0, front_out + 0.12), 0.03)
-	slab(k, gr, conc, Vector3(-HALF_W - 0.1, 5.55, front_out - 0.3), Vector3(HALF_W + 0.1, 5.9, front_out + 0.1), 0.03)
-	slab(k, gr, conc, Vector3(-HALF_W - 0.2, WALL_H, front_in - 0.3), Vector3(HALF_W + 0.2, WALL_H + 0.45, front_out + 0.35), 0.05)
+	slab(k, gr, conc, Vector3(-HALF_W - 0.1, 0.0, front_out - 0.3), Vector3(DOOR_X0 - 0.2, 1.0, front_out + 0.12), 0.03, &"panel")
+	slab(k, gr, conc, Vector3(DOOR_X1 + 0.2, 0.0, front_out - 0.3), Vector3(HALF_W + 0.1, 1.0, front_out + 0.12), 0.03, &"panel")
+	slab(k, gr, StyleMaterialSet.BAND_WHITE if k.is_d else conc, Vector3(-HALF_W - 0.1, 5.55, front_out - 0.3),
+			Vector3(HALF_W + 0.1, 5.9, front_out + 0.1), 0.03)
+	slab(k, gr, conc, Vector3(-HALF_W - 0.2, WALL_H, front_in - 0.3), Vector3(HALF_W + 0.2, WALL_H + 0.45, front_out + 0.35), 0.05, &"edge_trim")
 	# 벽기둥
 	for x: float in PILASTER_X:
 		slab(k, gr, conc, Vector3(x - 0.3, 1.0, front_out - 0.2), Vector3(x + 0.3, WALL_H, front_out + 0.28), 0.03)
 	# 창 띠: 창틀 + 유리 + 문설주 + 창턱
 	var lit: Array[int] = [1, 2, 4, 5, 8, 9, 10]
 	var pane_index: int = 0
+	if k.is_d:
+		_windows_trim(k, gr, front_out, lit)
 	for wx: float in WINDOW_X:
+		if k.is_d:
+			k.box(gr, conc, Transform3D(Basis.IDENTITY, Vector3(wx, 5.95, front_out + 0.17)), Vector3(3.15, 0.1, 0.3), 0.02)
+			continue
 		var zf: float = front_out + 0.05
 		k.box(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(wx, 7.0, zf)), Vector3(2.7, 2.2, 0.12), 0.01)
 		for col: int in range(2):
@@ -101,6 +141,22 @@ static func build_shell(k: StyleKit) -> void:
 		k.box(gr, StyleMaterialSet.STEEL, Transform3D(Basis.IDENTITY, Vector3(vx, WALL_H + 0.9, -17.0)), Vector3(1.6, 1.0, 1.6), 0.05)
 
 
+## 스타일 D 창 띠: 창 줄(window)을 3 m 폭 판에 붙인다 (폭이 줄 U의 정수배라 문설주가 판 가장자리에 맞는다). 환기구 판도 몇 개.
+static func _windows_trim(k: StyleKit, gr: MeshBuilder, front_out: float, lit: Array[int]) -> void:
+	gr.trim_jitter = false
+	var index: int = 0
+	for wx: float in WINDOW_X:
+		var id: StringName = StyleMaterialSet.WINDOW_STRIP if lit.has(index) or lit.has(index + 1) else StyleMaterialSet.WINDOW_DARK
+		index += 4
+		k.use_strips(id, &"window")
+		k.box(gr, id, Transform3D(Basis.IDENTITY, Vector3(wx, 7.08, front_out + 0.05)), Vector3(3.0, 2.2, 0.12), 0.02)
+	# 환기구: 2 m 폭 (U 두 번)
+	for vx: float in [-8.9, -5.1, 5.2, 8.9]:
+		k.use_strips(StyleMaterialSet.VENT_STRIP, &"vent")
+		k.box(gr, StyleMaterialSet.VENT_STRIP, Transform3D(Basis.IDENTITY, Vector3(vx, 3.6, front_out + 0.04)), Vector3(2.0, 0.76, 0.1), 0.015)
+	gr.trim_jitter = true
+
+
 ## 내부 구조: 기둥, 지붕 보, 천장 크레인, 선반.
 static func build_interior_structure(k: StyleKit) -> void:
 	var gr: MeshBuilder = k.g(&"interior")
@@ -143,6 +199,11 @@ static func build_interior_structure(k: StyleKit) -> void:
 	k.cyl(gr, steel_d, Transform3D(Basis.IDENTITY, Vector3(1.2, 7.6, -15.5)), 0.015, 2.8, 6, 4)
 	k.cyl(gr, steel_d, Transform3D(Basis.IDENTITY, Vector3(1.2, 6.1, -15.5)), 0.5, 0.36, 16, 8, 0.0, 0.14)
 	k.cyl(gr, StyleMaterialSet.LAMP, Transform3D(Basis.IDENTITY, Vector3(1.2, 5.88, -15.5)), 0.17, 0.12, 12, 6)
+	if k.is_d:
+		# 두 번째 매단 램프 (안쪽 지게차 쪽)
+		k.cyl(gr, steel_d, Transform3D(Basis.IDENTITY, Vector3(-4.0, 7.7, -21.0)), 0.015, 2.6, 6, 4)
+		k.cyl(gr, steel_d, Transform3D(Basis.IDENTITY, Vector3(-4.0, 6.1, -21.0)), 0.45, 0.34, 16, 8, 0.0, 0.13)
+		k.cyl(gr, StyleMaterialSet.LAMP, Transform3D(Basis.IDENTITY, Vector3(-4.0, 5.9, -21.0)), 0.16, 0.12, 12, 6)
 
 
 ## 지게차 (로컬 -Z가 앞).
@@ -201,6 +262,9 @@ static func build_light_shaft(k: StyleKit) -> void:
 		Vector3(x, SIDE_WINDOW_Y1, SIDE_WINDOW_Z1), Vector3(x, SIDE_WINDOW_Y1, SIDE_WINDOW_Z0),
 		Vector3(x, SIDE_WINDOW_Y0, SIDE_WINDOW_Z0), Vector3(x, SIDE_WINDOW_Y0, SIDE_WINDOW_Z1)], Vector3(7.2, 0.0, 1.6))
 	# 천창 (지붕 보 사이) 과 그 빛줄기
+	if k.is_d:
+		for lamp: Dictionary in D_LAMPS:
+			_lamp_cone(k, lamp["pos"] as Vector3)
 	var sky: float = WALL_H - 0.28
 	var gr: MeshBuilder = k.g(&"interior")
 	k.box(gr, StyleMaterialSet.GLASS_LIT, Transform3D(Basis.IDENTITY, Vector3(-1.6, sky + 0.02, -20.8)), Vector3(2.0, 0.05, 2.4), 0.0)
@@ -212,7 +276,7 @@ static func _shaft(k: StyleKit, top: Array[Vector3], shift: Vector3) -> void:
 	var gr: MeshBuilder = k.g(&"shaft")
 	gr.set_gradient(0.0, 9.2, 0.92)
 	k.mats.apply(gr, StyleMaterialSet.SHAFT)
-	gr.color(Color(0.62, 0.7, 0.8, 1.0) if k.is_a else (Color(0.5, 0.42, 0.3, 1.0) if k.is_c else Color(0.8, 0.82, 0.74, 1.0)))
+	gr.color(Color(0.62, 0.7, 0.8, 1.0) * (0.4 if k.is_d else 1.0) if (k.is_a or k.is_d) else (Color(0.5, 0.42, 0.3, 1.0) if k.is_c else Color(0.8, 0.82, 0.74, 1.0)))
 	var bottom: Array[Vector3] = []
 	for t: Vector3 in top:
 		var f: float = t.y / 7.4 if shift.y == 0.0 and t.y < 8.0 else 1.0
@@ -223,5 +287,39 @@ static func _shaft(k: StyleKit, top: Array[Vector3], shift: Vector3) -> void:
 	var glow: MeshBuilder = k.g(&"glow")
 	glow.set_gradient(0.0, 0.0, 0.0)
 	k.mats.apply(glow, StyleMaterialSet.SHAFT)
-	glow.color(Color(0.42, 0.48, 0.55, 1.0) if k.is_a else (Color(0.4, 0.34, 0.24, 1.0) if k.is_c else Color(0.55, 0.55, 0.48, 1.0)))
+	glow.color(Color(0.26, 0.31, 0.38, 1.0) if k.is_d else Color(0.42, 0.48, 0.55, 1.0) if k.is_a else (Color(0.4, 0.34, 0.24, 1.0) if k.is_c else Color(0.55, 0.55, 0.48, 1.0)))
 	glow.add_quad(Transform3D.IDENTITY, bottom[0], bottom[1], bottom[2], bottom[3], Vector3.UP)
+
+
+## 스타일 D 램프 불빛 원뿔: 램프 아래로 벌어지는 따뜻한 카드 (볼류메트릭 안개 대용). 램프 쪽이 밝고 바닥 쪽이 흐리다.
+static func _lamp_cone(k: StyleKit, lamp: Vector3) -> void:
+	var gr: MeshBuilder = k.g(&"shaft")
+	gr.set_gradient(0.0, 6.0, 0.9)
+	k.mats.apply(gr, StyleMaterialSet.SHAFT_WARM)
+	gr.color(Color(0.3, 0.19, 0.09, 1.0))
+	var top_r: float = 0.22
+	var bottom_r: float = 2.3
+	var corners: int = 6
+	for i: int in range(corners):
+		var a0: float = TAU * float(i) / float(corners)
+		var a1: float = TAU * float(i + 1) / float(corners)
+		var t0 := Vector3(cos(a0) * top_r, 0.0, sin(a0) * top_r) + lamp
+		var t1 := Vector3(cos(a1) * top_r, 0.0, sin(a1) * top_r) + lamp
+		var b0 := Vector3(cos(a0) * bottom_r, 0.0, sin(a0) * bottom_r) + Vector3(lamp.x, 0.03, lamp.z)
+		var b1 := Vector3(cos(a1) * bottom_r, 0.0, sin(a1) * bottom_r) + Vector3(lamp.x, 0.03, lamp.z)
+		gr.add_quad(Transform3D.IDENTITY, t0, t1, b1, b0, Vector3.UP)
+
+
+## 스타일 D 담쟁이: 앞 벽에 붙는 알파 카드 몇 장 (벽 바로 앞 3 cm). 단위 판을 변환으로 키운다 (UV가 변환 전 좌표라 재질이 0..1로 맞춘다).
+static func build_ivy(k: StyleKit) -> void:
+	var gr: MeshBuilder = k.g(&"ivy")
+	k.mats.apply(gr, StyleMaterialSet.IVY)
+	var front_out: float = WALL_Z + WALL_T * 0.5
+	var specs: Array[Array] = [
+		[-9.9, 0.5, 3.0, 5.2, 0.0], [-6.2, 0.6, 2.4, 3.8, 0.06], [-4.5, 0.6, 2.0, 5.8, -0.04], [4.6, 0.6, 2.2, 4.8, 0.05],
+		[8.2, 0.5, 3.0, 6.4, 0.0], [11.4, 0.6, 2.0, 4.2, -0.05], [-1.0, 4.6, 2.6, 3.4, 0.03], [6.4, 4.8, 2.2, 3.0, 0.0],
+	]
+	for sp: Array in specs:
+		var base := Transform3D(Basis(Vector3.UP, float(sp[4])).scaled(Vector3(float(sp[2]), float(sp[3]), 1.0)),
+				Vector3(float(sp[0]), float(sp[1]), front_out + 0.03))
+		gr.add_quad(base, Vector3(-0.5, 0.0, 0.0), Vector3(0.5, 0.0, 0.0), Vector3(0.5, 1.0, 0.0), Vector3(-0.5, 1.0, 0.0), Vector3.BACK)

@@ -41,6 +41,18 @@ const SKY_FAR: StringName = &"sky_far"
 const HILL: StringName = &"hill"
 const HILL_FAR: StringName = &"hill_far"
 const HAZARD: StringName = &"hazard"
+## 스타일 D 전용: 팔레트·넓은 포장·담쟁이·고사리 (다른 스타일 재질 모음은 쓰지 않는다).
+const PALLET: StringName = &"pallet"
+const PALLET_DARK: StringName = &"pallet_dark"
+const PAVING: StringName = &"paving"
+const IVY: StringName = &"ivy"
+const SHAFT_WARM: StringName = &"shaft_warm"
+const FERN: StringName = &"fern"
+const WINDOW_STRIP: StringName = &"window_strip"
+const WINDOW_DARK: StringName = &"window_dark"
+const VENT_STRIP: StringName = &"vent_strip"
+const CRATE: StringName = &"crate"
+const CRATE_DARK: StringName = &"crate_dark"
 
 var _cache: Dictionary[StringName, Material] = {}
 

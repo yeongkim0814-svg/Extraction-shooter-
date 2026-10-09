@@ -30,7 +30,7 @@ static func _stack(k: StyleKit, gr: MeshBuilder, pos: Vector3, height: float, r0
 		var rr0: float = lerpf(r0, r1, t0)
 		var rr1: float = lerpf(r0, r1, t1)
 		var id: StringName = far
-		if banded:
+		if banded and not k.is_d:
 			id = StyleMaterialSet.BAND_RED if i % 2 == 1 and i >= 3 else (StyleMaterialSet.BAND_WHITE if i >= 3 else far)
 		k.cyl(gr, id, Transform3D(Basis.IDENTITY, pos + Vector3(0.0, height * (t0 + t1) * 0.5, 0.0)), rr0, height / float(segs),
 				k.pick_i(16, 8), k.pick_i(16, 8), 0.0, rr1)

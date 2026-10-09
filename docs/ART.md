@@ -191,3 +191,14 @@ M10 체크포인트 결과: 스타일라이즈드로 전환하지 않고 세미�
 - 목표: 갤럭시 탭 Mobile 렌더러, 레이드(적 6명)에서 60 fps, 드로우콜 약 150 이하.
 - 5초마다 `RAID: render draw_calls=<n> objects=<n> primitives=<n> fps=<n>` 로그. 헤드리스 SwiftShader 수치는 실기기와 무관하다 (웹 스모크에서 드로우콜 약 120~200, fps는 한 자리).
 - 실기기 확인 절차: docs/M10_TABLET_CHECKLIST.md
+
+## 스타일 D: 트림시트 스타일라이즈드 PBR (비교 비네트 `?scene=style_d`)
+
+기법은 Godot 4 데모 "Abandoned Spaceship"(Perfoon, MIT)을 따른다. 에셋은 쓰지 않았고 텍스처는 `tools/gen_trim_sheets.py`가 직접 만든다.
+
+- **트림시트**: 1024 px 시트 2장(콘크리트·벽돌 / 금속·컨테이너)에 가로 띠(줄)가 쌓여 있다. 맵 4장(albedo, ORM, normal, mask: R 높이·G 페인트·B 발광) + 512 px 디테일. 줄 배치는 `scripts/core/geometry/trim_layout.gd`(테스트가 `trim_layout.json`과 대조).
+- **UV 사상**: `TrimUv` + `MeshBuilder.trim_strips`. U는 월드 미터를 256 px/m로 센다(4 m = 한 바퀴), V는 줄 범위가 면의 아래~위에 걸린다. 줄 위아래 가장자리에 구워 둔 닳은 하이라이트·AO가 모따기에 닿는다. 면이 줄 자연 높이의 2.6배보다 높으면 소품 코드가 판을 쌓는다(`StyleFactory.slab`).
+- **재칠 셰이더** `assets/shaders/trim_recolor.gdshader`: `ALBEDO = mix(albedo, albedo * paint_color, paint_mask) * detail`, `ROUGHNESS = orm.g * roughness_scale + (1 - detail.r)`. 소품마다 색만 다르다 (`TrimMaterials`: 녹슨 빨강, 청회색, 올리브, 따뜻한 노랑, 바랜 흰색).
+- **라이트맵 대용**: `StyleBake`가 정점마다 반구 레이(AO 6 + 하늘 2 + 램프)를 쏴 `COLOR`(R AO, G 하늘 가시성, B 램프 따뜻함)에 한 번 굽는다. `MeshBuilder.subdiv_max`가 큰 면을 쪼개 정점을 만든다. 라이트맵이 있으면 쓰지 않는다 (`StyleBake.lightmap_present`, 셰이더 `vertex_bake = 0`).
+- **실제 라이트맵 (태블릿)**: `godot --headless --path . --script tools/build_style_d_bake_scene.gd` -> `scenes/dev/style_d_bake.tscn`(+ `scenes/dev/style_d_bake/*.res`). 에디터에서 LightmapGI > Bake Lightmaps.
+- **효과**: Forward+ 전용 SSAO·SSIL·볼류메트릭 안개·TAA 대신 정점 AO, 빛줄기·램프 원뿔 카드, 먼지 입자(웹 CPU / 모바일 GPU), 반사 프로브 한 번 갱신, 은은한 글로우, 담쟁이·고사리 알파 카드.

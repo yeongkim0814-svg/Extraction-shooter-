@@ -30,7 +30,7 @@ grow_vertical = 2
 
 [node name="Box" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Center/Box"]
 layout_mode = 2
@@ -40,56 +40,70 @@ horizontal_alignment = 1
 
 [node name="PlatformButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Platform Test"
 
 [node name="InventoryButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Inventory Demo"
 
 [node name="CombatButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Combat Test"
 
 [node name="AiButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "AI 테스트"
 
 [node name="RaidButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "레이드 (산업단지)"
 
 [node name="StyleAButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "스타일 비교 A (반실사)"
 
 [node name="StyleBButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "스타일 비교 B (로우폴리)"
 
 [node name="StyleCButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 72)
+custom_minimum_size = Vector2(360, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "스타일 비교 C (레트로 로우폴리)"
+
+[node name="StyleDButton" type="Button" parent="Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "스타일 비교 D (트림시트·베이크)"
+
+[node name="StyleDBakeButton" type="Button" parent="Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "스타일 D (라이트맵 굽기용 씬)"
