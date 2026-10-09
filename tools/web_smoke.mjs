@@ -52,7 +52,7 @@ const MODES = {
     pngResults: 'build/raid_smoke_results.png',
     log: 'build/raid_smoke_console.log',
   },
-  // 스타일 비교: ?scene=style_a 3컷 → ?scene=style_b 3컷 (1·2·3 키) → build/style_{a,b}_{1,2,3}.png + 렌더 통계 확인
+  // 스타일 비교: ?scene=style_a 3컷 → style_b → style_c (각 1·2·3 키) → build/style_{a,b,c}_{1,2,3}.png + 렌더 통계 확인
   style: {
     marker: 'STYLE: ready',
     urlScene: 'style_a',
@@ -495,11 +495,11 @@ if (scene === 'style') {
     return null;
   };
   const stats = {};
-  for (const letter of ['a', 'b']) {
+  for (const letter of ['a', 'b', 'c']) {
     let from = 0;
-    if (letter === 'b') {
+    if (letter !== 'a') {
       from = lines.length;
-      await page.goto(`${baseUrl}?scene=style_b`);
+      await page.goto(`${baseUrl}?scene=style_${letter}`);
     }
     const ready = await waitMatch(from, new RegExp(`STYLE: ready ${letter}`), 90000);
     check(!!ready, `"STYLE: ready ${letter}"가 90초 안에 없음`);

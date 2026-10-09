@@ -3,12 +3,14 @@ extends Node3D
 ## 그래픽 스타일 비교 비네트 (약 24 x 24 m): 같은 배치를 두 가지 아트 스타일로 만든다.
 ##   A "반실사"      : tools/gen_textures.py의 PBR 텍스처 + 모따기 지오메트리 + 데칼
 ##   B "스타일라이즈드": 텍스처 없는 팔레트 + 로우폴리 모따기 + 조금 더 짙은 안개·또렷한 빛
-## 하늘·환경·안개·태양은 산업단지 맵(M10) 것을 그대로 쓴다. 스타일은 URL ?scene=style_a|style_b
+##   C "레트로 로우폴리": tools/gen_pixel_textures.py의 32~64 px 픽셀 텍스처(최근접) + 로우폴리 지오메트리 + 해질녘 하늘·안개·낮은 태양
+##                      + 전체 화면 후처리(retro_post.gdshader). 룩 구성은 RetroLook, 재질은 RetroMaterials.
+## A·B의 하늘·환경·안개·태양은 산업단지 맵(M10) 것을 그대로 쓴다. 스타일은 URL ?scene=style_a|style_b|style_c
 ## (또는 실행 인자 --scene=style_b)로 고르고, 없으면 내보낸 값(style)을 쓴다.
 ## 고정 카메라 3컷: 1 개요(공장·더미 뒤), 2 컨테이너·웅덩이·트럭 클로즈업, 3 문 안쪽 어두운 내부.
-## N 키(또는 터치/클릭)로 다음 컷, 1·2·3 키로 직접 이동. 로그 접두사 "STYLE: " (ready / shot / render).
+## N 키(또는 터치/클릭)로 다음 컷, 1·2·3 키로 직접 이동, 스타일 C에선 P 키로 후처리 켜기/끄기. 로그 접두사 "STYLE: " (ready / shot / render).
 
-enum Style { A, B }
+enum Style { A, B, C }
 
 const PREFIX: String = "STYLE: "
 const ENV_PATH: String = "res://assets/env/industrial_env.tres"
@@ -29,11 +31,12 @@ var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _shot: int = 0
 var _decals_ok: bool = false
+var _post: RetroPost
 
 
 func _ready() -> void:
 	style = requested_style(style)
-	_kit = StyleKit.new(style == Style.A)
+	_kit = StyleKit.new(style as int)
 	_build_environment()
 	_build_ground()
 	_build_yard()
@@ -44,6 +47,9 @@ func _ready() -> void:
 	_build_smoke()
 	_build_decals()
 	_build_camera()
+	if style == Style.C:
+		_post = RetroPost.new()
+		add_child(_post)
 	print(PREFIX + "ready " + style_letter())
 	print(PREFIX + "geometry triangles=%d groups=%d" % [_kit.triangle_total(), _kit.groups.size()])
 	for _i: int in range(3):
@@ -63,13 +69,22 @@ func _unhandled_input(event: InputEvent) -> void:
 				_go_shot(1)
 			KEY_3:
 				_go_shot(2)
+			KEY_P:
+				if _post != null:
+					_post.enabled = not _post.enabled
+					print(PREFIX + "post " + ("on" if _post.enabled else "off"))
 	var touch := event as InputEventScreenTouch
 	if touch != null and touch.pressed:
 		_go_shot((_shot + 1) % SHOTS.size())
 
 
 func style_letter() -> String:
-	return "a" if style == Style.A else "b"
+	match style:
+		Style.A:
+			return "a"
+		Style.B:
+			return "b"
+	return "c"
 
 
 ## URL ?scene=style_a|style_b 또는 --scene=style_b가 있으면 그것, 없으면 기본값.
@@ -91,12 +106,17 @@ static func requested_style(default_style: Style) -> Style:
 			return Style.A
 		"style_b":
 			return Style.B
+		"style_c":
+			return Style.C
 	return default_style
 
 
 # --- 환경·빛·카메라 ---
 
 func _build_environment() -> void:
+	if style == Style.C:
+		_build_environment_retro()
+		return
 	var env: Environment = (load(ENV_PATH) as Environment).duplicate() as Environment
 	if style == Style.B:
 		# 조금 더 짙은 안개와 높이 그라데이션
@@ -134,6 +154,17 @@ func _build_environment() -> void:
 	add_child(_sun)
 
 
+## 스타일 C: 해질녘 하늘 + 청회색 안개 + 차가운 앰비언트 + 낮은 따뜻한 태양.
+func _build_environment_retro() -> void:
+	var we := WorldEnvironment.new()
+	we.name = "WorldEnvironment"
+	we.environment = RetroLook.make_environment()
+	add_child(we)
+	_sun = RetroLook.make_sun()
+	add_child(_sun)
+	add_child(RetroLook.make_fill())
+
+
 func _build_lights() -> void:
 	# 매단 램프 (공장 안)
 	var lamp := OmniLight3D.new()
@@ -165,6 +196,8 @@ func _build_lights() -> void:
 
 
 func _build_smoke() -> void:
+	if style == Style.C:
+		return  # C의 연기는 StyleSkyline이 각진 덩어리로 만든다
 	for p: Vector3 in [Vector3(-44.0, 46.5, -78.0), Vector3(-37.0, 36.5, -74.0)]:
 		var plume := SmokePlume.new()
 		plume.name = "Smoke%d" % int(p.x)
@@ -209,8 +242,10 @@ func _build_ground() -> void:
 	StyleFactory.slab(k, gr, StyleMaterialSet.CONCRETE, Vector3(-12.0, -0.3, -11.0), Vector3(12.0, 0.025, -7.6), 0.012)
 	# 마당 가장자리 연석과 차선 띠
 	StyleFactory.slab(k, gr, StyleMaterialSet.CONCRETE, Vector3(-12.2, -0.3, -7.6), Vector3(-11.9, 0.14, 12.0), 0.02)
-	if not k.is_a:
+	if style == Style.B:
 		_dress_ground_lowpoly(k, gr)
+	elif style == Style.C:
+		_dress_ground_retro(k, gr)
 	for i: int in range(6):
 		StyleFactory.slab(k, gr, StyleMaterialSet.BAND_WHITE, Vector3(-0.1, 0.0, 10.4 - i * 2.2), Vector3(0.1, 0.012, 11.6 - i * 2.2))
 
@@ -245,6 +280,24 @@ func _dress_ground_lowpoly(k: StyleKit, gr: MeshBuilder) -> void:
 	k.cyl(gr, StyleMaterialSet.STEEL, Transform3D(Basis.IDENTITY, Vector3(-3.4, 0.045, -3.4)), 0.34, 0.02, 8, 8)
 	k.box(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(4.6, 0.015, 9.8)), Vector3(1.0, 0.03, 0.5), 0.0)
 	# 타이어 더미
+	for i: int in range(3):
+		k.cyl(gr, StyleMaterialSet.RUBBER, Transform3D(Basis.IDENTITY, Vector3(-11.0 + (i % 2) * 0.1, 0.12 + i * 0.24, 9.8)), 0.4, 0.24, 8, 8, 0.05)
+
+
+## 스타일 C 바닥 장식: 보수 패치(정점 색 변주)·맨홀·타이어. 균열·차선 흔적은 아스팔트 텍스처가 맡는다.
+func _dress_ground_retro(k: StyleKit, gr: MeshBuilder) -> void:
+	var patches: Array[Array] = [
+		[Vector3(-6.5, 0.0, 9.0), Vector3(-2.0, 0.012, 11.8), Color(0.78, 0.82, 0.92)],
+		[Vector3(4.0, 0.0, -0.8), Vector3(8.5, 0.012, 1.8), Color(0.6, 0.62, 0.7)],
+		[Vector3(-10.0, 0.0, -3.0), Vector3(-5.5, 0.012, -0.5), Color(1.0, 0.98, 0.95)],
+		[Vector3(0.0, 0.0, 6.0), Vector3(3.2, 0.012, 8.4), Color(0.66, 0.7, 0.78)],
+	]
+	for p: Array in patches:
+		k.mats.apply(gr, StyleMaterialSet.ASPHALT)
+		gr.color(p[2] as Color)
+		gr.add_box(Transform3D(Basis.IDENTITY, ((p[0] as Vector3) + (p[1] as Vector3)) * 0.5), (p[1] as Vector3) - (p[0] as Vector3), 0.0, 1)
+	k.cyl(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(-3.4, 0.02, -3.4)), 0.5, 0.04, 8, 8)
+	k.cyl(gr, StyleMaterialSet.STEEL, Transform3D(Basis.IDENTITY, Vector3(-3.4, 0.045, -3.4)), 0.34, 0.02, 8, 8)
 	for i: int in range(3):
 		k.cyl(gr, StyleMaterialSet.RUBBER, Transform3D(Basis.IDENTITY, Vector3(-11.0 + (i % 2) * 0.1, 0.12 + i * 0.24, 9.8)), 0.4, 0.24, 8, 8, 0.05)
 

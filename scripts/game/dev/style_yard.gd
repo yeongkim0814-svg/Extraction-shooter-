@@ -17,9 +17,9 @@ static func container(k: StyleKit, pos: Vector3, yaw: float, teal: bool) -> void
 	var body_id: StringName = StyleMaterialSet.CONT_TEAL if teal else StyleMaterialSet.CONT_RED
 	var paint_id: StringName = StyleMaterialSet.PAINT_TEAL if teal else StyleMaterialSet.PAINT_RED
 	var center: Transform3D = StyleKit.loc(base, Vector3(0.0, CONT_H * 0.5, 0.0))
-	if k.is_a:
-		# 법선 맵이 주름을 담당한다
-		k.box(gr, body_id, center, Vector3(CONT_L, CONT_H, CONT_W), 0.03)
+	if k.textured:
+		# 법선 맵(A) 또는 픽셀 텍스처(C)가 주름을 담당한다
+		k.box(gr, body_id, center, Vector3(CONT_L, CONT_H, CONT_W), 0.03 if k.is_a else 0.05)
 	else:
 		# 단순한 몸통 + 기하 주름 (사다리꼴 파형 압출)
 		k.box(gr, body_id, center, Vector3(CONT_L - 0.02, CONT_H - 0.02, CONT_W - 0.16), 0.06)
@@ -292,7 +292,7 @@ static func fence(k: StyleKit, x: float, z0: float, z1: float) -> void:
 		k.box(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(x - 0.1, 1.65, pz)), Vector3(0.16, 3.3, 0.16), 0.01)
 	k.box(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(x - 0.07, 3.2, (z0 + z1) * 0.5)), Vector3(0.1, 0.1, length), 0.0)
 	k.box(gr, StyleMaterialSet.STEEL_DARK, Transform3D(Basis.IDENTITY, Vector3(x - 0.07, 0.15, (z0 + z1) * 0.5)), Vector3(0.1, 0.18, length), 0.0)
-	if not k.is_a:
+	if not k.textured:
 		for i: int in range(int(length / 0.5)):
 			k.box(gr, StyleMaterialSet.CONT_TEAL, Transform3D(Basis.IDENTITY, Vector3(x - 0.07, 1.6, z0 + 0.25 + i * 0.5)), Vector3(0.05, 2.8, 0.08), 0.0)
 
@@ -341,7 +341,7 @@ static func weed_clump(k: StyleKit, pos: Vector3, seed_value: int, scale: float 
 			var mid: Vector3 = p0 + dir * lean * h * 0.4 + Vector3(0.0, h * 0.55, 0.0)
 			var tip: Vector3 = p0 + dir * lean * h + Vector3(0.0, h, 0.0)
 			var shade: Color = Color(0.85 + 0.15 * rng.randf(), 0.9 + 0.1 * rng.randf(), 0.8 + 0.2 * rng.randf())
-			gr.color(LowpolyMaterials.WEED_C * shade)
+			gr.color(k.mats.tint(StyleMaterialSet.WEED) * shade)
 			gr.add_triangle(Transform3D.IDENTITY, p0 - side * w, p0 + side * w, mid - side * w * 0.5, dir)
 			gr.add_triangle(Transform3D.IDENTITY, p0 + side * w, mid + side * w * 0.5, mid - side * w * 0.5, dir)
 			gr.add_triangle(Transform3D.IDENTITY, mid - side * w * 0.5, mid + side * w * 0.5, tip, dir)

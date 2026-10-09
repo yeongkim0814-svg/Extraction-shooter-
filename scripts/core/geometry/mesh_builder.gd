@@ -7,6 +7,7 @@ extends RefCounted
 ## 규약
 ## - 삼각형 감김은 Godot 전면 규약(시계 방향)을 따른다. 바깥 법선 힌트로 자동 보정한다.
 ## - UV는 변환 전 로컬 좌표(미터)를 면 방향에 따라 투영한다 (박스 투영). 재질의 uv1_scale로 타일 크기를 정한다.
+##   world_uv가 true면 월드 위치(도형 축 정렬)를 기준으로 투영한다.
 ## - flat_shading이 true면 면마다 하나의 법선(로우폴리), false면 모따기 부분을 부드럽게 잇는다.
 ## - 정점 색은 tint(팔레트)와 높이 그라데이션(아래쪽을 어둡게)을 곱해 넣는다. 정점 색을 안 쓰는 재질엔 영향이 없다.
 
@@ -22,6 +23,9 @@ class Surface:
 var flat_shading: bool = false
 ## 법선 맵용 탄젠트를 만들지 (법선 맵을 쓰는 재질에만 필요).
 var with_tangents: bool = false
+## UV를 도형 로컬이 아니라 월드 위치 기준으로 낸다 (회전은 도형을 따라간다). 켜면 이웃한 도형 사이에 텍스처가 이어지고,
+## 텍스처의 아래쪽이 월드 y=0에 닿아 때·녹물 번짐이 지면에서 시작한다. 픽셀 텍스처의 텍셀 크기를 월드에서 일정하게 맞출 때 쓴다.
+var world_uv: bool = false
 ## 정점 색에 곱하는 기본 색 (팔레트).
 var tint: Color = Color.WHITE
 ## 높이 그라데이션: y_low에서 low_color, y_high에서 white 쪽으로 (둘 다 0이면 끔). 변환 후(프롭 로컬) 높이 기준.
@@ -278,6 +282,8 @@ func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, 
 	var flat_n: Vector3 = -face.normalized()
 	var surf: Surface = _current
 	var basis_n: Basis = xform.basis
+	# 월드 기준 UV: 도형 로컬 좌표에 "월드 원점의 로컬 좌표"를 더해 도형 축 정렬을 유지한 채 위치를 이어 붙인다
+	var uv_shift: Vector3 = xform.basis.orthonormalized().transposed() * xform.origin if world_uv else Vector3.ZERO
 	var pts: Array[Vector3] = [a, b, c]
 	var nrm: Array[Vector3] = [na, nb, nc]
 	for v: int in range(3):
@@ -286,7 +292,7 @@ func _emit(xform: Transform3D, a: Vector3, b: Vector3, c: Vector3, na: Vector3, 
 		surf.verts.append(wp)
 		var nl: Vector3 = flat_n if flat_shading else nrm[v].normalized()
 		surf.normals.append((basis_n * nl).normalized())
-		surf.uvs.append(_project_uv(p, flat_n))
+		surf.uvs.append(_project_uv(p + uv_shift, flat_n))
 		surf.colors.append(_vertex_color(wp.y))
 	triangle_count += 1
 

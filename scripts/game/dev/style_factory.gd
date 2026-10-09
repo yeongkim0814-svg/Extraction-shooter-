@@ -68,7 +68,7 @@ static func build_shell(k: StyleKit) -> void:
 	for rx: float in [leaf_x - 1.3, leaf_x + 1.3]:
 		k.cyl(gr, steel_d, Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(rx, 4.66, front_out + 0.3)), 0.12, 0.14, 12, 6)
 	k.box(gr, steel_d, Transform3D(Basis.IDENTITY, Vector3(leaf_x - 1.45, 1.6, front_out + 0.38)), Vector3(0.08, 1.1, 0.08), 0.0)
-	if not k.is_a:
+	if not k.textured:
 		# 문짝 주름 (기하 리브)
 		for i: int in range(10):
 			k.box(gr, StyleMaterialSet.CONT_TEAL, Transform3D(Basis.IDENTITY, Vector3(leaf_x - 1.4 + i * 0.31, 2.3, front_out + 0.37)),
@@ -212,7 +212,7 @@ static func _shaft(k: StyleKit, top: Array[Vector3], shift: Vector3) -> void:
 	var gr: MeshBuilder = k.g(&"shaft")
 	gr.set_gradient(0.0, 9.2, 0.92)
 	k.mats.apply(gr, StyleMaterialSet.SHAFT)
-	gr.color(Color(0.62, 0.7, 0.8, 1.0) if k.is_a else Color(0.8, 0.82, 0.74, 1.0))
+	gr.color(Color(0.62, 0.7, 0.8, 1.0) if k.is_a else (Color(0.5, 0.42, 0.3, 1.0) if k.is_c else Color(0.8, 0.82, 0.74, 1.0)))
 	var bottom: Array[Vector3] = []
 	for t: Vector3 in top:
 		var f: float = t.y / 7.4 if shift.y == 0.0 and t.y < 8.0 else 1.0
@@ -223,5 +223,5 @@ static func _shaft(k: StyleKit, top: Array[Vector3], shift: Vector3) -> void:
 	var glow: MeshBuilder = k.g(&"glow")
 	glow.set_gradient(0.0, 0.0, 0.0)
 	k.mats.apply(glow, StyleMaterialSet.SHAFT)
-	glow.color(Color(0.42, 0.48, 0.55, 1.0) if k.is_a else Color(0.55, 0.55, 0.48, 1.0))
+	glow.color(Color(0.42, 0.48, 0.55, 1.0) if k.is_a else (Color(0.4, 0.34, 0.24, 1.0) if k.is_c else Color(0.55, 0.55, 0.48, 1.0)))
 	glow.add_quad(Transform3D.IDENTITY, bottom[0], bottom[1], bottom[2], bottom[3], Vector3.UP)

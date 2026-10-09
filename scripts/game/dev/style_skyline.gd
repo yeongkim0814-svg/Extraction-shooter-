@@ -15,6 +15,9 @@ static func build(k: StyleKit) -> void:
 	_crane(k, gr, Vector3(46.0, 0.0, -72.0), 40.0)
 	_lattice_tower(k, gr, Vector3(74.0, 0.0, -44.0), 48.0, 6.0, 1.2)
 	_stack(k, gr, Vector3(30.0, 0.0, -90.0), 38.0, 1.8, 1.2, false)
+	if k.is_c:
+		_smoke_plume(k, gr, Vector3(-44.0, 47.0, -78.0), 16)
+		_smoke_plume(k, gr, Vector3(-37.0, 37.0, -74.0), 12)
 
 
 ## 굴뚝: 위가 가늘어지는 원기둥. banded면 빨강/흰 띠.
@@ -141,3 +144,18 @@ static func _hills(k: StyleKit, gr: MeshBuilder) -> void:
 				gr.add_quad(Transform3D.IDENTITY, prev_bot, bot, top, prev_top, -Vector3(dir.x, 0.0, dir.z))
 			prev_top = top
 			prev_bot = bot
+
+
+## 스타일 C 연기 기둥: 굴뚝 끝에서 바람(+X)을 따라 비스듬히 올라가며 커지는 각진 덩어리. 아래는 짙고 위는 흐려진다.
+static func _smoke_plume(k: StyleKit, gr: MeshBuilder, top: Vector3, count: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(top.x * 7.0) + 11
+	for i: int in range(count):
+		var t: float = float(i) / float(count - 1)
+		var pos: Vector3 = top + Vector3(t * 46.0 + rng.randf_range(-1.0, 1.0), t * 24.0 + rng.randf_range(-1.0, 1.0), rng.randf_range(-2.0, 2.0))
+		var size: float = lerpf(2.4, 9.0, t) * rng.randf_range(0.85, 1.15)
+		var basis := Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU))
+		k.mats.apply(gr, StyleMaterialSet.SKY_NEAR)
+		var shade: float = lerpf(0.1, 0.32, t)
+		gr.color(Color(shade, shade * 1.02, shade * 1.08))
+		gr.add_box(Transform3D(basis, pos), Vector3(size, size * rng.randf_range(0.7, 1.0), size * rng.randf_range(0.8, 1.1)), size * 0.12, 1)

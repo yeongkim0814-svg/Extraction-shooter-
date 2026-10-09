@@ -150,3 +150,40 @@ func test_tangents_are_generated_on_request() -> void:
 	var arrays: Array = _arrays(b)
 	assert_not_null(arrays[Mesh.ARRAY_TANGENT])
 	assert_gt((arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size(), 0)
+
+
+## 월드 UV: 이웃한 두 상자의 같은 월드 점은 같은 UV, 위로 갈수록 v가 줄어든다 (텍스처 아래쪽 = y 0).
+func test_world_uv_is_continuous_across_boxes() -> void:
+	var b: MeshBuilder = _builder()
+	b.world_uv = true
+	b.add_box(Transform3D(Basis.IDENTITY, Vector3(3.0, 1.0, 0.0)), Vector3(2, 2, 2))
+	b.add_box(Transform3D(Basis.IDENTITY, Vector3(5.0, 1.0, 0.0)), Vector3(2, 2, 2))
+	var arrays: Array = _arrays(b)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var checked: int = 0
+	for i: int in range(verts.size()):
+		if norms[i].z > 0.9:
+			assert_almost_eq(uvs[i].x, verts[i].x, 0.0001)
+			assert_almost_eq(uvs[i].y, -verts[i].y, 0.0001)
+			checked += 1
+	assert_gt(checked, 0)
+
+
+func test_world_uv_follows_box_rotation() -> void:
+	var b: MeshBuilder = _builder()
+	b.world_uv = true
+	var base := Transform3D(Basis(Vector3.UP, 0.6), Vector3(4.0, 0.0, 2.0))
+	b.add_box(Transform3D(base.basis, base * Vector3(0.0, 1.0, 0.0)), Vector3(2, 2, 2))
+	var arrays: Array = _arrays(b)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	# 옆면의 v는 회전과 상관없이 -월드 y (때 그라데이션이 지면에서 시작)
+	var sides: int = 0
+	for i: int in range(verts.size()):
+		if absf(norms[i].y) < 0.05:
+			assert_almost_eq(uvs[i].y, -verts[i].y, 0.0001)
+			sides += 1
+	assert_gt(sides, 0)

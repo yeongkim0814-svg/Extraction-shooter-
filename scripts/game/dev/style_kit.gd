@@ -9,14 +9,32 @@ const NO_SHADOW_GROUPS: Array[StringName] = [&"skyline", &"shaft", &"glow", &"fa
 const B_GRADIENT_TOP: float = 5.0
 const B_GRADIENT_DARK: float = 0.34
 
+## 스타일 종류 (StyleCompare.Style의 값과 같다: 0 = A, 1 = B, 2 = C).
+const KIND_A: int = 0
+const KIND_B: int = 1
+const KIND_C: int = 2
+
+## A "반실사" (법선 맵 텍스처). B·C는 로우폴리 지오메트리라 is_a가 false.
 var is_a: bool
+## C "레트로 로우폴리" (픽셀 텍스처 + 월드 UV). 지오메트리는 B와 같은 로우폴리 틀을 쓰되 세부는 텍스처가 맡는다.
+var is_c: bool
+## 표면 세부(골판 주름·문짝 리브·울타리 살)를 텍스처가 맡는가 (A, C). false면 기하 주름을 만든다 (B).
+var textured: bool
 var mats: StyleMaterialSet
 var groups: Dictionary[StringName, MeshBuilder] = {}
 
 
-func _init(semireal: bool) -> void:
-	is_a = semireal
-	mats = SemirealMaterials.new() if semireal else LowpolyMaterials.new()
+func _init(kind: int) -> void:
+	is_a = kind == KIND_A
+	is_c = kind == KIND_C
+	textured = is_a or is_c
+	match kind:
+		KIND_A:
+			mats = SemirealMaterials.new()
+		KIND_C:
+			mats = RetroMaterials.new()
+		_:
+			mats = LowpolyMaterials.new()
 
 
 ## 그룹 이름의 빌더 (처음이면 스타일에 맞게 설정해 만든다).
@@ -25,7 +43,8 @@ func g(group_name: StringName) -> MeshBuilder:
 		var b := MeshBuilder.new()
 		b.flat_shading = not is_a
 		b.with_tangents = is_a and group_name != &"skyline" and group_name != &"shaft"
-		if not is_a:
+		b.world_uv = is_c
+		if not is_a and not is_c:
 			b.set_gradient(0.0, B_GRADIENT_TOP, B_GRADIENT_DARK)
 		groups[group_name] = b
 	return groups[group_name]

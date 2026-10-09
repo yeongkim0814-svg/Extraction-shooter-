@@ -1,7 +1,7 @@
 extends Control
 ## 개발용 시작 메뉴. 버튼으로 데모 씬을 열거나, 실행 인자로 바로 연다:
-##   네이티브: godot -- --scene=inventory | --scene=platform | --scene=combat | --scene=ai | --scene=raid | --scene=style_a | --scene=style_b
-##   웹:      index.html?scene=inventory | ?scene=platform | ?scene=combat | ?scene=ai | ?scene=raid | ?scene=style_a | ?scene=style_b
+##   네이티브: godot -- --scene=inventory | --scene=platform | --scene=combat | --scene=ai | --scene=raid | --scene=style_a | --scene=style_b | --scene=style_c
+##   웹:      index.html?scene=inventory | ?scene=platform | ?scene=combat | ?scene=ai | ?scene=raid | ?scene=style_a | ?scene=style_b | ?scene=style_c
 
 const SCENES: Dictionary[String, String] = {
 	"platform": "res://scenes/dev/platform_test.tscn",
@@ -11,6 +11,7 @@ const SCENES: Dictionary[String, String] = {
 	"raid": "res://scenes/raid/industrial.tscn",
 	"style_a": "res://scenes/dev/style_compare.tscn",
 	"style_b": "res://scenes/dev/style_compare.tscn",
+	"style_c": "res://scenes/dev/style_compare.tscn",
 }
 
 
@@ -22,6 +23,7 @@ func _ready() -> void:
 	%RaidButton.pressed.connect(_open.bind("raid"))
 	%StyleAButton.pressed.connect(_open.bind("style_a"))
 	%StyleBButton.pressed.connect(_open.bind("style_b"))
+	%StyleCButton.pressed.connect(_open.bind("style_c"))
 	var requested: String = _requested_scene()
 	if SCENES.has(requested):
 		# 씬 트리가 준비된 뒤에 전환한다
@@ -29,8 +31,16 @@ func _ready() -> void:
 
 
 func _open(scene_name: String) -> void:
-	# 스타일 비교 씬은 한 씬 파일을 두 스타일로 쓴다 (URL 인자가 없으면 여기서 고른 값을 따른다)
-	StyleCompare.forced_style = StyleCompare.Style.B if scene_name == "style_b" else (StyleCompare.Style.A if scene_name == "style_a" else -1)
+	# 스타일 비교 씬은 한 씬 파일을 세 스타일로 쓴다 (URL 인자가 없으면 여기서 고른 값을 따른다)
+	match scene_name:
+		"style_a":
+			StyleCompare.forced_style = StyleCompare.Style.A
+		"style_b":
+			StyleCompare.forced_style = StyleCompare.Style.B
+		"style_c":
+			StyleCompare.forced_style = StyleCompare.Style.C
+		_:
+			StyleCompare.forced_style = -1
 	get_tree().change_scene_to_file(SCENES[scene_name])
 
 
