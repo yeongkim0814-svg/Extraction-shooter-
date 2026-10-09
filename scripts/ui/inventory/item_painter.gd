@@ -34,7 +34,7 @@ static func color_of(category: ItemDef.Category) -> Color:
 
 ## rect 안에 아이템을 그린다. rotated면 아이콘을 90도 돌려 그린다 (색 블록은 영향 없음).
 static func draw_item(canvas: CanvasItem, font: Font, item: ItemInstance, rect: Rect2,
-		p_rotated: bool, alpha: float = 1.0, show_count: bool = true) -> void:
+		p_rotated: bool, alpha: float = 1.0, show_count: bool = true, show_name: bool = true) -> void:
 	var inner: Rect2 = rect.grow(-1.5)
 	var base: Color = color_of(item.def.category)
 	base.a = alpha
@@ -51,7 +51,8 @@ static func draw_item(canvas: CanvasItem, font: Font, item: ItemInstance, rect: 
 		canvas.draw_rect(inner, base.darkened(0.25))
 		canvas.draw_rect(Rect2(inner.position, Vector2(inner.size.x, 4.0)), base.lightened(0.15))
 	canvas.draw_rect(inner, base.lightened(0.35), false, 1.5)
-	_draw_label(canvas, font, item.def.display_name, inner, alpha)
+	if show_name:
+		_draw_label(canvas, font, item.def.display_name, inner, alpha)
 	if show_count and item.def.max_stack > 1:
 		var text: String = str(item.stack_count)
 		var pos := Vector2(inner.position.x + 2.0, inner.end.y - 4.0)

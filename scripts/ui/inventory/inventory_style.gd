@@ -6,6 +6,9 @@ const PANEL_BG := Color(0.09, 0.1, 0.13, 0.97)
 const PANEL_BORDER := Color(0.45, 0.5, 0.62, 1.0)
 const TEXT := Color(0.94, 0.96, 1.0)
 const TEXT_DIM := Color(0.62, 0.66, 0.74)
+const SECTION_HEADER_BG := Color(0.13, 0.145, 0.185, 1.0)
+const SECTION_DIVIDER := Color(0.3, 0.33, 0.41, 0.7)
+const GROUP_BORDER := Color(0.42, 0.46, 0.56, 1.0)
 const BUTTON_MIN_HEIGHT: float = 52.0
 
 
@@ -47,3 +50,15 @@ static func style_button(button: Button, accent: Color = Color(0.45, 0.62, 0.95)
 	for color_name: String in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		button.add_theme_color_override(color_name, TEXT)
 	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.48, 0.55))
+
+
+## 컨테이너 구역 머리글 띠: 어두운 배경 + 얇은 띠 높이.
+static func section_header_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = SECTION_HEADER_BG
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style

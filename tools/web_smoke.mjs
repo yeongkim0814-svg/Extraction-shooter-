@@ -241,6 +241,48 @@ await page.screenshot({ path: mode.png2 });
   check(!lines.slice(from).some((l) => l.includes('event ')), '스크롤 제스처가 아이템 이벤트를 일으킴 (드래그로 오인)');
   await page.screenshot({ path: 'build/inventory_smoke_scrolled.png' });
 }
+
+// 6) 군장/배낭/보안 컨테이너 구역: 왼쪽 페이지를 맨 아래로 스크롤해 장착 상태를 찍고,
+//    배낭을 해제해서 빈 상태(슬롯 네모만)도 찍는다.
+{
+  const scale = +(/INVENTORY_DEMO: scale ([\d.]+)/.exec(text0)?.[1] ?? 1);
+  const packId = +(/INVENTORY_DEMO: role backpack id=(\d+)/.exec(text0)?.[1] ?? 0);
+  const bagSlot = rectOf(new RegExp(`INVENTORY_DEMO: slot BACKPACK at ${RECT}`).exec(text0));
+  check(packId && bagSlot, '레이아웃 로그에 role backpack / slot BACKPACK이 없음');
+  if (packId && bagSlot) {
+    await page.mouse.move(640 - 80, 400);
+    for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, 600); await page.waitForTimeout(120); }
+    await page.waitForTimeout(500);
+    const sc = lastScroll(0);
+    const scrollPx = sc ? +sc[1] * scale : 0;
+    check(sc && +sc[1] > 100, `왼쪽 페이지가 아래로 스크롤되지 않음: ${sc && sc[0]}`);
+    // 가려지지 않게 스크롤 후 슬롯 위치 = 처음 좌표 - 스크롤
+    const bag = { x: bagSlot.x, y: bagSlot.y - scrollPx, w: bagSlot.w, h: bagSlot.h };
+    check(bag.y >= 0 && bag.y + bag.h <= 720, `스크롤 후 배낭 슬롯이 화면 밖: y=${bag.y}`);
+    await page.screenshot({ path: 'build/inventory_smoke_sections.png' });
+    const from = lines.length;
+    await tap(center(bag));
+    check(await waitMatch(from, new RegExp(`INVENTORY_DEMO: selected ${packId}\\b`)), '배낭 슬롯 탭 후 selected 로그가 없음');
+    await page.waitForTimeout(500);
+    const buttons = {};
+    for (const m of lines.slice(from).join('\n').matchAll(new RegExp(`INVENTORY_DEMO: button (\\w+) at ${RECT}`, 'g'))) {
+      buttons[m[1]] = { x: +m[2], y: +m[3], w: +m[4], h: +m[5] };
+    }
+    check(buttons.unequip, '배낭에 해제 버튼이 없음');
+    if (buttons.unequip) {
+      const from2 = lines.length;
+      await tap(center(buttons.unequip));
+      check(await waitMatch(from2, new RegExp(`INVENTORY_DEMO: event item_moved ${packId} to=stash@`)),
+        '배낭 해제 후 item_moved 로그가 없음');
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: 'build/inventory_smoke_sections_empty.png' });
+      await page.mouse.move(640 - 80, 400);
+      for (let i = 0; i < 2; i++) { await page.mouse.wheel(0, -100); await page.waitForTimeout(120); }
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: 'build/inventory_smoke_rig.png' });
+    }
+  }
+}
 await browser.close();
 
 if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }

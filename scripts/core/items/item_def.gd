@@ -38,6 +38,8 @@ enum Category {
 @export var tradeable: bool = true
 ## 이 아이템이 제공하는 내부 그리드 크기 목록 (배낭 1개, 리그는 여러 개). 비어 있으면 컨테이너가 아니다.
 @export var grids: Array[Vector2i] = []
+## 내부 그리드 배치 위치(칸 단위, grids와 같은 순서). 비어 있으면 UI가 자동으로 줄바꿈 배치한다.
+@export var grid_offsets: Array[Vector2i] = []
 ## 인벤토리 아이콘. 없으면 UI가 색 블록 + 이름으로 그린다.
 @export var icon: Texture2D = null
 

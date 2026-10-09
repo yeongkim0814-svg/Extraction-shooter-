@@ -23,6 +23,11 @@ const SCROLLBAR_ALLOWANCE: float = 20.0
 const NATIVE_TOUCH_DEADZONE: int = 100000
 ## 선택한 아이템이 액션 바에 가리지 않게 올릴 때의 여유.
 const BAR_CLEARANCE: float = 16.0
+## 컨테이너 구역: 슬롯 네모 여백(픽셀), 네모와 그리드 영역 사이 간격, 그리드 그룹 사이 간격, 구역 아래 여백.
+const SQUARE_PAD: int = 8
+const SQUARE_GRID_GAP: int = 8
+const GROUP_GAP: int = 7
+const SECTION_BOTTOM_PAD: int = 6
 
 const SLOT_KO: Dictionary[EquipmentSlots.Slot, String] = {
 	EquipmentSlots.Slot.PRIMARY_1: "슬링",
@@ -58,6 +63,17 @@ const CONTAINER_SLOTS: Array[EquipmentSlots.Slot] = [
 	EquipmentSlots.Slot.BACKPACK,
 	EquipmentSlots.Slot.SECURE_CONTAINER,
 ]
+const SECTION_TITLE: Dictionary[EquipmentSlots.Slot, String] = {
+	EquipmentSlots.Slot.RIG: "군장",
+	EquipmentSlots.Slot.BACKPACK: "배낭",
+	EquipmentSlots.Slot.SECURE_CONTAINER: "보안 컨테이너",
+}
+## 빈 슬롯 네모 안에 흐리게 보이는 안내 이름.
+const SECTION_PLACEHOLDER: Dictionary[EquipmentSlots.Slot, String] = {
+	EquipmentSlots.Slot.RIG: "전술 조끼",
+	EquipmentSlots.Slot.BACKPACK: "배낭",
+	EquipmentSlots.Slot.SECURE_CONTAINER: "보안 컨테이너",
+}
 const ERROR_TEXT: Dictionary[StringName, String] = {
 	CommandResult.NO_SPACE: "자리가 없습니다",
 	CommandResult.NESTING_NOT_ALLOWED: "컨테이너 안에 컨테이너를 넣을 수 없습니다",
@@ -81,7 +97,8 @@ var _cell: int = InventoryItemPainter.CELL_SIZE
 var _slot_views: Array[InventorySlotView] = []
 var _fixed_grid_views: Array[InventoryGridView] = []
 var _container_views: Array[InventoryGridView] = []
-var _container_flows: Dictionary[EquipmentSlots.Slot, HFlowContainer] = {}
+var _container_bodies: Dictionary[EquipmentSlots.Slot, Control] = {}
+var _container_groups: Dictionary[EquipmentSlots.Slot, Array] = {}
 var _container_signature: Array[int] = []
 var _stash_view: InventoryGridView = null
 
@@ -232,12 +249,14 @@ func _on_viewport_resized() -> void:
 	_apply_half_widths()
 	var new_cell: int = _compute_cell()
 	if new_cell == _cell:
+		_layout_containers()
 		return
 	_cell = new_cell
 	for view: InventoryGridView in _all_grid_views():
 		view.set_cell_size(_cell)
 	for view: InventorySlotView in _slot_views:
 		view.set_cell_size(_cell)
+	_layout_containers()
 
 
 func _clear_children(node: Node) -> void:
@@ -283,7 +302,8 @@ func _build_slot_page() -> void:
 	_clear_children(_slot_page)
 	_slot_views.clear()
 	_fixed_grid_views.clear()
-	_container_flows.clear()
+	_container_bodies.clear()
+	_container_groups.clear()
 	_container_signature = []
 	var block := _hbox(_slot_page)
 	var left_col := _vbox(block)
@@ -304,19 +324,63 @@ func _build_slot_page() -> void:
 	for i: int in range(Inventory.POCKET_COUNT):
 		_fixed_grid_views.append(_make_grid_view(pockets, Inventory.pocket_key(i), _left_scroll))
 	for slot: EquipmentSlots.Slot in CONTAINER_SLOTS:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		_slot_page.add_child(row)
-		_make_slot(row, slot, Vector2(2, 2))
-		var flow := HFlowContainer.new()
-		flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		flow.add_theme_constant_override("h_separation", GAP)
-		flow.add_theme_constant_override("v_separation", GAP)
-		row.add_child(flow)
-		_container_flows[slot] = flow
+		_build_section(slot)
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = InventoryActionBar.BAR_HEIGHT + 24.0
 	_slot_page.add_child(spacer)
+
+
+## 컨테이너 구역 하나: 구분선 + 머리글 띠 + 본문(고정 크기 슬롯 네모 + 오른쪽에 내부 그리드 그룹).
+func _build_section(slot: EquipmentSlots.Slot) -> void:
+	var divider := ColorRect.new()
+	divider.color = InventoryStyle.SECTION_DIVIDER
+	divider.custom_minimum_size.y = 1.0
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_slot_page.add_child(divider)
+	var header := Label.new()
+	header.text = SECTION_TITLE[slot]
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", InventoryStyle.TEXT_DIM)
+	header.add_theme_stylebox_override("normal", InventoryStyle.section_header_style())
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_slot_page.add_child(header)
+	var body := Control.new()
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_slot_page.add_child(body)
+	var view: InventorySlotView = _make_slot(body, slot, Vector2(2, 2), Vector2(SQUARE_PAD, SQUARE_PAD))
+	view.corner_name = SECTION_PLACEHOLDER[slot]
+	view.position = Vector2.ZERO
+	view.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_container_bodies[slot] = body
+	_container_groups[slot] = []
+
+
+func _body_width() -> float:
+	return _half_width() - SCROLLBAR_ALLOWANCE
+
+
+## 각 구역의 그리드 그룹을 배치하고 본문 높이를 정한다. 높이 = max(슬롯 네모, 그리드 영역) + 여백.
+func _layout_containers() -> void:
+	for slot: EquipmentSlots.Slot in CONTAINER_SLOTS:
+		var body: Control = _container_bodies.get(slot)
+		if body == null:
+			continue
+		var square: float = 2.0 * float(_cell) + float(SQUARE_PAD)
+		var origin_x: float = square + float(SQUARE_GRID_GAP)
+		var views: Array = _container_groups[slot]
+		var sizes: Array[Vector2i] = []
+		var offsets: Array[Vector2i] = []
+		var item: ItemInstance = _inventory.equipment.get_item(slot)
+		if item != null:
+			sizes.assign(item.def.grids)
+			offsets.assign(item.def.grid_offsets)
+		var layout: ContainerLayout = ContainerLayout.compute(sizes, offsets, _cell,
+				maxf(_body_width() - origin_x, 0.0), GROUP_GAP)
+		for i: int in range(mini(views.size(), layout.rects.size())):
+			var group := views[i] as InventoryGridView
+			group.position = Vector2(origin_x, 0.0) + layout.rects[i].position
+		body.custom_minimum_size = Vector2(_body_width(),
+				maxf(square, layout.size.y) + float(SECTION_BOTTOM_PAD))
 
 
 func _build_stash() -> void:
@@ -354,15 +418,22 @@ func _rebuild_containers() -> void:
 	_container_signature = signature
 	_container_views.clear()
 	for slot: EquipmentSlots.Slot in CONTAINER_SLOTS:
-		var flow: HFlowContainer = _container_flows[slot]
-		_clear_children(flow)
+		var body: Control = _container_bodies[slot]
+		var groups: Array = _container_groups[slot]
+		for old: Variant in groups:
+			var old_view := old as InventoryGridView
+			body.remove_child(old_view)
+			old_view.queue_free()
+		groups.clear()
 		var item: ItemInstance = _inventory.equipment.get_item(slot)
-		if item == null or item.grids.is_empty():
-			var empty := _section_title("비어 있음" if item == null else "내부 공간 없음")
-			flow.add_child(empty)
+		if item == null:
 			continue
 		for i: int in range(item.grids.size()):
-			_container_views.append(_make_grid_view(flow, Inventory.item_grid_key(item.id, i), _left_scroll))
+			var group: InventoryGridView = _make_grid_view(body, Inventory.item_grid_key(item.id, i), _left_scroll)
+			group.bordered = true
+			groups.append(group)
+			_container_views.append(group)
+	_layout_containers()
 
 
 func _all_grid_views() -> Array[InventoryGridView]:

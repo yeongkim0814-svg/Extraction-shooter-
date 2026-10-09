@@ -15,6 +15,9 @@ var dragging_item_id: int = 0
 var selected_item_id: int = 0
 ## 스크롤 컨테이너 안에 있을 때 실제로 보이는 영역을 판정하는 클립 컨트롤.
 var clip_control: Control = null
+## 컨테이너 구역용: 비어 있을 때 보이는 흐린 안내 이름. 비어 있지 않으면 일반 장비 슬롯 표시를 쓴다.
+## 켜면 아이템 이름을 오른쪽 위에 그리고 알약 태그는 생략한다.
+var corner_name: String = ""
 
 var _highlight_valid: bool = false
 var _has_highlight: bool = false
@@ -95,13 +98,20 @@ func _draw() -> void:
 	draw_rect(rect, Color(0.09, 0.1, 0.12))
 	draw_rect(rect.grow(-0.5), Color(0.36, 0.39, 0.46), false, 1.5)
 	var item: ItemInstance = equipped_item()
+	var corner: bool = not corner_name.is_empty()
 	if item == null:
-		_draw_label(font, Color(0.78, 0.81, 0.88), Color(0.5, 0.54, 0.62), 1.0)
+		if corner:
+			_draw_placeholder(font)
+		else:
+			_draw_label(font, Color(0.78, 0.81, 0.88), Color(0.5, 0.54, 0.62), 1.0)
 	else:
 		var alpha: float = 0.3 if item.id == dragging_item_id else 1.0
 		var item_rect: Rect2 = item_local_rect()
-		InventoryItemPainter.draw_item(self, font, item, item_rect, false, alpha, false)
-		_draw_tag(font, alpha)
+		InventoryItemPainter.draw_item(self, font, item, item_rect, false, alpha, false, not corner)
+		if corner:
+			_draw_corner_name(font, item.def.display_name, Color(0.95, 0.97, 1.0, alpha), alpha)
+		else:
+			_draw_tag(font, alpha)
 		if item.id == selected_item_id:
 			InventoryItemPainter.draw_selection(self, rect.grow(-1))
 	if _has_highlight:
@@ -124,3 +134,35 @@ func _draw_tag(font: Font, alpha: float) -> void:
 	draw_rect(pill, Color(0, 0, 0, 0.7 * alpha))
 	draw_string(font, pill.position + Vector2(5, 11), label_ko, HORIZONTAL_ALIGNMENT_LEFT, pill.size.x - 6.0, 10,
 			Color(0.9, 0.93, 1.0, alpha))
+
+
+## 오른쪽 위 모서리에 오른쪽 정렬로 이름을 그린다.
+func _draw_corner_name(font: Font, text: String, color: Color, alpha: float) -> void:
+	var width: float = size.x - 10.0
+	var pos := Vector2(5, 17)
+	draw_string(font, pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_RIGHT, width, 13, Color(0, 0, 0, 0.9 * alpha))
+	draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_RIGHT, width, 13, color)
+
+
+## 빈 컨테이너 슬롯: 흐린 안내 이름(오른쪽 위) + 흐린 단순 그림.
+func _draw_placeholder(font: Font) -> void:
+	var faint := Color(0.5, 0.54, 0.62, 0.55)
+	_draw_corner_name(font, corner_name, faint, 1.0)
+	var box := Rect2(Vector2(size.x * 0.2, size.y * 0.34), Vector2(size.x * 0.6, size.y * 0.52))
+	var line := Color(faint, 0.35)
+	match slot:
+		EquipmentSlots.Slot.RIG:
+			var points := PackedVector2Array([
+				box.position + Vector2(box.size.x * 0.2, 0), box.position + Vector2(box.size.x * 0.4, 0),
+				box.position + Vector2(box.size.x * 0.5, box.size.y * 0.25),
+				box.position + Vector2(box.size.x * 0.6, 0), box.position + Vector2(box.size.x * 0.8, 0),
+				box.end, box.position + Vector2(0, box.size.y),
+				box.position + Vector2(box.size.x * 0.2, 0)])
+			draw_polyline(points, line, 2.0)
+		EquipmentSlots.Slot.BACKPACK:
+			draw_rect(box, line, false, 2.0)
+			draw_rect(Rect2(box.position + Vector2(box.size.x * 0.2, box.size.y * 0.5),
+					Vector2(box.size.x * 0.6, box.size.y * 0.35)), line, false, 2.0)
+		_:
+			draw_rect(box, line, false, 2.0)
+			draw_arc(box.get_center(), minf(box.size.x, box.size.y) * 0.18, 0.0, TAU, 20, line, 2.0)

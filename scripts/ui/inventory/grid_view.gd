@@ -13,6 +13,8 @@ var dragging_item_id: int = 0
 var selected_item_id: int = 0
 ## 스크롤 컨테이너 안에 있을 때, 포인터가 실제로 보이는 영역 안에 있는지 판정하는 데 쓰는 클립 컨트롤.
 var clip_control: Control = null
+## true면 그룹 테두리를 그린다 (컨테이너 내부 그리드).
+var bordered: bool = false
 
 var _highlight_cell: Vector2i = Vector2i.ZERO
 var _highlight_size: Vector2i = Vector2i.ZERO
@@ -84,6 +86,8 @@ func _draw() -> void:
 	for y: int in range(grid.height):
 		for x: int in range(grid.width):
 			draw_rect(Rect2(x * cell, y * cell, cell, cell).grow(-0.5), Color(0.2, 0.22, 0.26), false, 1.0)
+	if bordered:
+		draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), InventoryStyle.GROUP_BORDER, false, 2.0)
 	var selected: ItemInstance = null
 	for item: ItemInstance in grid.get_items():
 		var rect := Rect2(Vector2(item.position * cell), Vector2(item.size() * cell))

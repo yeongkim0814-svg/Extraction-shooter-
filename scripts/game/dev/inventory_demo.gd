@@ -7,7 +7,8 @@ extends Control
 ##   "INVENTORY_DEMO: stash origin=x,y cell=N"
 ##   "INVENTORY_DEMO: item <id> at x,y size WxH (<def id>)"       화면에 그려진 모든 아이템
 ##   "INVENTORY_DEMO: slot <NAME> at x,y size WxH"                 모든 장비 슬롯 박스
-##   "INVENTORY_DEMO: role <name> id=<n>"                          스모크가 쓰는 아이템 id
+##   "INVENTORY_DEMO: role <name> id=<n>"                          스모크가 쓰는 아이템 id (glasses, backpack)
+##   "INVENTORY_DEMO: scale S"                                     논리 → 창 픽셀 배율
 ##   "INVENTORY_DEMO: selected <id>" + "INVENTORY_DEMO: button <key> at x,y size WxH"   선택 직후 액션 바
 ##   "INVENTORY_DEMO: deselected"
 
@@ -16,6 +17,7 @@ const SCREEN_SCENE: PackedScene = preload("res://scenes/ui/inventory_screen.tscn
 var _authority: LocalAuthority
 var _screen: InventoryScreen
 var _glasses_id: int = 0
+var _pack_id: int = 0
 var _last_scroll: Vector2i = Vector2i.ZERO
 
 
@@ -80,6 +82,7 @@ func _print_layout() -> void:
 	var to_window: Transform2D = get_viewport().get_screen_transform()
 	var cell: float = float(_screen.cell_size()) * to_window.get_scale().x
 	var origin: Vector2 = to_window * _screen.stash_view().global_position
+	print("INVENTORY_DEMO: scale %f" % to_window.get_scale().x)
 	print("INVENTORY_DEMO: stash origin=%d,%d cell=%d" % [origin.x, origin.y, cell])
 	for slot: EquipmentSlots.Slot in _screen.all_slots():
 		print("INVENTORY_DEMO: slot %s at %s" % [EquipmentSlots.Slot.keys()[slot], _win_rect(_screen.slot_global_rect(slot))])
@@ -88,6 +91,7 @@ func _print_layout() -> void:
 		if rect.has_area():
 			print("INVENTORY_DEMO: item %d at %s (%s)" % [item.id, _win_rect(rect), item.def.id])
 	print("INVENTORY_DEMO: role glasses id=%d" % _glasses_id)
+	print("INVENTORY_DEMO: role backpack id=%d" % _pack_id)
 
 
 func _populate(authority: LocalAuthority) -> void:
@@ -110,7 +114,8 @@ func _populate(authority: LocalAuthority) -> void:
 	var backpack: ItemDef = _def(&"backpack", "배낭", ItemDef.Category.BACKPACK, 4, 5)
 	backpack.grids = [Vector2i(5, 6)]
 	var rig: ItemDef = _def(&"rig", "전술 조끼", ItemDef.Category.RIG, 3, 3)
-	rig.grids = [Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2)]
+	rig.grids = [Vector2i(2, 2), Vector2i(2, 2), Vector2i(1, 3), Vector2i(1, 3), Vector2i(1, 3), Vector2i(1, 3)]
+	rig.grid_offsets = [Vector2i(0, 0), Vector2i(2, 0), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 2)]
 	var safe: ItemDef = _def(&"safe_case", "보안 케이스", ItemDef.Category.SECURE_CONTAINER, 2, 2)
 	safe.grids = [Vector2i(2, 2)]
 
@@ -151,6 +156,9 @@ func _populate(authority: LocalAuthority) -> void:
 	_put(authority, ammo_556, 30, Inventory.item_grid_key(vest.id, 0), Vector2i(0, 0))
 	_put(authority, chain, 1, Inventory.item_grid_key(vest.id, 2), Vector2i(0, 1))
 	_put(authority, chain, 1, Inventory.item_grid_key(safe_item.id, 0), Vector2i(0, 0))
+	_put(authority, bandage, 2, Inventory.item_grid_key(vest.id, 1), Vector2i(1, 0))
+	_put(authority, ammo_9, 15, Inventory.item_grid_key(vest.id, 3), Vector2i(0, 0))
+	_pack_id = pack.id
 
 
 func _def(id: StringName, display_name: String, category: ItemDef.Category, width: int, height: int,
