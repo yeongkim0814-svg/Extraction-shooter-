@@ -2,9 +2,10 @@ class_name ItemDef
 extends Resource
 ## 아이템 종류의 정적 정의. 데이터(.tres)로 작성하고, 인스턴스(ItemInstance)가 참조한다.
 
+## 값 순서는 저장 데이터와 .tres에 숫자로 남으므로 새 항목은 항상 끝에 추가한다.
 enum Category {
 	MISC,
-	WEAPON,
+	WEAPON,  # 주무기 (소총·샷건 등). 권총은 PISTOL.
 	MAGAZINE,
 	AMMO,
 	ATTACHMENT,
@@ -16,6 +17,11 @@ enum Category {
 	RIG,
 	BACKPACK,
 	SECURE_CONTAINER,
+	PISTOL,
+	MELEE,
+	FACE_COVER,
+	HEADSET,
+	EYEWEAR,
 }
 
 @export var id: StringName = &""

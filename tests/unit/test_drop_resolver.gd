@@ -15,7 +15,7 @@ func before_each() -> void:
 	_inv = Inventory.new(Vector2i(10, 10))
 	_auth = LocalAuthority.new(_inv)
 	_pistol_def = ItemDef.create(&"pistol", 2, 1)
-	_pistol_def.category = ItemDef.Category.WEAPON
+	_pistol_def.category = ItemDef.Category.PISTOL
 	_ammo_def = ItemDef.create(&"ammo", 1, 1, 60)
 	_pack_def = ItemDef.create(&"pack", 3, 3)
 	_pack_def.category = ItemDef.Category.BACKPACK
@@ -197,11 +197,11 @@ func test_equip_wrong_category_denied() -> void:
 func test_equip_occupied_slot_denied() -> void:
 	var p1: ItemInstance = _add(_pistol_def, Vector2i(0, 0))
 	var p2: ItemInstance = _add(_pistol_def, Vector2i(0, 1))
-	assert_true(_auth.execute(EquipItemCommand.new(p1.id, EquipmentSlots.Slot.PRIMARY_1)).ok)
-	var r: DropResolver.Resolution = DropResolver.resolve_slot(_inv, p2.id, EquipmentSlots.Slot.PRIMARY_1)
+	assert_true(_auth.execute(EquipItemCommand.new(p1.id, EquipmentSlots.Slot.SECONDARY)).ok)
+	var r: DropResolver.Resolution = DropResolver.resolve_slot(_inv, p2.id, EquipmentSlots.Slot.SECONDARY)
 	assert_false(r.valid)
 	assert_eq(r.error, CommandResult.SLOT_OCCUPIED)
-	assert_false(DropResolver.resolve_slot(_inv, p1.id, EquipmentSlots.Slot.PRIMARY_1).valid)
+	assert_false(DropResolver.resolve_slot(_inv, p1.id, EquipmentSlots.Slot.SECONDARY).valid)
 
 
 func test_unequip_by_dropping_on_grid() -> void:

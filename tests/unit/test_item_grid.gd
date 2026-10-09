@@ -265,3 +265,51 @@ func test_random_operations_keep_grid_consistent() -> void:
 				counted += 1
 	assert_eq(counted, occupied)
 	assert_gt(grid.get_items().size(), 0)
+
+
+# --- 가장 가까운 배치 (탭 이동) ---
+
+func test_nearest_placement_covers_target_when_possible() -> void:
+	var grid := ItemGrid.new(6, 4)
+	var item := _item(2, 2)
+	var p: ItemGrid.Placement = grid.find_nearest_placement(item, Vector2i(5, 3), false)
+	assert_not_null(p)
+	assert_eq(p.cell, Vector2i(4, 2))
+	assert_false(p.rotated)
+
+
+func test_nearest_placement_slides_around_obstacles() -> void:
+	var grid := ItemGrid.new(5, 3)
+	grid.try_place(_item(3, 3), Vector2i(0, 0), false)
+	var item := _item(2, 1)
+	var p: ItemGrid.Placement = grid.find_nearest_placement(item, Vector2i(1, 1), false)
+	assert_not_null(p)
+	assert_eq(p.cell, Vector2i(3, 1))
+
+
+func test_nearest_placement_rotates_only_if_needed() -> void:
+	var grid := ItemGrid.new(2, 4)
+	var long := _item(3, 1)
+	var p: ItemGrid.Placement = grid.find_nearest_placement(long, Vector2i(0, 0), false)
+	assert_not_null(p)
+	assert_true(p.rotated)
+	var wide := ItemGrid.new(4, 4)
+	var p2: ItemGrid.Placement = wide.find_nearest_placement(_item(3, 1), Vector2i(3, 0), false)
+	assert_false(p2.rotated)
+	assert_eq(p2.cell, Vector2i(1, 0))
+
+
+func test_nearest_placement_respects_non_rotatable_and_full_grid() -> void:
+	var grid := ItemGrid.new(2, 2)
+	assert_null(grid.find_nearest_placement(_item(3, 1, 1, false), Vector2i(0, 0), true))
+	grid.try_place(_item(2, 2), Vector2i.ZERO, false)
+	assert_null(grid.find_nearest_placement(_item(1, 1), Vector2i(1, 1), false))
+
+
+func test_nearest_placement_allows_overlap_with_own_cells() -> void:
+	var grid := ItemGrid.new(4, 1)
+	var item := _item(2, 1)
+	grid.try_place(item, Vector2i(0, 0), false)
+	var p: ItemGrid.Placement = grid.find_nearest_placement(item, Vector2i(1, 0), false)
+	assert_not_null(p)
+	assert_eq(p.cell, Vector2i(0, 0))

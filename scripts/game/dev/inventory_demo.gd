@@ -44,7 +44,7 @@ func _print_layout() -> void:
 
 func _populate(authority: LocalAuthority) -> void:
 	var inv: Inventory = authority.inventory
-	var pistol: ItemDef = _def(&"pistol", "권총", ItemDef.Category.WEAPON, 2, 1)
+	var pistol: ItemDef = _def(&"pistol", "권총", ItemDef.Category.PISTOL, 2, 1)
 	var rifle: ItemDef = _def(&"rifle", "소총", ItemDef.Category.WEAPON, 5, 2)
 	var ammo_9: ItemDef = _def(&"ammo_9mm", "9mm 탄", ItemDef.Category.AMMO, 1, 1, 60)
 	var ammo_556: ItemDef = _def(&"ammo_556", "5.56 탄", ItemDef.Category.AMMO, 1, 1, 60)

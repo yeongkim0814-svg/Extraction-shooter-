@@ -586,9 +586,9 @@ func test_equip_from_inside_container_grid() -> void:
 	var pack_key: StringName = Inventory.item_grid_key(pack.id, 0)
 	var weapon := _weapon()
 	assert_true(inv.add_item(weapon, pack_key, Vector2i.ZERO, false).ok)
-	assert_true(inv.equip(weapon.id, Slot.SECONDARY).ok)
+	assert_true(inv.equip(weapon.id, Slot.PRIMARY_2).ok)
 	assert_true(pack.grids[0].get_items().is_empty())
-	assert_eq(weapon.container_key, &"slot_secondary")
+	assert_eq(weapon.container_key, &"slot_primary_2")
 	assert_true(inv.is_consistent())
 
 
@@ -1226,4 +1226,41 @@ func test_locked_stash_blocks_all_changes_in_and_out() -> void:
 	assert_true(inv.move_item(outside.id, Inventory.pocket_key(1), Vector2i.ZERO, false).ok)
 	inv.stash_locked = false
 	assert_true(inv.move_item(inside.id, Inventory.pocket_key(2), Vector2i.ZERO, false).ok)
+	assert_true(inv.is_consistent())
+
+
+# --- 슬롯 규칙: HOLSTER=권총, SLING·BACK=주무기, 얼굴·귀·눈·근접 ---
+
+func _cat_item(category: ItemDef.Category, w: int = 1, h: int = 1) -> ItemInstance:
+	var def := ItemDef.create(StringName("cat_%d" % category), w, h)
+	def.category = category
+	return _make(def)
+
+
+func test_holster_accepts_only_pistols_and_sling_only_primary() -> void:
+	var inv := _inv()
+	var pistol := _cat_item(ItemDef.Category.PISTOL, 2, 1)
+	var rifle := _cat_item(ItemDef.Category.WEAPON, 5, 2)
+	assert_eq(inv.add_equipped(rifle, Slot.SECONDARY).error, CommandResult.SLOT_NOT_ALLOWED)
+	assert_eq(inv.add_equipped(pistol, Slot.PRIMARY_1).error, CommandResult.SLOT_NOT_ALLOWED)
+	assert_eq(inv.add_equipped(pistol, Slot.PRIMARY_2).error, CommandResult.SLOT_NOT_ALLOWED)
+	assert_true(inv.add_equipped(pistol, Slot.SECONDARY).ok)
+	assert_true(inv.add_equipped(rifle, Slot.PRIMARY_2).ok)
+	assert_true(inv.is_consistent())
+
+
+func test_new_head_and_melee_slots_accept_their_category() -> void:
+	var inv := _inv()
+	var cases: Dictionary[Slot, ItemDef.Category] = {
+		Slot.MELEE: ItemDef.Category.MELEE,
+		Slot.FACE: ItemDef.Category.FACE_COVER,
+		Slot.EAR: ItemDef.Category.HEADSET,
+		Slot.EYE: ItemDef.Category.EYEWEAR,
+	}
+	for slot: Slot in cases:
+		assert_eq(inv.add_equipped(_cat_item(ItemDef.Category.MISC), slot).error,
+				CommandResult.SLOT_NOT_ALLOWED)
+		assert_true(inv.add_equipped(_cat_item(cases[slot]), slot).ok)
+		assert_eq(inv.equipment.get_item(slot).container_key, EquipmentSlots.key_of(slot))
+	assert_eq(EquipmentSlots.slot_from_key(&"slot_eye"), Slot.EYE)
 	assert_true(inv.is_consistent())

@@ -111,6 +111,37 @@ func find_free_placement(item: ItemInstance) -> Placement:
 	return null
 
 
+## target 칸에 가장 가까운 배치를 찾는다 (탭으로 옮길 때). 없으면 null.
+## 우선순위: ① 아이템이 target 칸을 덮는 배치 → 덮지 않으면 target과 아이템 영역 사이 거리가 짧은 배치
+## ② prefer_rotated와 같은 방향 ③ 아이템 중심이 target에 가까운 배치 ④ 행 우선 순서.
+## 이 그리드에 이미 있는 아이템이면 자기 자리와 겹쳐도 된다 (can_place 규칙).
+func find_nearest_placement(item: ItemInstance, target: Vector2i, prefer_rotated: bool) -> Placement:
+	var orientations: Array[bool] = [prefer_rotated]
+	if item.def.can_rotate and item.def.width != item.def.height:
+		orientations.append(not prefer_rotated)
+	elif prefer_rotated and not item.def.can_rotate:
+		orientations = [false]
+	var best: Placement = null
+	var best_score := Vector3(INF, INF, INF)
+	for p_rotated: bool in orientations:
+		var size: Vector2i = item.size_for(p_rotated)
+		for y: int in range(height - size.y + 1):
+			for x: int in range(width - size.x + 1):
+				var cell := Vector2i(x, y)
+				if not can_place(item, cell, p_rotated):
+					continue
+				var dx: int = maxi(maxi(x - target.x, 0), target.x - (x + size.x - 1))
+				var dy: int = maxi(maxi(y - target.y, 0), target.y - (y + size.y - 1))
+				var center := Vector2(x + (size.x - 1) * 0.5, y + (size.y - 1) * 0.5)
+				var score := Vector3(dx * dx + dy * dy,
+						0.0 if p_rotated == prefer_rotated else 1.0,
+						center.distance_squared_to(Vector2(target)))
+				if score < best_score:
+					best_score = score
+					best = Placement.new(cell, p_rotated)
+	return best
+
+
 func try_auto_place(item: ItemInstance) -> bool:
 	if _items.has(item.id):
 		return false
