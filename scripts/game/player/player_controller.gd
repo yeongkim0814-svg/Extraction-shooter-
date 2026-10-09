@@ -27,6 +27,8 @@ const RECOIL_RECOVERY: float = 9.0
 
 var input: InputState = InputState.new()
 var health: Health = Health.new(100.0)
+## 적 총알이 맞는 판정. 체력은 health를 그대로 공유한다. 충돌 레이어 4(플레이어)는 적 사격 레이만 본다.
+var hit_target: HitTarget
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -51,6 +53,10 @@ func _ready() -> void:
 	_apply_body_height(STAND_HEIGHT)
 	camera.fov = FOV_NORMAL
 	camera.current = true
+	hit_target = HitTarget.new()
+	hit_target.display_name = "player"
+	hit_target.health = health
+	add_child(hit_target)
 
 
 ## 권한자·난수를 받아 무기 컨트롤러를 연결한다.

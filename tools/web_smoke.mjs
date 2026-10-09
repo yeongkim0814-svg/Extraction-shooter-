@@ -1,5 +1,5 @@
 // 웹 빌드 스모크 테스트: build/web을 헤드리스 Chromium(WebGL)으로 열고 씬별 마커 로그를 확인한다.
-// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod] [마커 덮어쓰기]
+// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod|ai] [마커 덮어쓰기]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
@@ -31,6 +31,15 @@ const MODES = {
     pngSprint: 'build/combat_smoke_sprint.png',
     pngInventory: 'build/combat_smoke_inventory.png',
     log: 'build/combat_smoke_console.log',
+  },
+  // AI 테스트: 적 교전(COMBAT·enemy_shot·player_hit) → K로 적 처치(시체·루팅 아이템) → F 루팅 → 가방 닫기 버튼
+  ai: {
+    marker: 'AI_TEST: ready',
+    urlScene: 'ai',
+    viewport: { width: 1280, height: 720 },
+    png: 'build/ai_smoke.png',
+    pngLoot: 'build/ai_smoke_loot.png',
+    log: 'build/ai_smoke_console.log',
   },
   // 인벤토리 데모에서 소총 선택 → 모딩 → 소음기 장착/분리 (MOD_SCREEN 로그와 weapon_changed 이벤트 확인)
   mod: {
@@ -367,6 +376,88 @@ if (scene === 'mod') {
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);
   console.log(lines.filter((l) => /MOD_SCREEN: (open|attach|detach|stats|close|select)|weapon_changed/.test(l)).join('\n'));
+  console.log('PASS');
+  process.exit(0);
+}
+
+// --- ai ---
+if (scene === 'ai') {
+  if (!sawMarker) { await browser.close(); finish(`${MARKER} 마커가 나타나지 않음`); process.exit(1); }
+  const failures = [];
+  const check = (ok, msg) => { if (!ok) failures.push(msg); };
+  const count = (re, from = 0) => lines.slice(from).filter((l) => re.test(l)).length;
+  const waitMatch = async (from, re, ms = 5000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const hit = lines.slice(from).map((l) => re.exec(l)).find((m) => m);
+      if (hit) return hit;
+      await page.waitForTimeout(100);
+    }
+    return null;
+  };
+  const readyCount = () => count(/AI_TEST: ready/);
+
+  // 1) 내비메시가 구워졌다
+  const nav = await waitMatch(0, /AI_TEST: navmesh polys=(\d+)/, 5000);
+  check(nav && +nav[1] > 0, '"AI_TEST: navmesh polys=<n>" 로그가 없거나 n이 0');
+  await page.waitForTimeout(1000);
+  await page.mouse.move(640, 360);
+
+  // 2) 40초 안에 교전(COMBAT) + 적 사격 + 플레이어 피격. 15초 안에 아무도 못 봤으면 한 발 쏴서 소음을 낸다.
+  const t0 = lines.length;
+  let combat = await waitMatch(t0, /AI_TEST: state 적\d COMBAT/, 15000);
+  if (!combat) {
+    await page.mouse.down(); await page.waitForTimeout(150); await page.mouse.up();
+    check(await waitMatch(t0, /AI_TEST: noise (\d+)/, 3000), '총을 쐈는데 "AI_TEST: noise <반경>" 로그가 없음');
+    combat = await waitMatch(t0, /AI_TEST: state 적\d COMBAT/, 25000);
+  }
+  check(combat, '40초 안에 어떤 적도 COMBAT 상태가 되지 않음');
+  check(await waitMatch(t0, /AI_TEST: enemy_shot 적\d/, 15000), '"AI_TEST: enemy_shot" 로그가 없음');
+  check(await waitMatch(t0, /AI_TEST: player_hit hp=(\d+)/, 25000), '"AI_TEST: player_hit" 로그가 없음');
+  await page.screenshot({ path: mode.png });
+  console.log(lines.filter((l) => /AI_TEST: (navmesh|state|player_hit|noise)/.test(l)).slice(0, 14).join('\n'));
+
+  // 플레이어가 이미 죽었다면 씬이 다시 불릴 때까지 기다린다 (루팅 단계는 살아 있어야 한다)
+  if (has('AI_TEST: player_dead')) {
+    const before = readyCount();
+    const reborn = Date.now() + 15000;
+    while (readyCount() === before && Date.now() < reborn) await page.waitForTimeout(250);
+    await page.waitForTimeout(500);
+  }
+
+  // 3) K: 살아 있는 적을 모두 처치 (시체가 플레이어 앞 2 m로 옮겨짐). 루팅 아이템 2개 이상.
+  const k0 = lines.length;
+  const items = [];
+  for (let i = 0; i < 3; i++) {
+    const before = lines.length;
+    await page.keyboard.press('k');
+    const dead = await waitMatch(before, /AI_TEST: enemy_dead (적\d) loot=(loot_\d+) items=(\d+)/, 4000);
+    if (dead) items.push({ name: dead[1], key: dead[2], n: +dead[3] });
+  }
+  check(items.length === 3, `K 키로 적 3명을 처치해야 함 (실제 ${items.length}명)`);
+  check(items.every((x) => x.n >= 2), `시체 루팅 아이템은 2개 이상이어야 함: ${JSON.stringify(items)}`);
+  await page.waitForTimeout(600);
+
+  // 4) F: 루팅 화면 열기 → 스크린샷 → 닫기 버튼
+  const f0 = lines.length;
+  await page.keyboard.press('f');
+  const open = await waitMatch(f0, /AI_TEST: loot_open (loot_\d+) items=(\d+)/, 4000);
+  check(open && +open[2] >= 2, '"AI_TEST: loot_open <키> items=<n>" 로그가 없거나 n < 2');
+  check(await waitMatch(f0, /COMBAT_TEST: inventory open/, 4000), '루팅 화면을 열 때 "COMBAT_TEST: inventory open" 로그가 없음');
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: mode.pngLoot });
+  const btn = lines.slice(f0).join('\n').match(/COMBAT_TEST: close_button at (\d+),(\d+)/);
+  check(btn !== null, '"COMBAT_TEST: close_button at" 로그가 없음');
+  const c0 = lines.length;
+  if (btn) await page.mouse.click(+btn[1], +btn[2]);
+  check(await waitMatch(c0, /AI_TEST: loot_close loot_\d+/, 4000), '닫기 버튼 클릭 후 "AI_TEST: loot_close" 로그가 없음');
+  await page.waitForTimeout(500);
+
+  await browser.close();
+  if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }
+  finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
+  if (process.exitCode) process.exit(1);
+  console.log(lines.filter((l) => /AI_TEST: (enemy_dead|loot_)/.test(l)).join('\n'));
   console.log('PASS');
   process.exit(0);
 }

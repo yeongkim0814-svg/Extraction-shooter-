@@ -39,7 +39,7 @@ core/   (RefCounted 기반 순수 로직. Node·씬 트리 의존 금지 → 헤
   items · inventory · equipment · weapons · search · raid · loot · ai_decision · save · commands
    ▲ 호출만
 game/   (Node 어댑터: core 호출 + 씬 연결)
-  player · weapon_view · ai_agent(NavigationAgent3D·감지) · loot_container · extraction_zone
+  player · weapon_view · ai(EnemyAgent·AiDirector: NavigationAgent3D·감지·사격) · loot_container · extraction_zone
 ui/     (Control 노드: 인벤토리 · 수색 · HUD · 메뉴 · 터치 컨트롤)
 net/    (후속: 서버 권한)
 ```
@@ -110,7 +110,7 @@ docs/
 - `RaidSession` 상태머신: Hideout → Loadout → Raid → Extracted | Dead → Results
 - `ExtractionPoint` + `ExtractionTracker`(대기 시간·조건 플래그), `DeathResolver`(보안 컨테이너만 보존)
 - 레이드 중에는 `Inventory.stash_locked`로 스태시를 잠근다. 소지품은 탈출 후에도 장비에 그대로 남으므로 별도 이전 단계가 없다
-- 루팅 컨테이너 ↔ 플레이어 인벤토리 간 이동은 M9에서 권한자 명령으로 추가
+- 월드 컨테이너(시체·상자, M8): `GameAuthority.register_container(grid, title)`가 키(`loot_<번호>`)를 발급하고, `OpenContainerCommand`/`CloseContainerCommand`로 인벤토리에 루트 그리드로 붙였다 뗀다 (`Inventory.attach_external`). 붙어 있는 동안은 일반 이동 명령으로 플레이어 컨테이너와 아이템을 옮길 수 있다. 인벤토리 화면은 스태시가 없으면 오른쪽 절반에 열린 컨테이너를 보여 준다
 
 ### loot
 - `LootTable` (Resource): 가중치 기반, 시드 고정
@@ -118,6 +118,9 @@ docs/
 ### ai_decision
 - 블랙보드 + 상태 전이 규칙 (순찰·의심·교전·엄폐·수색·복귀) → 헤드리스 테스트
 - 감지(레이캐스트·시야각)·이동(`NavigationAgent3D`)은 game 레이어
+- M8 코어 추가: `AiPerception`(시야 원뿔·시야 거리 보정·청각·총소리/발소리 반경, 정적 함수)과 `AiGunner`(연사·쉬는 시간·탄창·재장전·조준 퍼짐 수렴, 시간은 delta·난수는 주입). 수치는 `AiProfile`
+- M8 game 계층(`scripts/game/ai/`): `EnemyAgent`(블랙보드를 채우고 상태별로 이동·사격·엄폐 실행, 죽으면 시체 + 루팅 컨테이너 등록), `AiDirector`(소음을 반경 안의 적에게 전달, 플레이어 총소리·발소리 연결). 엄폐 지점은 씬의 `cover_point` 그룹 Marker3D, 내비메시는 테스트 씬이 시작할 때 구운 것을 쓴다
+- 적 사격 레이 마스크는 월드(1)+사격 대상(2)+플레이어(4). 플레이어는 `HitTarget`으로 `health`를 공유한다
 
 ### content
 - `ContentDatabase`: 아이템·부품·탄종 정의를 id로 조회 (저장 로드·네트워크 동기화용)

@@ -1,3 +1,4 @@
+class_name CombatTest
 extends Node3D
 ## M6 전투 테스트 사격장. 플레이어 로드아웃을 코드로 만들고 컨트롤러·HUD·터치 컨트롤을 연결한다.
 ## 웹 스모크 테스트가 읽는 로그:
@@ -12,6 +13,8 @@ extends Node3D
 ##   "COMBAT_TEST: weapon_changed <슬롯 번호> recoil=<v> ergo=<v>"   부품이 바뀐 뒤 무기 스탯이 갱신됐을 때
 ##   "COMBAT_TEST: sprint_lock on" / "COMBAT_TEST: sprint_lock off <touch|pull_down|ads|fire|crouch|wall|key_back|toggle|focus>"
 ##   "COMBAT_TEST: pos x=<m> z=<m> yaw=<deg>"   위치·시점이 바뀌었을 때만 (최대 0.5초에 한 번)
+## AI 테스트(AiTest)가 이 클래스를 상속한다: 플레이어·HUD·터치·가방 구성은 그대로 쓰고
+## _post_setup()(씬 고유 구성), _hint_text()(안내 문구)만 덮어쓴다.
 
 const PREFIX: String = "COMBAT_TEST: "
 const HINT: String = "클릭: 마우스 시점  ·  WASD 이동  ·  좌클릭 사격  ·  우클릭 조준  ·  R 재장전  ·  1/2/3 무기  ·  Tab 가방(모딩)  ·  Esc 해제"
@@ -57,8 +60,19 @@ func _ready() -> void:
 	_screen.set_close_button_visible(true)
 	_screen.close_requested.connect(func() -> void: set_inventory_open(false))
 	_hud.inventory_requested.connect(func() -> void: set_inventory_open(not is_inventory_open()))
+	_post_setup()
 	await get_tree().process_frame
 	print(PREFIX + "ready")
+
+
+## 하위 씬이 덮어쓰는 훅: 플레이어·HUD·가방 구성이 끝난 직후, "ready" 로그 전에 불린다.
+func _post_setup() -> void:
+	pass
+
+
+## 화면 위쪽 안내 문구 (마우스 시점이 아닐 때만 보인다). 하위 씬이 덮어쓴다.
+func _hint_text() -> String:
+	return HINT
 
 
 func is_inventory_open() -> bool:
@@ -124,7 +138,7 @@ func _process(delta: float) -> void:
 			_last_pose = pose
 			print(PREFIX + "pos x=%.2f z=%.2f yaw=%.1f" % [pose.x, pose.y, rad_to_deg(pose.z)])
 	var show_hint: bool = not _touch.is_active() and not _desktop.is_mouse_captured()
-	_hud.set_hint(HINT if show_hint else "")
+	_hud.set_hint(_hint_text() if show_hint else "")
 
 
 func _on_shot(ammo_id: StringName, rounds_left: int) -> void:

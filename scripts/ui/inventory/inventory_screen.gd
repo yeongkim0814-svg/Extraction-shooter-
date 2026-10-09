@@ -108,6 +108,8 @@ var _container_bodies: Dictionary[EquipmentSlots.Slot, Control] = {}
 var _container_groups: Dictionary[EquipmentSlots.Slot, Array] = {}
 var _container_signature: Array[int] = []
 var _stash_view: InventoryGridView = null
+## 열린 월드 컨테이너(시체·상자)의 그리드 뷰. 스태시가 없을 때 오른쪽 절반에 그린다.
+var _loot_views: Array[InventoryGridView] = []
 
 var _tracker := PressTracker.new()
 var _press_hit: Hit = null
@@ -428,13 +430,31 @@ func _layout_containers() -> void:
 func _build_stash() -> void:
 	_clear_children(_stash_content)
 	_stash_view = null
+	_loot_views.clear()
 	var has_stash: bool = _inventory.get_grid(Inventory.STASH) != null
-	_right_scroll.visible = has_stash
+	var loot_keys: Array[StringName] = _inventory.external_keys()
+	_right_scroll.visible = has_stash or not loot_keys.is_empty()
 	if not has_stash:
+		_build_loot(loot_keys)
 		return
 	_stash_content.add_child(_section_title("스태시  STASH"))
 	_stash_view = _make_grid_view(_stash_content, Inventory.STASH, _right_scroll)
 	_fixed_grid_views.append(_stash_view)
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = InventoryActionBar.BAR_HEIGHT + 24.0
+	_stash_content.add_child(spacer)
+
+
+## 스태시가 없을 때 열려 있는 월드 컨테이너(시체·상자)를 오른쪽 절반에 보여 준다. 이름은 권한자의 container_titles.
+func _build_loot(keys: Array[StringName]) -> void:
+	if keys.is_empty():
+		return
+	_right_scroll.scroll_vertical = 0
+	for key: StringName in keys:
+		var title: String = _authority.container_titles.get(key, "컨테이너")
+		_stash_content.add_child(_section_title("%s  LOOT" % title))
+		var view: InventoryGridView = _make_grid_view(_stash_content, key, _right_scroll)
+		_loot_views.append(view)
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = InventoryActionBar.BAR_HEIGHT + 24.0
 	_stash_content.add_child(spacer)
@@ -481,6 +501,7 @@ func _rebuild_containers() -> void:
 func _all_grid_views() -> Array[InventoryGridView]:
 	var all: Array[InventoryGridView] = []
 	all.append_array(_fixed_grid_views)
+	all.append_array(_loot_views)
 	all.append_array(_container_views)
 	return all
 
@@ -494,9 +515,14 @@ func _redraw_all() -> void:
 
 # --- 권한자 이벤트 → 화면 갱신 ---
 
-func _on_events(_events: Array[DomainEvent]) -> void:
+func _on_events(events: Array[DomainEvent]) -> void:
 	if _tracker.is_dragging():
 		_end_drag()
+	for event: DomainEvent in events:
+		if event.type == DomainEvent.CONTAINER_OPENED or event.type == DomainEvent.CONTAINER_CLOSED:
+			_deselect()
+			_build_stash()
+			break
 	_rebuild_containers()
 	if _selected_id != 0:
 		var item: ItemInstance = _inventory.get_item(_selected_id)

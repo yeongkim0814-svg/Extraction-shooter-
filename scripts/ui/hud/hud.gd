@@ -16,6 +16,8 @@ const BANNER_Y: float = 112.0
 
 ## 가방(인벤토리·모딩) 버튼을 눌렀다. 키보드 Tab/I는 전투 테스트 씬이 처리한다.
 signal inventory_requested
+## 상호작용 버튼(루팅 등)을 눌렀다. 키보드 F는 씬이 처리한다.
+signal interact_requested
 
 var _player: PlayerController
 var _weapons: WeaponController
@@ -30,6 +32,7 @@ var _dry_left: float = 0.0
 var _ads: bool = false
 var _ammo_box: StyleBoxFlat
 var _bag_button: Button
+var _interact_button: Button
 
 
 func _ready() -> void:
@@ -50,6 +53,20 @@ func _ready() -> void:
 	_bag_button.offset_right = -MARGIN
 	_bag_button.offset_top = MARGIN
 	_bag_button.offset_bottom = MARGIN + 52.0
+	_interact_button = Button.new()
+	InventoryStyle.style_button(_interact_button)
+	_interact_button.custom_minimum_size = Vector2(170, 64)
+	_interact_button.add_theme_font_size_override("font_size", 24)
+	_interact_button.focus_mode = Control.FOCUS_NONE
+	_interact_button.visible = false
+	_interact_button.pressed.connect(func() -> void: interact_requested.emit())
+	add_child(_interact_button)
+	# 화면 오른쪽 가운데 (사격·조준 버튼 위쪽)
+	_interact_button.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	_interact_button.offset_left = -MARGIN - 170.0
+	_interact_button.offset_right = -MARGIN
+	_interact_button.offset_top = -140.0
+	_interact_button.offset_bottom = -76.0
 
 
 ## 가방 버튼의 전역 영역 (스모크·테스트용).
@@ -82,6 +99,17 @@ func show_toast(text: String) -> void:
 ## 화면 위쪽 안내 문구 (빈 문자열이면 숨김).
 func set_hint(text: String) -> void:
 	_hint_text = text
+
+
+## 상호작용 버튼 문구 (빈 문자열이면 숨김). 누르면 interact_requested.
+func set_interact(text: String) -> void:
+	_interact_button.text = text
+	_interact_button.visible = not text.is_empty()
+
+
+## 상호작용 버튼의 전역 영역 (스모크·테스트용). 숨겨져 있으면 빈 Rect2.
+func interact_button_rect() -> Rect2:
+	return _interact_button.get_global_rect() if _interact_button.visible else Rect2()
 
 
 func toast_text() -> String:
