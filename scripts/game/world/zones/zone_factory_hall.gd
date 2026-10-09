@@ -25,7 +25,10 @@ static func build(zb: ZoneBuilder) -> void:
 	_structure(zb)
 	_catwalk(zb)
 	_props(zb)
+	_facade(zb)
 	zb.ground(KitMaterials.GROUND_CONCRETE, Rect2(X0, Z0, X1 - X0, Z1 - Z0))
+	# 정면 앞 콘크리트 앞마당 (출입구 앞 4 m)
+	zb.ground(KitMaterials.GROUND_CONCRETE, Rect2(X0 - 1.0, Z1 + 0.2, X1 - X0 + 2.0, 4.0))
 
 
 ## 벽 한 줄: a에서 b로 4 m 모듈. lower = 위치(가운데 좌표, 벽 방향 축) -> 부품. 위 단은 창·벽 번갈아.
@@ -85,7 +88,7 @@ static func _structure(zb: ZoneBuilder) -> void:
 		x += 4.0
 	# 천장 크레인: 길이 방향 레일 두 줄 (z = -60.4 / -63.6) + 다리(교량) + 트롤리 + 늘어진 훅
 	for z: float in [-60.4, -63.6]:
-		kb.box(KitMaterials.BEAM_YELLOW, Transform3D(Basis.IDENTITY, Vector3((X0 + X1) * 0.5, 6.6, z)),
+		kb.box(KitMaterials.BEAM_TEAL, Transform3D(Basis.IDENTITY, Vector3((X0 + X1) * 0.5, 6.6, z)),
 				Vector3(X1 - X0 - 0.6, 0.35, 0.25), 0.0, false)
 	kb.box(KitMaterials.BEAM_YELLOW, Transform3D(Basis.IDENTITY, Vector3(-16.0, 6.95, -62.0)), Vector3(1.0, 0.45, 4.2), 0.03, false)
 	kb.box(KitMaterials.METAL_CHIPPED, Transform3D(Basis.IDENTITY, Vector3(-16.0, 6.5, -62.0)), Vector3(1.2, 0.5, 1.2), 0.03, false)
@@ -123,6 +126,38 @@ static func _catwalk(zb: ZoneBuilder) -> void:
 		for dz: float in [-0.5, 0.5]:
 			kb.block(KitMaterials.BEAM_YELLOW, Vector3(x, 0.0, CATWALK_Z + dz), Vector3(0.12, CATWALK_Y - 0.05, 0.12), 0.0, false)
 		x += 8.0
+
+
+## 남쪽 정면 (바깥 +Z): 출입구 위 벽등, 작은 문 위 차양, 처마 밑 배관 줄, 낙수관, 출입구 옆 표지, 앞마당 소품.
+## 넓은 벽면은 조용하게 두고 출입구 둘레에 디테일을 모은다 (ART.md 11.3).
+static func _facade(zb: ZoneBuilder) -> void:
+	var face: float = Z1 + 0.18  # 벽 바깥면
+	for x: float in [-34.0, -18.0, -2.0]:
+		zb.place_at(&"lamp_wall", Vector3(x, 3.95, face + 0.32))
+	zb.place_at(&"lamp_wall", Vector3(-25.0, 2.55, face))
+	var kb: KitBuild = zb.custom("hall_facade")
+	# 작은 문(-25) 위 차양: 판 + 버팀대 둘
+	kb.box(KitMaterials.METAL_PLATE, Transform3D(Basis.IDENTITY, Vector3(-25.0, 2.42, face + 0.6)), Vector3(1.8, 0.08, 1.2), 0.02, false)
+	for dx: float in [-0.75, 0.75]:
+		kb.strut(KitMaterials.FLAT_METAL, Vector3(-25.0 + dx, 1.9, face), Vector3(-25.0 + dx, 2.38, face + 1.1), 0.04)
+	# 처마 밑 배관 두 줄 (위 단 창 위) + 받침쇠 4 m 간격
+	KitParts.cyl_x(kb, KitMaterials.PIPE_TEAL, Vector3((X0 + X1) * 0.5, 7.35, face + 0.25), 0.13, X1 - X0 - 1.0, 10)
+	KitParts.cyl_x(kb, KitMaterials.PIPE_RED, Vector3((X0 + X1) * 0.5 - 6.0, 7.0, face + 0.2), 0.08, X1 - X0 - 13.0, 8)
+	var x: float = X0 + 2.0
+	while x < X1 - 1.0:
+		kb.box(KitMaterials.FLAT_METAL, Transform3D(Basis.IDENTITY, Vector3(x, 7.15, face + 0.17)), Vector3(0.06, 0.5, 0.35), 0.0, false)
+		x += 4.0
+	# 낙수관 (지붕에서 바닥까지)
+	for dx: float in [X0 + 0.6, -10.0, X1 - 0.6]:
+		kb.cylinder(KitMaterials.FLAT_METAL, Transform3D(Basis.IDENTITY, Vector3(dx, 3.95, face + 0.1)), 0.07, 7.9, 8, 0.0, false, false)
+	# 출입구 왼쪽 표지판 (경고·번호)
+	for xd: float in [-36.3, -20.3, -4.3]:
+		kb.box(KitMaterials.SIGN, Transform3D(Basis.IDENTITY, Vector3(xd, 1.9, face + 0.02)), Vector3(0.6, 0.6, 0.02), 0.0, false)
+	# 앞마당: 드럼통·팔레트·전기함, 무너진 벽 앞 잔해는 _props가 둔다
+	zb.place_at(&"barrel_teal", Vector3(-40.5, 0.0, Z1 + 1.0), 15.0)
+	zb.place_at(&"barrel", Vector3(-41.1, 0.0, Z1 + 1.5), 70.0)
+	zb.place_at(&"pallet", Vector3(-12.0, 0.0, Z1 + 1.2), 4.0)
+	zb.place_at(&"electrical_cabinet", Vector3(-29.5, 0.0, Z1 + 0.45))
 
 
 ## 소품: 구워질 정적 장식만 (엄폐·루팅 상자는 맵 코드가 둔다). 램프는 지붕 보에 매단다.

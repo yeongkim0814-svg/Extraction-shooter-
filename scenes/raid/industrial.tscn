@@ -15,10 +15,10 @@ script = ExtResource("1_raid")
 environment = ExtResource("7_env")
 
 [node name="Sun" type="DirectionalLight3D" parent="." groups=["sun"]]
-rotation = Vector3(-0.45, -2.6, 0)
+rotation = Vector3(-0.21, -2.6, 0)
 position = Vector3(0, 12, 0)
-light_color = Color(1, 0.84, 0.68, 1)
-light_energy = 1.5
+light_color = Color(1, 0.79, 0.63, 1)
+light_energy = 1.25
 light_angular_distance = 1.2
 shadow_enabled = true
 shadow_bias = 0.04

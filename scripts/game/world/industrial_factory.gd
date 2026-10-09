@@ -76,10 +76,13 @@ static func _hall_gameplay(m: IndustrialMap) -> void:
 	_hall_loot(m)
 
 
-## 구역 씬을 쓸 때의 효과: 천창·북쪽 창으로 들어오는 빛줄기 카드.
+## 구역 씬을 쓸 때의 효과: 해 질 녘 낮은 해가 북쪽 위 창(ZoneFactoryHall 위 단 창, 높이 5.2~6.7)으로 들어와 홀을 비스듬히 가로지르는 빛줄기.
+## 해 진행 방향은 레이드 씬 태양(고도 약 12도)과 맞춘다: 수평 (0.52, 0.84), 6.7 m 높이에서 바닥까지 약 26 m.
 static func _hall_fx(m: IndustrialMap) -> void:
+	var dir := Vector3(0.52, 0.0, 0.84)
+	var warm := Color(1.0, 0.82, 0.62)
 	for x: float in [-38.0, -30.0, -22.0, -14.0, -6.0, 2.0]:
-		m.light_shaft(Vector3(x - 1.6, 0, -62.0), Vector3(x + 1.6, 0, -62.0), 7.9, Vector3(0.25, -0.0, 0.35), 9.0, 0.08, 0.0)
+		m.light_shaft(Vector3(x - 1.1, 0, HALL_Z0 + 0.3), Vector3(x + 1.1, 0, HALL_Z0 + 0.3), 6.6, dir, 24.0, 0.07, 0.015, warm)
 
 
 ## 엄폐 기계·상자 (가운데, 크기). 구역 씬(ZoneFactoryHall._props)과 옛 코드가 같은 자리를 쓴다.
