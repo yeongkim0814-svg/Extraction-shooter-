@@ -104,6 +104,12 @@ static func _puddles(m: IndustrialMap) -> void:
 # --- 철길·배관 랙·크레인·철탑 ---
 
 static func build(m: IndustrialMap) -> void:
+	if m.add_zone(&"infra"):
+		# 구역 씬(ZoneInfra)이 담장·철길·배관 랙·크레인·철탑·감시탑을 맡는다. 엄폐 지점과 루팅만 맵 코드가 둔다.
+		for z: float in [-30.0, 22.0, 68.0]:
+			IndustrialProps.cover_boxcar(m, RAIL_X, z)
+		m.loot(LootContainer.Kind.CRATE, Vector3(78.6, 0.0, 34.0), 0.0)
+		return
 	_perimeter(m)
 	_railway(m)
 	_rack_x(m, -40.0, 40.0, -31.0)

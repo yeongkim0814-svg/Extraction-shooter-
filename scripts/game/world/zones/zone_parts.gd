@@ -210,3 +210,13 @@ static func desk(kb: KitBuild, pos: Vector3, size: Vector3) -> void:
 		kb.box(f, KitParts.at(pos + Vector3(sx * (size.x * 0.5 - 0.04), (size.y - 0.08) * 0.5, 0.0)), Vector3(0.08, size.y - 0.08, size.z - 0.06), 0.0, false)
 	kb.box(KitMaterials.CABINET_GREY, KitParts.at(pos + Vector3(size.x * 0.25, (size.y - 0.08) * 0.5, 0.0)), Vector3(size.x * 0.4, size.y - 0.1, size.z - 0.1), 0.01, false)
 	kb.collide_box(KitParts.at(pos + Vector3(0.0, size.y * 0.5, 0.0)), size)
+
+
+## a에서 b까지 이어지는 가는 각재 (격자 탑·크레인 붐·사선 보강용, 모따기 없음). collide가 true면 같은 상자로 충돌도.
+static func beam(kb: KitBuild, id: StringName, a: Vector3, b: Vector3, thick: float, collide: bool = false) -> void:
+	var dir: Vector3 = b - a
+	var length: float = dir.length()
+	if length < 0.01:
+		return
+	var up: Vector3 = Vector3.UP if absf(dir.normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+	kb.box(id, Transform3D(Basis.looking_at(dir.normalized(), up), (a + b) * 0.5), Vector3(thick, thick, length), 0.0, collide)
