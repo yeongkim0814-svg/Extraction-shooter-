@@ -13,4 +13,4 @@ func execute(authority: GameAuthority) -> CommandResult:
 	var grid: ItemGrid = authority.containers.get(key)
 	if grid == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_CONTAINER)
-	return authority.inventory.attach_external(key, grid)
+	return authority.inventory.attach_external(key, grid, authority.searches.get(key))

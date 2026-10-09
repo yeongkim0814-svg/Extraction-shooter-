@@ -9,5 +9,11 @@ func _init(p_key: StringName) -> void:
 	key = p_key
 
 
+## 수색 중이었다면 중단된다 (진행 중이던 아이템의 진행도만 잃는다).
 func execute(authority: GameAuthority) -> CommandResult:
-	return authority.inventory.detach_external(key)
+	var result: CommandResult = authority.inventory.detach_external(key)
+	var search: SearchState = authority.searches.get(key)
+	if result.ok and search != null and search.searching:
+		search.interrupt()
+		result.events.append(authority.search_event(key))
+	return result

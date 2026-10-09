@@ -18,6 +18,8 @@ const MAGAZINE_FULL := &"magazine_full"
 const NO_AMMO := &"no_ammo"
 const NOT_A_PART := &"not_a_part"
 const HAS_ATTACHMENTS := &"has_attachments"
+## 수색으로 아직 공개되지 않은 아이템.
+const NOT_REVEALED := &"not_revealed"
 const NOT_IMPLEMENTED := &"not_implemented"
 
 var ok: bool

@@ -29,8 +29,11 @@ func execute(authority: GameAuthority) -> CommandResult:
 			if authority.content != null else null
 	if part_def == null:
 		return CommandResult.failure(CommandResult.NOT_A_PART)
-	if inv.is_locked(weapon) or inv.is_locked(part_item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = inv.access_error(weapon)
+	if access == &"":
+		access = inv.access_error(part_item)
+	if access != &"":
+		return CommandResult.failure(access)
 	var node := WeaponPartNode.new(part_def)
 	node.item = part_item
 	var error: StringName = weapon.weapon.can_attach_node(parent_path, socket_name, node)

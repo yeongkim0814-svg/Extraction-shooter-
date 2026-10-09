@@ -11,6 +11,10 @@ const WEAPON_CHANGED := &"weapon_changed"
 ## 외부 컨테이너(시체·상자)를 열었다/닫았다. data: container (+ 닫을 때 removed_ids = 등록이 풀린 아이템).
 const CONTAINER_OPENED := &"container_opened"
 const CONTAINER_CLOSED := &"container_closed"
+## 수색으로 아이템이 공개됐다. data: container, item_id.
+const ITEM_REVEALED := &"item_revealed"
+## 수색 시작/중단/완료. data: container, searching(bool), complete(bool).
+const SEARCH_CHANGED := &"search_changed"
 
 var type: StringName
 var data: Dictionary

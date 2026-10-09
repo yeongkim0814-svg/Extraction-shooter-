@@ -21,8 +21,9 @@ func execute(authority: GameAuthority) -> CommandResult:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
 	if weapon.weapon == null:
 		return CommandResult.failure(CommandResult.NOT_A_WEAPON)
-	if inv.is_locked(weapon):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = inv.access_error(weapon)
+	if access != &"":
+		return CommandResult.failure(access)
 	var path: Array[StringName] = parent_path.duplicate()
 	path.append(socket_name)
 	var node: WeaponPartNode = weapon.weapon.find_node(path)

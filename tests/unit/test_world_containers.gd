@@ -17,13 +17,13 @@ func before_each() -> void:
 	_bag.grids = [Vector2i(3, 3)]
 
 
-func _corpse() -> Dictionary:
+func _corpse(searchable: bool = false) -> Dictionary:
 	var grid := ItemGrid.new(6, 4)
 	var gun: ItemInstance = _authority.create_item(_gun)
 	var ammo: ItemInstance = _authority.create_item(_ammo, 20)
 	assert_true(grid.try_place(gun, Vector2i(0, 0), false))
 	assert_true(grid.try_place(ammo, Vector2i(5, 3), false))
-	var key: StringName = _authority.register_container(grid, "시체")
+	var key: StringName = _authority.register_container(grid, "시체", searchable)
 	return {"key": key, "grid": grid, "gun": gun, "ammo": ammo}
 
 
@@ -154,3 +154,99 @@ func test_save_skips_open_container_items() -> void:
 	_authority.execute(OpenContainerCommand.new(c["key"]))
 	var data: Dictionary = SaveSerializer.to_dict(_authority.inventory, _authority.ids)
 	assert_eq((data["items"] as Array).size(), 0)
+
+
+# --- 수색 (M9) ---
+
+func _open_searchable() -> Dictionary:
+	var c: Dictionary = _corpse(true)
+	assert_true(_authority.execute(OpenContainerCommand.new(c["key"])).ok)
+	return c
+
+
+func test_unrevealed_items_cannot_be_taken() -> void:
+	var c: Dictionary = _open_searchable()
+	var ammo: ItemInstance = c["ammo"]
+	var inv: Inventory = _authority.inventory
+	assert_true(inv.is_hidden(ammo))
+	var moved: CommandResult = _authority.execute(MoveItemCommand.new(ammo.id, Inventory.pocket_key(0), Vector2i.ZERO))
+	assert_eq(moved.error, CommandResult.NOT_REVEALED)
+	assert_eq(_authority.execute(DiscardItemCommand.new(ammo.id)).error, CommandResult.NOT_REVEALED)
+	assert_eq(ammo.container_key, c["key"])
+
+
+func test_search_reveals_top_to_bottom_and_emits_events() -> void:
+	var c: Dictionary = _open_searchable()
+	var started: CommandResult = _authority.execute(SearchContainerCommand.new(c["key"]))
+	assert_true(started.ok)
+	assert_eq(started.events[0].type, DomainEvent.SEARCH_CHANGED)
+	assert_true(started.events[0].data["searching"])
+	var events: Array[DomainEvent] = []
+	_authority.events_emitted.connect(func(e: Array[DomainEvent]) -> void: events.append_array(e))
+	var gun: ItemInstance = c["gun"]
+	var ammo: ItemInstance = c["ammo"]
+	var search: SearchState = _authority.searches[c["key"]]
+	var gun_time: float = search.calculator.time_for(gun.def)
+	var noise: float = _authority.tick_searches(gun_time + 0.01)
+	assert_gt(noise, 0.0)
+	assert_false(_authority.inventory.is_hidden(gun))
+	assert_true(_authority.inventory.is_hidden(ammo))
+	assert_eq(events[0].type, DomainEvent.ITEM_REVEALED)
+	assert_eq(events[0].data["item_id"], gun.id)
+	assert_true(_authority.execute(MoveItemCommand.new(gun.id, c["key"], Vector2i(0, 2))).ok)
+	_authority.tick_searches(10.0)
+	assert_false(_authority.inventory.is_hidden(ammo))
+	var last: DomainEvent = events[events.size() - 1]
+	assert_eq(last.type, DomainEvent.SEARCH_CHANGED)
+	assert_false(last.data["searching"])
+	assert_true(last.data["complete"])
+	assert_true(_authority.execute(MoveItemCommand.new(ammo.id, Inventory.pocket_key(0), Vector2i.ZERO)).ok)
+
+
+func test_stop_search_loses_only_current_progress_and_close_interrupts() -> void:
+	var c: Dictionary = _open_searchable()
+	var search: SearchState = _authority.searches[c["key"]]
+	_authority.execute(SearchContainerCommand.new(c["key"]))
+	_authority.tick_searches(0.2)
+	assert_gt(search.current_progress(), 0.0)
+	var stopped: CommandResult = _authority.execute(SearchContainerCommand.new(c["key"], false))
+	assert_true(stopped.ok)
+	assert_false(search.searching)
+	assert_eq(search.current_progress(), 0.0)
+	_authority.execute(SearchContainerCommand.new(c["key"]))
+	var closed: CommandResult = _authority.execute(CloseContainerCommand.new(c["key"]))
+	assert_false(search.searching)
+	assert_eq(closed.events.back().type, DomainEvent.SEARCH_CHANGED)
+	# 닫힌 컨테이너는 수색할 수 없다.
+	assert_eq(_authority.execute(SearchContainerCommand.new(c["key"])).error, CommandResult.UNKNOWN_CONTAINER)
+
+
+func test_revealed_state_survives_close_and_reopen() -> void:
+	var c: Dictionary = _open_searchable()
+	_authority.execute(SearchContainerCommand.new(c["key"]))
+	_authority.tick_searches(30.0)
+	_authority.execute(CloseContainerCommand.new(c["key"]))
+	_authority.execute(OpenContainerCommand.new(c["key"]))
+	assert_false(_authority.inventory.is_hidden(c["gun"]))
+	assert_true(_authority.searches[c["key"]].is_complete())
+
+
+func test_item_put_into_searchable_container_is_revealed() -> void:
+	var c: Dictionary = _open_searchable()
+	var own: ItemInstance = _authority.create_item(_ammo, 5)
+	assert_true(_authority.inventory.add_item(own, Inventory.pocket_key(0), Vector2i.ZERO, false).ok)
+	assert_true(_authority.execute(MoveItemCommand.new(own.id, c["key"], Vector2i(4, 0))).ok)
+	assert_false(_authority.inventory.is_hidden(own))
+	assert_true(_authority.execute(MoveItemCommand.new(own.id, Inventory.pocket_key(0), Vector2i.ZERO)).ok)
+
+
+func test_search_start_on_complete_or_unsearchable_container() -> void:
+	var plain: Dictionary = _corpse(false)
+	_authority.execute(OpenContainerCommand.new(plain["key"]))
+	assert_eq(_authority.execute(SearchContainerCommand.new(plain["key"])).error, CommandResult.UNKNOWN_CONTAINER)
+	var c: Dictionary = _open_searchable()
+	_authority.execute(SearchContainerCommand.new(c["key"]))
+	_authority.tick_searches(30.0)
+	var again: CommandResult = _authority.execute(SearchContainerCommand.new(c["key"]))
+	assert_true(again.ok)
+	assert_false(_authority.searches[c["key"]].searching)

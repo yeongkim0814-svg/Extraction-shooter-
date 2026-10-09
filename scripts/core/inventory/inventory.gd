@@ -21,6 +21,8 @@ var stash_locked: bool = false
 var _root_grids: Dictionary[StringName, ItemGrid] = {}
 ## 이 인벤토리 어딘가에 들어 있는 모든 아이템 (중첩 포함).
 var _items: Dictionary[int, ItemInstance] = {}
+## 열려 있는 외부 컨테이너의 수색 상태 (수색이 필요한 컨테이너만).
+var _searches: Dictionary[StringName, SearchState] = {}
 
 
 ## stash_size가 0이면 스태시 없음 (레이드 중).
@@ -110,6 +112,7 @@ func add_item(item: ItemInstance, key: StringName, cell: Vector2i, p_rotated: bo
 		return CommandResult.failure(CommandResult.NO_SPACE)
 	item.container_key = key
 	_register(item)
+	_mark_entered(item)
 	return CommandResult.success(_events_added(item))
 
 
@@ -146,8 +149,9 @@ func move_item(item_id: int, key: StringName, cell: Vector2i, p_rotated: bool) -
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(item)
+	if access != &"":
+		return CommandResult.failure(access)
 	var error: StringName = _check_grid_target(item, key)
 	if error != &"":
 		return CommandResult.failure(error)
@@ -163,6 +167,7 @@ func move_item(item_id: int, key: StringName, cell: Vector2i, p_rotated: bool) -
 		_detach(item)
 		target.try_place(item, cell, p_rotated)
 		item.container_key = key
+		_mark_entered(item)
 	return CommandResult.success(_events_moved(item, from))
 
 
@@ -170,8 +175,9 @@ func equip(item_id: int, slot: EquipmentSlots.Slot) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(item)
+	if access != &"":
+		return CommandResult.failure(access)
 	if equipment.get_item(slot) == item:
 		return CommandResult.success()
 	var error: StringName = _check_slot_target(item, slot)
@@ -190,8 +196,11 @@ func merge(source_id: int, target_id: int) -> CommandResult:
 	var target: ItemInstance = get_item(target_id)
 	if source == null or target == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(source) or _is_locked(target):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(source)
+	if access == &"":
+		access = _access_error(target)
+	if access != &"":
+		return CommandResult.failure(access)
 	if not source.can_stack_with(target):
 		return CommandResult.failure(CommandResult.NOT_STACKABLE)
 	var amount: int = mini(source.stack_count, target.free_stack_space())
@@ -213,8 +222,9 @@ func split(item_id: int, amount: int, new_id: int, key: StringName, cell: Vector
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(item)
+	if access != &"":
+		return CommandResult.failure(access)
 	if amount <= 0 or amount >= item.stack_count:
 		return CommandResult.failure(CommandResult.INVALID_AMOUNT)
 	var part := ItemInstance.new(new_id, item.def, amount)
@@ -232,8 +242,9 @@ func consume(item_id: int, amount: int) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(item)
+	if access != &"":
+		return CommandResult.failure(access)
 	if amount <= 0 or amount > item.stack_count:
 		return CommandResult.failure(CommandResult.INVALID_AMOUNT)
 	item.stack_count -= amount
@@ -247,8 +258,9 @@ func discard(item_id: int) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)
 	if item == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
-	if _is_locked(item):
-		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	var access: StringName = _access_error(item)
+	if access != &"":
+		return CommandResult.failure(access)
 	return CommandResult.success(_remove(item))
 
 
@@ -275,7 +287,8 @@ func try_reshape(item_id: int, apply: Callable, revert: Callable) -> bool:
 
 ## 외부 컨테이너(시체·상자)의 그리드를 루트 그리드로 붙인다. 안의 아이템이 등록되어 일반 이동 명령으로 옮길 수 있다.
 ## 그리드 객체는 월드(권한자)가 계속 소유하므로, 떼어 낸 뒤에도 남은 아이템은 그리드에 그대로 있다.
-func attach_external(key: StringName, grid: ItemGrid) -> CommandResult:
+## search가 있으면 공개되지 않은 아이템은 옮기기·장착·합치기 등이 NOT_REVEALED로 막힌다.
+func attach_external(key: StringName, grid: ItemGrid, search: SearchState = null) -> CommandResult:
 	if not is_external_key(key) or grid == null:
 		return CommandResult.failure(CommandResult.UNKNOWN_CONTAINER)
 	if _root_grids.has(key):
@@ -286,6 +299,8 @@ func attach_external(key: StringName, grid: ItemGrid) -> CommandResult:
 		if _contains_registered(item):
 			return CommandResult.failure(CommandResult.ALREADY_ADDED)
 	_root_grids[key] = grid
+	if search != null:
+		_searches[key] = search
 	for item: ItemInstance in grid.get_items():
 		item.container_key = key
 		_register(item)
@@ -300,6 +315,7 @@ func detach_external(key: StringName) -> CommandResult:
 	for item: ItemInstance in _root_grids[key].get_items():
 		_unregister(item, removed_ids)
 	_root_grids.erase(key)
+	_searches.erase(key)
 	return CommandResult.success([DomainEvent.new(DomainEvent.CONTAINER_CLOSED,
 			{"container": key, "removed_ids": removed_ids})])
 
@@ -307,6 +323,17 @@ func detach_external(key: StringName) -> CommandResult:
 ## 레이드 중 스태시 잠금에 걸리는 아이템인지 (명령 검증용).
 func is_locked(item: ItemInstance) -> bool:
 	return _is_locked(item)
+
+
+## 아이템을 건드릴 수 없는 이유 코드 (STASH_LOCKED·NOT_REVEALED). 건드릴 수 있으면 &"".
+func access_error(item: ItemInstance) -> StringName:
+	return _access_error(item)
+
+
+## 수색이 끝나지 않아 아직 "?"인 아이템인지 (외부 컨테이너에 직접 들어 있고 공개 전).
+func is_hidden(item: ItemInstance) -> bool:
+	var search: SearchState = _searches.get(item.container_key)
+	return search != null and not search.is_revealed(item)
 
 
 # --- 불변식 ---
@@ -367,6 +394,21 @@ func _root_container_of_key(key: StringName) -> StringName:
 			return &""
 		current = owner.container_key
 	return &""
+
+
+func _access_error(item: ItemInstance) -> StringName:
+	if _is_locked(item):
+		return CommandResult.STASH_LOCKED
+	if is_hidden(item):
+		return CommandResult.NOT_REVEALED
+	return &""
+
+
+## 플레이어가 수색 대상 컨테이너에 직접 넣은 아이템은 바로 공개 처리한다.
+func _mark_entered(item: ItemInstance) -> void:
+	var search: SearchState = _searches.get(item.container_key)
+	if search != null:
+		search.mark_revealed(item)
 
 
 func _is_locked(item: ItemInstance) -> bool:
