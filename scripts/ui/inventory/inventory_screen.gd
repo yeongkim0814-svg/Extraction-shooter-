@@ -13,6 +13,8 @@ extends Control
 signal selection_changed(item_id: int)
 ## 모딩 화면이 열리거나 닫혔다.
 signal mod_screen_toggled(open: bool)
+## 닫기 버튼을 눌렀다 (set_close_button_visible(true)일 때만 보인다). 실제로 숨기는 건 화면을 띄운 쪽이 한다.
+signal close_requested
 
 const MOD_SCENE: PackedScene = preload("res://scenes/ui/mod_screen.tscn")
 
@@ -27,6 +29,7 @@ const SCROLLBAR_ALLOWANCE: float = 20.0
 const NATIVE_TOUCH_DEADZONE: int = 100000
 ## 선택한 아이템이 액션 바에 가리지 않게 올릴 때의 여유.
 const BAR_CLEARANCE: float = 16.0
+const CLOSE_SIZE := Vector2(112.0, 40.0)
 ## 컨테이너 구역: 슬롯 네모 여백(픽셀), 네모와 그리드 영역 사이 간격, 그리드 그룹 사이 간격, 구역 아래 여백.
 const SQUARE_PAD: int = 8
 const SQUARE_GRID_GAP: int = 8
@@ -128,6 +131,7 @@ var _flash_serial: int = 0
 var _action_bar: InventoryActionBar
 var _dialog: InventoryItemDialog
 var _mod_screen: ModScreen
+var _close_button: Button
 
 @onready var _left_scroll: ScrollContainer = %LeftScroll
 @onready var _right_scroll: ScrollContainer = %RightScroll
@@ -208,6 +212,15 @@ func mod_screen() -> ModScreen:
 	return _mod_screen
 
 
+## 오른쪽 위 닫기 버튼 표시 여부 (레이드·전투 중 가방으로 쓸 때 켠다).
+func set_close_button_visible(on: bool) -> void:
+	_close_button.visible = on
+
+
+func close_button_rect() -> Rect2:
+	return _close_button.get_global_rect()
+
+
 func action_button_rects() -> Dictionary[String, Rect2]:
 	return _action_bar.button_rects()
 
@@ -230,6 +243,19 @@ func _ready() -> void:
 	_dialog = InventoryItemDialog.new()
 	_overlay.add_child(_dialog)
 	_dialog.discard_confirmed.connect(_on_discard_confirmed)
+	_close_button = Button.new()
+	_close_button.text = "닫기"
+	_close_button.focus_mode = Control.FOCUS_NONE
+	InventoryStyle.style_button(_close_button)
+	_close_button.add_theme_font_size_override("font_size", 16)
+	_overlay.add_child(_close_button)
+	_close_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_close_button.offset_left = -CLOSE_SIZE.x - SCREEN_MARGIN
+	_close_button.offset_right = -SCREEN_MARGIN
+	_close_button.offset_top = 6.0
+	_close_button.offset_bottom = 6.0 + CLOSE_SIZE.y
+	_close_button.visible = false
+	_close_button.pressed.connect(func() -> void: close_requested.emit())
 	_mod_screen = MOD_SCENE.instantiate() as ModScreen
 	add_child(_mod_screen)
 	_mod_screen.closed.connect(func() -> void: mod_screen_toggled.emit(false))

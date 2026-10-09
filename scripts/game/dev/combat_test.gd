@@ -7,7 +7,8 @@ extends Node3D
 ##   "COMBAT_TEST: reload <ok|error [코드]>"
 ##   "COMBAT_TEST: kill <target>"
 ##   "COMBAT_TEST: dry"
-##   "COMBAT_TEST: inventory open" / "COMBAT_TEST: inventory close"   Tab·I 키 또는 HUD 가방 버튼 (열려 있는 동안 플레이어 입력 정지)
+##   "COMBAT_TEST: inventory open" / "COMBAT_TEST: inventory close"   Tab·I 키 또는 HUD 가방 버튼 / 가방 화면 닫기 버튼 (열려 있는 동안 플레이어 입력 정지)
+##   "COMBAT_TEST: close_button at <x>,<y>"   가방을 열 때 닫기 버튼 중심 (창 좌표)
 ##   "COMBAT_TEST: weapon_changed <슬롯 번호> recoil=<v> ergo=<v>"   부품이 바뀐 뒤 무기 스탯이 갱신됐을 때
 ##   "COMBAT_TEST: sprint_lock on" / "COMBAT_TEST: sprint_lock off <touch|pull_down|ads|fire|crouch|wall|key_back|toggle|focus>"
 ##   "COMBAT_TEST: pos x=<m> z=<m> yaw=<deg>"   위치·시점이 바뀌었을 때만 (최대 0.5초에 한 번)
@@ -53,6 +54,8 @@ func _ready() -> void:
 	_screen.setup(_authority)
 	_screen.visible = false
 	_screen.process_mode = Node.PROCESS_MODE_DISABLED
+	_screen.set_close_button_visible(true)
+	_screen.close_requested.connect(func() -> void: set_inventory_open(false))
 	_hud.inventory_requested.connect(func() -> void: set_inventory_open(not is_inventory_open()))
 	await get_tree().process_frame
 	print(PREFIX + "ready")
@@ -83,6 +86,14 @@ func set_inventory_open(open: bool) -> void:
 		_screen.mod_screen().close()
 		_touch.set_active(_touch_was_active)
 	print(PREFIX + ("inventory open" if open else "inventory close"))
+	if open:
+		print(PREFIX + "close_button at " + _win_rect_str(_screen.close_button_rect()))
+
+
+## 뷰포트 좌표를 브라우저 창 좌표(스모크 클릭용)로 바꾼 사각형 중심 "x,y".
+func _win_rect_str(rect: Rect2) -> String:
+	var center: Vector2 = get_viewport().get_screen_transform() * rect.get_center()
+	return "%d,%d" % [roundi(center.x), roundi(center.y)]
 
 
 func _input(event: InputEvent) -> void:

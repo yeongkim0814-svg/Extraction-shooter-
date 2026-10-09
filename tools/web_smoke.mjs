@@ -148,9 +148,21 @@ if (scene === 'combat') {
     await page.waitForTimeout(500);
     await page.mouse.up();
     check(count(/COMBAT_TEST: shot /) === before, '가방이 열려 있는 동안 사격이 일어남');
+    // 닫기 버튼(터치 기기용) 클릭으로 닫는다.
+    const btn = lines.slice(o).join('\n').match(/COMBAT_TEST: close_button at (\d+),(\d+)/);
+    check(btn !== null, '"COMBAT_TEST: close_button at" 로그가 없음');
     const c = lines.length;
+    if (btn) await page.mouse.click(+btn[1], +btn[2]);
+    check(await waitMatch(c, /COMBAT_TEST: inventory close/, 4000), '닫기 버튼 클릭 후 "COMBAT_TEST: inventory close" 로그가 없음');
+    await page.waitForTimeout(400);
+    // I 키로 다시 열고 닫기 (키보드 토글).
+    const k = lines.length;
     await page.keyboard.press('i');
-    check(await waitMatch(c, /COMBAT_TEST: inventory close/, 4000), '다시 I 키 후 "COMBAT_TEST: inventory close" 로그가 없음');
+    check(await waitMatch(k, /COMBAT_TEST: inventory open/, 4000), '두 번째 I 키 후 열림 로그가 없음');
+    await page.waitForTimeout(300);
+    const k2 = lines.length;
+    await page.keyboard.press('i');
+    check(await waitMatch(k2, /COMBAT_TEST: inventory close/, 4000), '다시 I 키 후 "COMBAT_TEST: inventory close" 로그가 없음');
     await page.waitForTimeout(400);
   }
 
