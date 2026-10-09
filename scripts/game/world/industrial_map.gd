@@ -1,33 +1,33 @@
 class_name IndustrialMap
 extends Node3D
-## 산업단지 그레이박스 맵 (약 160 x 160 m, 원점 중심). 지오메트리는 전부 코드로 만든다.
-## 상자 하나마다 StaticBody3D + BoxShape3D 충돌체를 두고, 눈에 보이는 면은 재질별로 하나의 ArrayMesh에 합쳐
-## 메시 인스턴스 수(= 그리기 호출)를 재질 수 정도로 줄인다 (모바일). CSG는 쓰지 않는다.
-## 구역: 정문 경비초소(북) · 대형 창고(북서) · 탱크·배관(북동) · 컨테이너 야적장(동) · 2층 사무동(중앙 남서) ·
-##       화물 엘리베이터 승강장(서) · 하수구(동쪽 끝) · 플레이어 시작 구역(남).
-## 좌표: +x 동쪽, -z 북쪽 (플레이어는 남쪽 가장자리에서 북쪽을 보고 시작한다). 높이 0 = 지면.
+## 산업단지 맵 (약 176 x 176 m, 원점 중심). 지오메트리는 전부 코드로 만든다 (M10: 흐린 산업단지 무드).
+## 상자·원통 하나마다 충돌 모양을 두고(한 StaticBody3D에 모음), 눈에 보이는 면은 재질별로 하나의 ArrayMesh에 합쳐
+## 메시 인스턴스 수(= 그리기 호출)를 재질 수 정도로 줄인다 (모바일). 재질은 IndustrialMaterials의 공유 재질(삼면 매핑).
+## CSG는 쓰지 않는다. 구역별 건설은 industrial_factory / _warehouses / _site / _infra / _atmosphere 가 이 클래스의
+## 건설 도우미(box·span·wall_x·cylinder·beam·quad …)를 불러서 한다.
+## 구역: 공장 단지(북) · 창고 구역(동, 창고 2동) · 사무동(서) · 주차장(남서) · 정문(남) · 컨테이너 야적장(중앙 동쪽) ·
+##       도로 순환로 · 철길(동쪽 가장자리) · 감시탑(북서) · 배관 랙·크레인·송전탑.
+## 좌표: +x 동쪽, -z 북쪽 (플레이어는 남쪽 정문 근처에서 북쪽 공장을 보고 시작한다). 높이 0 = 지면.
 
-const HALF: float = 80.0
-const WALL_H: float = 4.0
+const HALF: float = 88.0
+const WALL_H: float = 4.5
 const DOOR_H: float = 2.6
 const STOREY: float = 3.4   # 사무동 2층 바닥 높이
 const NAV_CELL: float = 0.4
 const NAV_CELL_HEIGHT: float = 0.2
 const EXTRACT_WAIT: float = 7.0
 const POWER_FLAG: StringName = &"power_on"
+## 지면 위에 깔리는 도로·표시 판의 높이 (m). 발 밑 충돌은 0이라 이 정도는 무시된다.
+const OVERLAY_Y: float = 0.02
 
-const COLORS: Dictionary[StringName, Color] = {
-	&"concrete": Color(0.56, 0.57, 0.59),
-	&"concrete_dark": Color(0.38, 0.39, 0.42),
-	&"rust": Color(0.46, 0.27, 0.17),
-	&"metal": Color(0.17, 0.19, 0.22),
-	&"asphalt": Color(0.17, 0.18, 0.2),
-	&"wood": Color(0.5, 0.38, 0.22),
-	&"cont_red": Color(0.55, 0.2, 0.16),
-	&"cont_blue": Color(0.18, 0.3, 0.5),
-	&"cont_green": Color(0.2, 0.4, 0.28),
-	&"cont_yellow": Color(0.7, 0.55, 0.15),
-}
+
+class Batch:
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var tangents := PackedFloat32Array()
+	var uvs := PackedVector2Array()
+	var colors := PackedColorArray()
+	var indices := PackedInt32Array()
 
 
 class BoxRec:
@@ -35,22 +35,30 @@ class BoxRec:
 	var size: Vector3
 
 
-## 내비메시 굽기의 기준이 되는 지오메트리 영역 (모든 충돌 상자의 부모).
+## 내비메시 굽기의 기준이 되는 지오메트리 영역 (모든 충돌 모양의 부모).
 var region: NavigationRegion3D
-var spawn_position: Vector3 = Vector3(0.0, 0.1, 74.0)
+var spawn_position: Vector3 = Vector3(26.0, 0.1, 78.0)
 var containers: Array[LootContainer] = []
 var extraction_zones: Array[ExtractionZone] = []
 var lever: PowerLever
 ## 적 순찰 경로 (구역별 1개). 지점은 지면/바닥 높이의 좌표.
 var enemy_routes: Array[PackedVector3Array] = []
+## 개발용 시점 목록 {name, pos, yaw_deg, pitch_deg} (V 키, 스크린샷용).
+var view_points: Array[Dictionary] = []
 var box_count: int = 0
 var mesh_instance_count: int = 0
 var cover_count: int = 0
+## 천장 램프(발광 전구) 위치: 분위기·측정용.
+var lamp_count: int = 0
+## 연기를 피울 굴뚝 꼭대기 위치.
+var smoke_points: Array[Vector3] = []
+## 잡초를 심을 가장자리 구간 (시작, 끝) 쌍. industrial_atmosphere가 읽는다.
+var weed_lines: Array[Vector3] = []
 
-var _materials: Dictionary[StringName, StandardMaterial3D] = {}
-var _visual: Dictionary[StringName, Array] = {}
+var _batches: Dictionary[StringName, Batch] = {}
 var _nav_boxes: Array[BoxRec] = []
 var _shapes: Dictionary[Vector3, BoxShape3D] = {}
+var _solid: StaticBody3D
 var _cover_root: Node3D
 var _loot_root: Node3D
 
@@ -62,274 +70,59 @@ func _ready() -> void:
 # --- 전체 구성 ---
 
 func _build() -> void:
-	for id: StringName in COLORS:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = COLORS[id]
-		mat.roughness = 0.92
-		_materials[id] = mat
 	region = NavigationRegion3D.new()
 	region.name = "Geometry"
 	add_child(region)
+	_solid = StaticBody3D.new()
+	_solid.name = "Solid"
+	_solid.collision_layer = 1
+	_solid.collision_mask = 0
+	region.add_child(_solid)
 	_cover_root = Node3D.new()
 	_cover_root.name = "CoverPoints"
 	add_child(_cover_root)
 	_loot_root = Node3D.new()
 	_loot_root.name = "Loot"
 	add_child(_loot_root)
-	_build_ground_and_perimeter()
-	_build_gate_and_guard_post()
-	_build_warehouse()
-	_build_tank_area()
-	_build_container_yard()
-	_build_office()
-	_build_edges()
-	_build_open_ground_cover()
+	IndustrialInfra.build_ground(self)
+	IndustrialFactory.build(self)
+	IndustrialWarehouses.build(self)
+	IndustrialSite.build(self)
+	IndustrialInfra.build(self)
+	IndustrialInfra.build_skyline(self)
 	_build_routes()
 	_build_extractions()
+	_build_views()
 	_flush_meshes()
-
-
-func _build_ground_and_perimeter() -> void:
-	_box(Vector3(0, -0.2, 0), Vector3(HALF * 2.0, 0.4, HALF * 2.0), &"asphalt")
-	var t: float = 1.0
-	_span(-HALF - t, HALF + t, 0.0, WALL_H, -HALF - t, -HALF, &"concrete_dark")
-	_span(-HALF - t, HALF + t, 0.0, WALL_H, HALF, HALF + t, &"concrete_dark")
-	_span(-HALF - t, -HALF, 0.0, WALL_H, -HALF, HALF, &"concrete_dark")
-	_span(HALF, HALF + t, 0.0, WALL_H, -HALF, HALF, &"concrete_dark")
-
-
-func _build_gate_and_guard_post() -> void:
-	# 정문: 북쪽 벽 가운데의 닫힌 철문 + 기둥 (탈출 지점은 문 앞)
-	_span(-6.0, 6.0, 0.0, 3.6, -HALF + 0.1, -HALF + 0.5, &"metal")
-	_span(-7.0, -6.0, 0.0, 5.0, -HALF - 0.1, -HALF + 1.0, &"concrete")
-	_span(6.0, 7.0, 0.0, 5.0, -HALF - 0.1, -HALF + 1.0, &"concrete")
-	_span(-7.0, 7.0, 4.6, 5.2, -HALF - 0.1, -HALF + 1.0, &"concrete")
-	# 경비초소: x -14..-2, z -74..-66, 방 2개
-	var wall_t: float = 0.4
-	_wall_x(-14.0, -2.0, -66.0, 0.0, 3.2, wall_t, &"concrete", [Vector2(-11.0, 1.6), Vector2(-5.0, 1.6)])
-	_wall_x(-14.0, -2.0, -74.0, 0.0, 3.2, wall_t, &"concrete", [])
-	_wall_z(-74.0, -66.0, -14.0, 0.0, 3.2, wall_t, &"concrete", [Vector2(-70.0, 1.6)])
-	_wall_z(-74.0, -66.0, -8.0, 0.0, 3.2, wall_t, &"concrete", [Vector2(-70.0, 1.4)])
-	_wall_z(-74.0, -66.0, -2.0, 0.0, 3.2, wall_t, &"concrete", [])
-	_span(-14.2, -1.8, 3.2, 3.6, -74.2, -65.8, &"concrete_dark")
-	_cover_box(Vector3(-5.0, 0.4, -69.0), Vector3(2.2, 0.8, 0.9), &"wood", false)   # 책상
-	_loot(LootContainer.Kind.WEAPON_BOX, Vector3(-12.2, 0.0, -72.8), 0.0)
-	_loot(LootContainer.Kind.DRAWER, Vector3(-4.5, 0.0, -72.8), 0.0)
-	# 검문 차단벽
-	for x: float in [-9.0, 9.0]:
-		_cover_box(Vector3(x, 0.5, -58.0), Vector3(3.0, 1.0, 0.7), &"concrete")
-	_cover_box(Vector3(0.0, 0.5, -50.0), Vector3(3.0, 1.0, 0.7), &"concrete")
-
-
-func _build_warehouse() -> void:
-	var x0: float = -72.0
-	var x1: float = -32.0
-	var z0: float = -52.0
-	var z1: float = -22.0
-	var t: float = 0.6
-	var h: float = 7.0
-	_wall_x(x0, x1, z1, 0.0, h, t, &"concrete", [Vector2(-58.0, 5.0), Vector2(-42.0, 5.0)])
-	_wall_x(x0, x1, z0, 0.0, h, t, &"concrete", [Vector2(-52.0, 4.0)])
-	_wall_z(z0, z1, x0, 0.0, h, t, &"concrete", [])
-	_wall_z(z0, z1, x1, 0.0, h, t, &"concrete", [Vector2(-37.0, 4.0)])
-	_span(x0 - 0.3, x1 + 0.3, h, h + 0.4, z0 - 0.3, z1 + 0.3, &"concrete_dark")
-	# 선반 열: z = -29, -36, -43 (서쪽 구간 + 동쪽 구간, 가운데 x -52..-46은 가로 통로)
-	for z: float in [-29.0, -36.0, -43.0]:
-		_shelf(-68.0, -52.0, z)
-		_shelf(-46.0, -36.0, z)
-	# 북쪽 통로의 나무 상자 더미 (엄폐)
-	for pos: Vector2 in [Vector2(-60.0, -48.0), Vector2(-44.0, -47.5), Vector2(-66.0, -33.0)]:
-		_cover_box(Vector3(pos.x, 0.6, pos.y), Vector3(1.6, 1.2, 1.6), &"wood")
-	_loot(LootContainer.Kind.WEAPON_BOX, Vector3(-69.0, 0.0, -48.0), 90.0)
-	_loot(LootContainer.Kind.WEAPON_BOX, Vector3(-35.0, 0.0, -49.0), 0.0)
-	_loot(LootContainer.Kind.CRATE, Vector3(-60.0, 0.0, -32.5), 0.0)
-	_loot(LootContainer.Kind.CRATE, Vector3(-40.0, 0.0, -39.5), 0.0)
-	_loot(LootContainer.Kind.TOOLBOX, Vector3(-70.5, 0.0, -26.0), 90.0)
-
-
-func _shelf(xa: float, xb: float, z: float) -> void:
-	_span(xa, xb, 0.0, 3.2, z - 0.5, z + 0.5, &"rust")
-	_cover_markers((xa + xb) * 0.5, z, (xb - xa) * 0.5, 0.5, 0.0, 1.4)
-
-
-func _build_tank_area() -> void:
-	var tanks: Array[Vector3] = [Vector3(36, 5, -58), Vector3(52, 5, -58), Vector3(68, 5, -58), Vector3(60, 4, -42)]
-	for tank: Vector3 in tanks:
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = tank.y
-		mesh.bottom_radius = tank.y
-		mesh.height = 9.0
-		mesh.radial_segments = 20
-		mesh.rings = 1
-		var node := MeshInstance3D.new()
-		node.mesh = mesh
-		node.material_override = _materials[&"rust"]
-		node.position = Vector3(tank.x, 4.5, tank.z)
-		add_child(node)
-		mesh_instance_count += 1
-		_collider(Vector3(tank.x, 4.5, tank.z), Vector3(tank.y * 2.0, 9.0, tank.y * 2.0))
-	# 높이 3.5 m의 배관 (아래로 지나갈 수 있다): 남북 한 줄, 동서 한 줄
-	_box(Vector3(44.0, 3.6, -43.0), Vector3(0.6, 0.6, 18.0), &"metal")
-	_box(Vector3(51.0, 3.4, -35.0), Vector3(42.0, 0.6, 0.6), &"metal")
-	for z: float in [-52.0, -43.0, -34.0]:
-		_box(Vector3(44.0, 1.8, z), Vector3(0.4, 3.6, 0.4), &"metal")
-	for x: float in [40.0, 50.0, 60.0, 70.0]:
-		_box(Vector3(x, 1.7, -35.0), Vector3(0.4, 3.4, 0.4), &"metal")
-	# 펌프실: x 30..38, z -42..-36
-	_wall_x(30.0, 38.0, -36.0, 0.0, 3.4, 0.4, &"concrete", [Vector2(34.0, 1.8)])
-	_wall_x(30.0, 38.0, -42.0, 0.0, 3.4, 0.4, &"concrete", [])
-	_wall_z(-42.0, -36.0, 30.0, 0.0, 3.4, 0.4, &"concrete", [])
-	_wall_z(-42.0, -36.0, 38.0, 0.0, 3.4, 0.4, &"concrete", [])
-	_span(29.8, 38.2, 3.4, 3.8, -42.2, -35.8, &"concrete_dark")
-	# 드럼통 (엄폐)
-	for pos: Vector2 in [Vector2(49.5, -48.5), Vector2(50.8, -48.5), Vector2(49.5, -47.2), Vector2(42.0, -45.0),
-			Vector2(72.0, -38.0)]:
-		_cover_box(Vector3(pos.x, 0.6, pos.y), Vector3(0.9, 1.2, 0.9), &"rust")
-	_loot(LootContainer.Kind.TOOLBOX, Vector3(33.0, 0.0, -40.5), 0.0)
-	_loot(LootContainer.Kind.TOOLBOX, Vector3(62.0, 0.0, -33.0), 0.0)
-	_loot(LootContainer.Kind.CRATE, Vector3(44.0, 0.0, -56.0), 0.0)
-
-
-func _build_container_yard() -> void:
-	var mats: Array[StringName] = [&"cont_red", &"cont_blue", &"cont_green", &"cont_yellow"]
-	var rows: Array[Dictionary] = [
-		{"z": -20.0, "xs": [20.0, 36.0, 52.0, 68.0], "stack": [36.0, 68.0]},
-		{"z": -12.0, "xs": [20.0, 36.0, 52.0, 68.0], "stack": [20.0, 52.0]},
-		{"z": -2.0, "xs": [28.0, 44.0, 60.0], "stack": [44.0]},
-		{"z": 8.0, "xs": [20.0, 36.0, 52.0, 68.0], "stack": [36.0, 68.0]},
-		{"z": 16.0, "xs": [44.0, 60.0], "stack": []},
-	]
-	var n: int = 0
-	for row: Dictionary in rows:
-		var z: float = row["z"]
-		for x: float in (row["xs"] as Array):
-			_shipping(x, z, mats[n % mats.size()], 0)
-			n += 1
-			if (row["stack"] as Array).has(x):
-				_shipping(x, z, mats[(n + 1) % mats.size()], 1)
-	_loot(LootContainer.Kind.CRATE, Vector3(45.0, 0.0, -14.0), 0.0)
-	_loot(LootContainer.Kind.CRATE, Vector3(60.0, 0.0, -18.2), 0.0)
-	_loot(LootContainer.Kind.CRATE, Vector3(50.0, 0.0, 5.5), 0.0)
-
-
-## 12 x 2.4 m 선적 컨테이너 (동서 방향). layer 1이면 한 칸 위에 쌓는다.
-func _shipping(cx: float, cz: float, mat: StringName, layer: int) -> void:
-	var size := Vector3(12.0, 2.5, 2.4)
-	var center := Vector3(cx, 1.25 + 2.5 * layer, cz)
-	_box(center, size, mat)
-	if layer == 0:
-		_cover_markers(cx, cz, 6.0, 1.2, 0.0, 0.9)
-
-
-func _build_office() -> void:
-	var x0: float = -26.0
-	var x1: float = -2.0
-	var z0: float = 0.0
-	var z1: float = 22.0
-	var t: float = 0.4
-	var h: float = 3.0
-	# 1층 외벽 + 칸막이
-	_wall_x(x0, x1, z1, 0.0, h, t, &"concrete", [Vector2(-14.0, 2.4)])
-	_wall_x(x0, x1, z0, 0.0, h, t, &"concrete", [Vector2(-20.0, 1.8)])
-	_wall_z(z0, z1, x0, 0.0, h, t, &"concrete", [])
-	_wall_z(z0, z1, x1, 0.0, h, t, &"concrete", [Vector2(2.0, 1.8)])
-	_partitions(0.0, h, t)
-	# 바닥판(2층 바닥) 과 2층 외벽 + 칸막이
-	_span(x0 - 0.2, x1 + 0.2, h, STOREY, z0 - 0.2, z1 + 0.2, &"concrete_dark")
-	_wall_x(x0, x1, z1, STOREY, h, t, &"concrete", [])
-	_wall_x(x0, x1, z0, STOREY, h, t, &"concrete", [])
-	_wall_z(z0, z1, x0, STOREY, h, t, &"concrete", [])
-	_wall_z(z0, z1, x1, STOREY, h, t, &"concrete", [Vector2(5.5, 2.0)])
-	_partitions(STOREY, h, t)
-	_span(x0 - 0.2, x1 + 0.2, STOREY + h, STOREY + h + 0.4, z0 - 0.2, z1 + 0.2, &"concrete_dark")
-	# 동쪽 바깥 경사로: 지면(z=19)에서 2층 높이(z=7)까지, 위쪽 승강대에서 2층 동쪽 문으로 이어진다
-	var run_len: float = 12.0
-	var angle: float = atan2(STOREY, run_len)
-	var length: float = sqrt(run_len * run_len + STOREY * STOREY)
-	var ramp_t: float = 0.3
-	var ramp_center := Vector3(-0.1, STOREY * 0.5 - ramp_t * 0.5 / cos(angle), 13.0)
-	_box(ramp_center, Vector3(3.4, ramp_t, length), &"concrete", Basis(Vector3.RIGHT, angle))
-	_span(-1.8, 1.6, STOREY - 0.4, STOREY, 4.0, 7.0, &"concrete")
-	_span(-1.8, 1.6, 0.0, STOREY - 0.4, 4.0, 7.0, &"concrete_dark")
-	_span(-1.8, -1.6, STOREY, STOREY + 1.0, 4.0, 7.0, &"metal")   # 난간 없음 → 안쪽 모서리만 막음
-	# 책상·캐비닛 (엄폐)
-	for pos: Vector2 in [Vector2(-22.0, 8.0), Vector2(-8.0, 19.0), Vector2(-20.0, 14.0)]:
-		_cover_box(Vector3(pos.x, 0.4, pos.y), Vector3(2.0, 0.8, 0.9), &"wood")
-		_cover_box(Vector3(pos.x, STOREY + 0.4, pos.y), Vector3(2.0, 0.8, 0.9), &"wood")
-	# 루팅: 의료 가방 3, 서랍장 2
-	_loot(LootContainer.Kind.MEDBAG, Vector3(-22.0, 0.0, 20.0), 0.0)
-	_loot(LootContainer.Kind.MEDBAG, Vector3(-10.0, STOREY, 3.0), 0.0)
-	_loot(LootContainer.Kind.MEDBAG, Vector3(-6.0, STOREY, 20.5), 0.0)
-	_loot(LootContainer.Kind.DRAWER, Vector3(-25.4, 0.0, 5.0), 90.0)
-	_loot(LootContainer.Kind.DRAWER, Vector3(-5.0, 0.0, 21.4), 0.0)
-	# 전원 레버 (2층 북서 방)
-	lever = PowerLever.new()
-	lever.name = "PowerLever"
-	lever.position = Vector3(-25.5, STOREY, 3.0)
-	lever.rotation.y = PI * 0.5
-	_loot_root.add_child(lever)
-	_collider(Vector3(-25.5, STOREY + 0.6, 3.0), Vector3(0.25, 1.2, 0.7), false)
-
-
-## 사무동 칸막이 (층마다 같은 배치): x=-14 세로벽, z=11 가로벽 두 조각.
-func _partitions(y0: float, h: float, t: float) -> void:
-	_wall_z(0.0, 22.0, -14.0, y0, h, t, &"concrete", [Vector2(6.0, 1.6), Vector2(16.0, 1.6)])
-	_wall_x(-26.0, -14.0, 11.0, y0, h, t, &"concrete", [Vector2(-20.0, 1.6)])
-	_wall_x(-14.0, -2.0, 11.0, y0, h, t, &"concrete", [Vector2(-8.0, 1.6)])
-
-
-func _build_edges() -> void:
-	# 화물 엘리베이터 승강장 (서쪽): 세 면 벽 + 지붕 + 승강기 틀
-	_span(-70.4, -69.6, 0.0, 4.0, 8.0, 20.0, &"metal")
-	_span(-70.0, -58.0, 0.0, 4.0, 7.6, 8.0, &"concrete_dark")
-	_span(-70.0, -58.0, 0.0, 4.0, 20.0, 20.4, &"concrete_dark")
-	_span(-70.4, -57.6, 4.0, 4.4, 7.6, 20.4, &"concrete_dark")
-	for z: float in [11.0, 17.0]:
-		_box(Vector3(-58.2, 2.0, z), Vector3(0.4, 4.0, 0.4), &"metal")
-	_cover_box(Vector3(-52.0, 0.6, 14.0), Vector3(1.6, 1.2, 1.6), &"wood")
-	# 하수구 (동쪽 끝): 콘크리트 벽에 박힌 배수 터널 입구
-	_span(78.0, 79.6, 0.0, 3.4, 32.0, 44.0, &"concrete_dark")
-	_span(68.0, 79.6, 0.0, 3.4, 31.6, 32.0, &"concrete")
-	_span(68.0, 79.6, 0.0, 3.4, 44.0, 44.4, &"concrete")
-	_span(66.0, 79.6, 3.4, 3.8, 31.6, 44.4, &"concrete")
-	# 시작 구역 창고 (남서): 정면(남쪽 z=56)이 트인 헛간
-	_wall_x(-44.0, -32.0, 64.0, 0.0, 3.0, 0.4, &"concrete", [])
-	_wall_z(56.0, 64.0, -44.0, 0.0, 3.0, 0.4, &"concrete", [])
-	_wall_z(56.0, 64.0, -32.0, 0.0, 3.0, 0.4, &"concrete", [])
-	_span(-44.2, -31.8, 3.0, 3.4, 55.8, 64.2, &"concrete_dark")
-	_loot(LootContainer.Kind.CRATE, Vector3(-40.0, 0.0, 62.5), 0.0)
-	_loot(LootContainer.Kind.TOOLBOX, Vector3(-34.5, 0.0, 61.0), 0.0)
-
-
-func _build_open_ground_cover() -> void:
-	var barriers: Array[Vector3] = [Vector3(-8, 0, 62), Vector3(10, 0, 60), Vector3(-20, 0, 50), Vector3(24, 0, 54),
-			Vector3(0, 0, 46), Vector3(-6, 0, -8), Vector3(6, 0, -30), Vector3(-15, 0, -35), Vector3(14, 0, -55),
-			Vector3(-20, 0, -12), Vector3(-5, 0, -20), Vector3(-10, 0, 35), Vector3(12, 0, 30), Vector3(22, 0, 42),
-			Vector3(40, 0, 30), Vector3(55, 0, 45)]
-	for pos: Vector3 in barriers:
-		_cover_box(Vector3(pos.x, 0.5, pos.z), Vector3(3.0, 1.0, 0.7), &"concrete")
-	_loot(LootContainer.Kind.CRATE, Vector3(28.0, 0.0, 66.0), 0.0)
+	IndustrialAtmosphere.build(self)
 
 
 func _build_routes() -> void:
-	enemy_routes.append(PackedVector3Array([Vector3(-66, 0, -25), Vector3(-38, 0, -25), Vector3(-49, 0, -38),
-			Vector3(-66, 0, -47), Vector3(-40, 0, -47)]))
-	enemy_routes.append(PackedVector3Array([Vector3(-9, 0, -62), Vector3(9, 0, -62), Vector3(9, 0, -72)]))
-	enemy_routes.append(PackedVector3Array([Vector3(32, 0, -47), Vector3(44, 0, -46), Vector3(66, 0, -33),
-			Vector3(44, 0, -33)]))
-	enemy_routes.append(PackedVector3Array([Vector3(8, 0, -16), Vector3(76, 0, -16), Vector3(76, 0, 3),
-			Vector3(8, 0, 3)]))
-	enemy_routes.append(PackedVector3Array([Vector3(-8, 0, 5), Vector3(-8, 0, 16), Vector3(-20, 0, 16),
-			Vector3(-20, 0, 6)]))
-	enemy_routes.append(PackedVector3Array([Vector3(-8, STOREY, 5), Vector3(-8, STOREY, 16),
-			Vector3(-20, STOREY, 16), Vector3(-20, STOREY, 6)]))
+	# 0 공장 홀 (바닥층 순찰)
+	enemy_routes.append(PackedVector3Array([Vector3(-38, 0, -52), Vector3(-6, 0, -52), Vector3(-6, 0, -70),
+			Vector3(-30, 0, -70), Vector3(-40, 0, -62)]))
+	# 1 창고 A (북동)
+	enemy_routes.append(PackedVector3Array([Vector3(44, 0, -30), Vector3(64, 0, -30), Vector3(64, 0, -16),
+			Vector3(46, 0, -16)]))
+	# 2 창고 B (동)
+	enemy_routes.append(PackedVector3Array([Vector3(44, 0, 10), Vector3(64, 0, 10), Vector3(64, 0, 24),
+			Vector3(44, 0, 24)]))
+	# 3 컨테이너 야적장 + 중앙 도로
+	enemy_routes.append(PackedVector3Array([Vector3(2, 0, -30), Vector3(22, 0, -30), Vector3(22, 0, 38),
+			Vector3(2, 0, 38)]))
+	# 4 공장 앞 도로 + 감시탑 쪽
+	enemy_routes.append(PackedVector3Array([Vector3(-66, 0, -42), Vector3(-30, 0, -42), Vector3(-30, 0, -36),
+			Vector3(-66, 0, -36)]))
+	# 5 사무동 2층 (전원 레버 방)
+	enemy_routes.append(PackedVector3Array([Vector3(-30, STOREY, 5), Vector3(-30, STOREY, 16),
+			Vector3(-42, STOREY, 16), Vector3(-42, STOREY, 6)]))
 
 
 func _build_extractions() -> void:
 	var specs: Array[Dictionary] = [
-		{"id": &"main_gate", "name": "정문", "pos": Vector3(0, 0, -75), "flag": &""},
-		{"id": &"sewer", "name": "하수구", "pos": Vector3(73, 0, 38), "flag": &""},
-		{"id": &"freight_lift", "name": "화물 엘리베이터", "pos": Vector3(-64, 0, 14), "flag": POWER_FLAG},
+		{"id": &"main_gate", "name": "정문", "pos": Vector3(0, 0, 81), "flag": &""},
+		{"id": &"railway", "name": "철길", "pos": Vector3(81.5, 0, 46), "flag": &""},
+		{"id": &"freight_lift", "name": "화물 엘리베이터", "pos": Vector3(-60, 0, 14), "flag": POWER_FLAG},
 	]
 	for spec: Dictionary in specs:
 		var zone: ExtractionZone = ExtractionZone.create(spec["id"], spec["name"], EXTRACT_WAIT, spec["flag"])
@@ -339,26 +132,28 @@ func _build_extractions() -> void:
 		extraction_zones.append(zone)
 
 
-# --- 건설 도우미 ---
+func _build_views() -> void:
+	view_points.append({"name": "factory", "pos": Vector3(-6.0, 0.1, -20.0), "yaw_deg": 0.0, "pitch_deg": 3.0})
+	view_points.append({"name": "interior", "pos": Vector3(-34.0, 0.1, -54.0), "yaw_deg": -45.0, "pitch_deg": 2.0})
+	view_points.append({"name": "yard", "pos": Vector3(0.0, 0.1, 44.0), "yaw_deg": -62.0, "pitch_deg": 4.0})
+	view_points.append({"name": "warehouse", "pos": Vector3(35.0, 0.1, -28.0), "yaw_deg": -90.0, "pitch_deg": 2.0})
+	view_points.append({"name": "railway", "pos": Vector3(66.0, 0.1, 30.0), "yaw_deg": -90.0, "pitch_deg": 2.0})
 
-func _box(center: Vector3, size: Vector3, mat: StringName, orientation: Basis = Basis.IDENTITY,
-		collide: bool = true) -> void:
+
+# --- 건설 도우미: 상자 ---
+
+## 상자 하나. collide가 true면 충돌(과 내비메시 지오메트리)도 만든다. cast가 false면 그림자를 드리우지 않는다.
+func box(center: Vector3, size: Vector3, mat: StringName, orientation: Basis = Basis.IDENTITY,
+		collide: bool = true, cast: bool = true) -> void:
 	var xform := Transform3D(orientation, center)
 	if collide:
 		_collider_at(xform, size)
-	else:
-		_record_nav(xform, size)
-	var rec := BoxRec.new()
-	rec.xform = xform
-	rec.size = size
-	if not _visual.has(mat):
-		_visual[mat] = []
-	(_visual[mat] as Array).append(rec)
+	_append_box(_batch(mat, cast), xform, size)
 
 
-## 눈에 안 보이는 충돌 상자 (탱크 등 따로 그려지는 것). add_body가 false면 내비메시 기준으로만 기록한다.
-func _collider(center: Vector3, size: Vector3, add_body: bool = true) -> void:
-	var xform := Transform3D(Basis.IDENTITY, center)
+## 눈에 안 보이는 충돌 상자. add_body가 false면 내비메시 기준으로만 기록한다.
+func collider(center: Vector3, size: Vector3, add_body: bool = true, orientation: Basis = Basis.IDENTITY) -> void:
+	var xform := Transform3D(orientation, center)
 	if add_body:
 		_collider_at(xform, size)
 	else:
@@ -366,14 +161,10 @@ func _collider(center: Vector3, size: Vector3, add_body: bool = true) -> void:
 
 
 func _collider_at(xform: Transform3D, size: Vector3) -> void:
-	var body := StaticBody3D.new()
-	body.transform = xform
-	body.collision_layer = 1
-	body.collision_mask = 0
 	var shape_node := CollisionShape3D.new()
 	shape_node.shape = _shape_for(size)
-	body.add_child(shape_node)
-	region.add_child(body)
+	shape_node.transform = xform
+	_solid.add_child(shape_node)
 	box_count += 1
 	_record_nav(xform, size)
 
@@ -394,36 +185,43 @@ func _shape_for(size: Vector3) -> BoxShape3D:
 
 
 ## 최소·최대 좌표로 상자를 만든다.
-func _span(xa: float, xb: float, ya: float, yb: float, za: float, zb: float, mat: StringName) -> void:
+func span(xa: float, xb: float, ya: float, yb: float, za: float, zb: float, mat: StringName,
+		collide: bool = true, cast: bool = true) -> void:
 	if xb - xa < 0.01 or yb - ya < 0.01 or zb - za < 0.01:
 		return
-	_box(Vector3((xa + xb) * 0.5, (ya + yb) * 0.5, (za + zb) * 0.5), Vector3(xb - xa, yb - ya, zb - za), mat)
+	box(Vector3((xa + xb) * 0.5, (ya + yb) * 0.5, (za + zb) * 0.5), Vector3(xb - xa, yb - ya, zb - za), mat,
+			Basis.IDENTITY, collide, cast)
 
 
-## 동서 방향 벽 (z 고정). openings는 Vector2(중심 x, 폭) 문 구멍.
-func _wall_x(xa: float, xb: float, z: float, y0: float, h: float, t: float, mat: StringName,
-		openings: Array[Vector2]) -> void:
+## 지면에 깔리는 얇은 판 (도로·주차선·웅덩이 받침). 충돌 없음, 그림자 없음.
+func overlay(xa: float, xb: float, za: float, zb: float, mat: StringName, lift: float = 0.0) -> void:
+	span(xa, xb, 0.0, OVERLAY_Y + lift, za, zb, mat, false, false)
+
+
+## 동서 방향 벽 (z 고정). openings는 Vector2(중심 x, 폭) 문 구멍, door_h는 문 높이.
+func wall_x(xa: float, xb: float, z: float, y0: float, h: float, t: float, mat: StringName,
+		openings: Array[Vector2], door_h: float = DOOR_H) -> void:
 	var cursor: float = xa
 	for opening: Vector2 in _sorted(openings):
 		var left: float = opening.x - opening.y * 0.5
 		var right: float = opening.x + opening.y * 0.5
-		_span(cursor, left, y0, y0 + h, z - t * 0.5, z + t * 0.5, mat)
-		_span(left, right, y0 + DOOR_H, y0 + h, z - t * 0.5, z + t * 0.5, mat)
+		span(cursor, left, y0, y0 + h, z - t * 0.5, z + t * 0.5, mat)
+		span(left, right, y0 + door_h, y0 + h, z - t * 0.5, z + t * 0.5, mat)
 		cursor = right
-	_span(cursor, xb, y0, y0 + h, z - t * 0.5, z + t * 0.5, mat)
+	span(cursor, xb, y0, y0 + h, z - t * 0.5, z + t * 0.5, mat)
 
 
 ## 남북 방향 벽 (x 고정). openings는 Vector2(중심 z, 폭).
-func _wall_z(za: float, zb: float, x: float, y0: float, h: float, t: float, mat: StringName,
-		openings: Array[Vector2]) -> void:
+func wall_z(za: float, zb: float, x: float, y0: float, h: float, t: float, mat: StringName,
+		openings: Array[Vector2], door_h: float = DOOR_H) -> void:
 	var cursor: float = za
 	for opening: Vector2 in _sorted(openings):
 		var left: float = opening.x - opening.y * 0.5
 		var right: float = opening.x + opening.y * 0.5
-		_span(x - t * 0.5, x + t * 0.5, y0, y0 + h, cursor, left, mat)
-		_span(x - t * 0.5, x + t * 0.5, y0 + DOOR_H, y0 + h, left, right, mat)
+		span(x - t * 0.5, x + t * 0.5, y0, y0 + h, cursor, left, mat)
+		span(x - t * 0.5, x + t * 0.5, y0 + door_h, y0 + h, left, right, mat)
 		cursor = right
-	_span(x - t * 0.5, x + t * 0.5, y0, y0 + h, cursor, zb, mat)
+	span(x - t * 0.5, x + t * 0.5, y0, y0 + h, cursor, zb, mat)
 
 
 static func _sorted(openings: Array[Vector2]) -> Array[Vector2]:
@@ -433,14 +231,14 @@ static func _sorted(openings: Array[Vector2]) -> Array[Vector2]:
 
 
 ## 엄폐용 상자 + 양옆 엄폐 지점. 짧은 변 쪽에 마커를 둔다.
-func _cover_box(center: Vector3, size: Vector3, mat: StringName, markers: bool = true) -> void:
-	_box(center, size, mat)
+func cover_box(center: Vector3, size: Vector3, mat: StringName, markers: bool = true) -> void:
+	box(center, size, mat)
 	if markers:
-		_cover_markers(center.x, center.z, size.x * 0.5, size.z * 0.5, center.y - size.y * 0.5, 0.9)
+		cover_markers(center.x, center.z, size.x * 0.5, size.z * 0.5, center.y - size.y * 0.5, 0.9)
 
 
 ## (cx, cz) 상자의 짧은 변 양쪽 gap 거리에 엄폐 지점(cover_point 그룹)을 둔다.
-func _cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float, gap: float) -> void:
+func cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float, gap: float) -> void:
 	var offsets: Array[Vector3] = []
 	if half_z <= half_x:
 		offsets = [Vector3(0, 0, half_z + gap), Vector3(0, 0, -half_z - gap)]
@@ -454,7 +252,7 @@ func _cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float
 		cover_count += 1
 
 
-func _loot(kind: LootContainer.Kind, pos: Vector3, yaw_deg: float) -> void:
+func loot(kind: LootContainer.Kind, pos: Vector3, yaw_deg: float) -> void:
 	var container: LootContainer = LootContainer.create(kind)
 	container.position = pos
 	container.rotation.y = deg_to_rad(yaw_deg)
@@ -464,42 +262,234 @@ func _loot(kind: LootContainer.Kind, pos: Vector3, yaw_deg: float) -> void:
 	_record_nav(Transform3D(Basis(Vector3.UP, deg_to_rad(yaw_deg)), pos + Vector3.UP * body.y * 0.5), body)
 
 
+## 노드를 맵 아래에 붙인다 (전원 레버 등).
+func add_loot_child(node: Node) -> void:
+	_loot_root.add_child(node)
+
+
+# --- 건설 도우미: 빔·원통·경사로·판 ---
+
+## a에서 b까지 이어지는 가는 빔 (격자 탑·난간·사선 보강용).
+func beam(a: Vector3, b: Vector3, thick: float, mat: StringName, collide: bool = false, cast: bool = true) -> void:
+	var dir: Vector3 = b - a
+	var length: float = dir.length()
+	if length < 0.01:
+		return
+	var up: Vector3 = Vector3.UP if absf(dir.normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+	var orientation: Basis = Basis.looking_at(dir.normalized(), up)
+	box((a + b) * 0.5, Vector3(thick, thick, length), mat, orientation, collide, cast)
+
+
+## 세운 원통(또는 원뿔대). collide_size가 0이 아니면 같은 중심에 상자 충돌을 둔다.
+func cylinder(center: Vector3, r_top: float, r_bottom: float, height: float, mat: StringName, segments: int = 12,
+		orientation: Basis = Basis.IDENTITY, collide_size: Vector3 = Vector3.ZERO, cast: bool = true,
+		caps: bool = true) -> void:
+	var xform := Transform3D(orientation, center)
+	if collide_size != Vector3.ZERO:
+		_collider_at(xform, collide_size)
+	_append_cylinder(_batch(mat, cast), xform, r_top, r_bottom, height, segments, caps)
+
+
+## x축으로 누운 원통 (배관).
+func pipe_x(xa: float, xb: float, y: float, z: float, radius: float, mat: StringName, segments: int = 8) -> void:
+	var orientation := Basis(Vector3.FORWARD, PI * 0.5)   # y축 → x축
+	cylinder(Vector3((xa + xb) * 0.5, y, z), radius, radius, absf(xb - xa), mat, segments, orientation, Vector3.ZERO,
+			true, false)
+
+
+## z축으로 누운 원통 (배관).
+func pipe_z(za: float, zb: float, y: float, x: float, radius: float, mat: StringName, segments: int = 8) -> void:
+	var orientation := Basis(Vector3.RIGHT, PI * 0.5)   # y축 → z축
+	cylinder(Vector3(x, y, (za + zb) * 0.5), radius, radius, absf(zb - za), mat, segments, orientation, Vector3.ZERO,
+			true, false)
+
+
+## z 방향 경사로 (폭 width, 중심 x). z_low에서 높이 y_low, z_high에서 y_high. 위쪽 면이 두 끝 높이를 지난다.
+func ramp_z(x: float, width: float, z_low: float, z_high: float, y_low: float, y_high: float, mat: StringName,
+		thick: float = 0.3) -> void:
+	var run: float = absf(z_high - z_low)
+	var rise: float = y_high - y_low
+	var angle: float = atan2(absf(rise), run)
+	var length: float = sqrt(run * run + rise * rise)
+	var sign_value: float = -1.0 if z_high < z_low else 1.0
+	# 북쪽(-z)으로 올라가는 경사는 +X 축 양의 회전
+	var tilt: float = angle * (-sign_value) * (1.0 if rise > 0.0 else -1.0)
+	var mid_y: float = (y_low + y_high) * 0.5 - thick * 0.5 / cos(angle)
+	box(Vector3(x, mid_y, (z_low + z_high) * 0.5), Vector3(width, thick, length), mat, Basis(Vector3.RIGHT, tilt))
+
+
+## x 방향 경사로 (폭 width, 중심 z). x_low에서 y_low, x_high에서 y_high.
+func ramp_x(z: float, width: float, x_low: float, x_high: float, y_low: float, y_high: float, mat: StringName,
+		thick: float = 0.3) -> void:
+	var run: float = absf(x_high - x_low)
+	var rise: float = y_high - y_low
+	var angle: float = atan2(absf(rise), run)
+	var length: float = sqrt(run * run + rise * rise)
+	var toward_east: float = 1.0 if x_high > x_low else -1.0
+	var tilt: float = angle * toward_east * (1.0 if rise > 0.0 else -1.0)
+	var mid_y: float = (y_low + y_high) * 0.5 - thick * 0.5 / cos(angle)
+	box(Vector3((x_low + x_high) * 0.5, mid_y, z), Vector3(length, thick, width), mat, Basis(Vector3.BACK, tilt))
+
+
+## 네 점 평면 판(사각형). 법선은 (p1-p0)x(p3-p0) 방향. UV는 uv_rep만큼 반복. 색은 꼭짓점별 (그림자 없음).
+func quad(mat: StringName, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, uv_rep: Vector2 = Vector2.ONE,
+		c0: Color = Color.WHITE, c1: Color = Color.WHITE, c2: Color = Color.WHITE, c3: Color = Color.WHITE) -> void:
+	var normal: Vector3 = (p1 - p0).cross(p3 - p0).normalized()
+	var tangent: Vector3 = (p1 - p0).normalized()
+	var batch: Batch = _batch(mat, false)
+	var base: int = batch.verts.size()
+	var pts: Array[Vector3] = [p0, p1, p2, p3]
+	var cols: Array[Color] = [c0, c1, c2, c3]
+	var uv_list: Array[Vector2] = [Vector2(0, uv_rep.y), Vector2(uv_rep.x, uv_rep.y), Vector2(uv_rep.x, 0), Vector2(0, 0)]
+	for i: int in range(4):
+		batch.verts.append(pts[i])
+		batch.normals.append(normal)
+		batch.tangents.append_array(PackedFloat32Array([tangent.x, tangent.y, tangent.z, 1.0]))
+		batch.uvs.append(uv_list[i])
+		batch.colors.append(cols[i])
+	# 앞면 = 시계 방향: (p0,p2,p1), (p0,p3,p2)가 법선 쪽에서 본 시계 방향
+	batch.indices.append_array(PackedInt32Array([base, base + 2, base + 1, base, base + 3, base + 2]))
+
+
+## 벽 표면에 붙는 창문 띠: 시작점 a에서 끝점 b(같은 높이)까지, 높이 y0~y1. normal 쪽을 향한다.
+## lit이 true면 안쪽(밝게 빛나는 유리), false면 바깥쪽(어둡고 희미한 유리).
+func window_strip(a: Vector3, b: Vector3, y0: float, y1: float, normal: Vector3, lit: bool) -> void:
+	var along: Vector3 = b - a
+	var length: float = along.length()
+	if length < 0.1:
+		return
+	var offset: Vector3 = normal.normalized() * 0.03
+	var p0 := Vector3(a.x, y0, a.z) + offset
+	var p1 := Vector3(b.x, y0, b.z) + offset
+	var p2 := Vector3(b.x, y1, b.z) + offset
+	var p3 := Vector3(a.x, y1, a.z) + offset
+	var facing: Vector3 = (p1 - p0).cross(p3 - p0)
+	var mat: StringName = IndustrialMaterials.GLASS_LIT if lit else IndustrialMaterials.GLASS_DARK
+	var rep := Vector2(length / ((y1 - y0) * 2.0), 1.0)
+	if facing.dot(normal) < 0.0:
+		quad(mat, p1, p0, p3, p2, rep)
+	else:
+		quad(mat, p0, p1, p2, p3, rep)
+
+
+## 가장자리가 부드럽게 사라지는 빛줄기 카드 (가산 혼합). 위·아래 두 변(왼·오른 끝)과 가운데 알파를 받는다.
+## 열 3개(왼 끝 알파 0, 가운데 alpha, 오른 끝 알파 0) x 행 2개로 만든다.
+func soft_card(top_l: Vector3, top_r: Vector3, bot_l: Vector3, bot_r: Vector3, alpha_top: float, alpha_bottom: float,
+		tint: Color) -> void:
+	var batch: Batch = _batch(IndustrialMaterials.SHAFT, false)
+	var base: int = batch.verts.size()
+	var normal: Vector3 = (top_r - top_l).cross(bot_l - top_l).normalized()
+	var tangent: Vector3 = (top_r - top_l).normalized()
+	var pts: Array[Vector3] = [top_l, (top_l + top_r) * 0.5, top_r, bot_l, (bot_l + bot_r) * 0.5, bot_r]
+	var alphas: Array[float] = [0.0, alpha_top, 0.0, 0.0, alpha_bottom, 0.0]
+	for i: int in range(6):
+		batch.verts.append(pts[i])
+		batch.normals.append(normal)
+		batch.tangents.append_array(PackedFloat32Array([tangent.x, tangent.y, tangent.z, 1.0]))
+		batch.uvs.append(Vector2.ZERO)
+		batch.colors.append(Color(tint.r, tint.g, tint.b, alphas[i]))
+	batch.indices.append_array(PackedInt32Array([base, base + 1, base + 4, base, base + 4, base + 3,
+			base + 1, base + 2, base + 5, base + 1, base + 5, base + 4]))
+
+
+## 창에서 바닥으로 비스듬히 내려오는 빛줄기 카드. 창 가로선 a~b(높이 y_top)에서 dir 쪽으로 reach만큼 간다.
+func light_shaft(a: Vector3, b: Vector3, y_top: float, dir: Vector3, reach: float, alpha_top: float = 0.1,
+		alpha_bottom: float = 0.035, tint: Color = Color(0.75, 0.85, 1.0)) -> void:
+	var flat: Vector3 = Vector3(dir.x, 0.0, dir.z).normalized() * reach
+	var ta := Vector3(a.x, y_top, a.z)
+	var tb := Vector3(b.x, y_top, b.z)
+	var ba: Vector3 = Vector3(a.x, 0.06, a.z) + flat
+	var bb: Vector3 = Vector3(b.x, 0.06, b.z) + flat
+	soft_card(ta, tb, ba, bb, alpha_top, alpha_bottom, tint)
+
+
+## 매달린 램프: 줄 + 갓 + 발광 전구 + 아래로 번지는 따뜻한 빛 번짐. pos는 천장 매다는 점.
+func hanging_lamp(pos: Vector3, drop: float = 2.2) -> void:
+	var steel: StringName = IndustrialMaterials.STEEL
+	box(pos - Vector3(0, drop * 0.5, 0), Vector3(0.04, drop, 0.04), steel, Basis.IDENTITY, false, false)
+	var shade_y: float = pos.y - drop
+	cylinder(Vector3(pos.x, shade_y - 0.12, pos.z), 0.12, 0.5, 0.3, steel, 8, Basis.IDENTITY, Vector3.ZERO, false, false)
+	cylinder(Vector3(pos.x, shade_y - 0.3, pos.z), 0.12, 0.12, 0.12, IndustrialMaterials.LAMP, 6, Basis.IDENTITY,
+			Vector3.ZERO, false, false)
+	# 빛 번짐: 램프 아래로 넓어지는 십자 카드 두 장
+	var warm := Color(1.0, 0.76, 0.42)
+	var lamp_top := Vector3(pos.x, shade_y - 0.3, pos.z)
+	var floor_pt := Vector3(pos.x, 0.06, pos.z)
+	for axis: Vector3 in [Vector3.RIGHT, Vector3.BACK]:
+		soft_card(lamp_top - axis * 0.2, lamp_top + axis * 0.2, floor_pt - axis * 2.8, floor_pt + axis * 2.8, 0.13, 0.05, warm)
+	lamp_count += 1
+
+
 # --- 메시 합치기 ---
 
+## 이 재질들은 늘 그림자를 드리우지 않는다 (얇은 판·발광·유리·먼 풍경). 나머지는 항상 드리워 같은 메시로 합친다
+## (그림자 유무별로 메시를 나누면 그리기 호출이 는다).
+const NO_CAST_MATERIALS: Array[StringName] = [
+	IndustrialMaterials.GROUND, IndustrialMaterials.ASPHALT, IndustrialMaterials.PAINT_WHITE, IndustrialMaterials.PUDDLE,
+	IndustrialMaterials.GLASS_LIT, IndustrialMaterials.GLASS_DARK, IndustrialMaterials.SHAFT, IndustrialMaterials.LAMP,
+	IndustrialMaterials.SILHOUETTE, IndustrialMaterials.SILHOUETTE_FAR,
+]
+
+
+func _batch(mat: StringName, _cast: bool) -> Batch:
+	var cast: bool = not NO_CAST_MATERIALS.has(mat)
+	var key: StringName = mat if cast else StringName(String(mat) + "|nocast")
+	if not _batches.has(key):
+		_batches[key] = Batch.new()
+	return _batches[key]
+
+
 func _flush_meshes() -> void:
-	for mat_id: StringName in _visual:
-		var verts := PackedVector3Array()
-		var normals := PackedVector3Array()
-		var indices := PackedInt32Array()
-		for rec: BoxRec in (_visual[mat_id] as Array):
-			_append_box(verts, normals, indices, rec.xform, rec.size)
+	for key: StringName in _batches:
+		var batch: Batch = _batches[key]
+		if batch.verts.is_empty():
+			continue
+		var parts: PackedStringArray = String(key).split("|")
+		var mat_id := StringName(parts[0])
+		var cast: bool = parts.size() == 1
 		var arrays: Array = []
 		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = verts
-		arrays[Mesh.ARRAY_NORMAL] = normals
-		arrays[Mesh.ARRAY_INDEX] = indices
+		arrays[Mesh.ARRAY_VERTEX] = batch.verts
+		arrays[Mesh.ARRAY_NORMAL] = batch.normals
+		arrays[Mesh.ARRAY_TANGENT] = batch.tangents
+		arrays[Mesh.ARRAY_COLOR] = batch.colors
+		arrays[Mesh.ARRAY_TEX_UV] = batch.uvs
+		arrays[Mesh.ARRAY_INDEX] = batch.indices
 		var mesh := ArrayMesh.new()
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		mesh.surface_set_material(0, _materials[mat_id])
+		mesh.surface_set_material(0, IndustrialMaterials.get_material(mat_id))
 		var node := MeshInstance3D.new()
-		node.name = "Mesh_%s" % String(mat_id)
+		node.name = "Mesh_%s" % String(key).replace("|", "_")
 		node.mesh = mesh
+		if not cast:
+			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
 		mesh_instance_count += 1
-	_visual.clear()
+	_batches.clear()
+
+
+static func _append_vertex(batch: Batch, p: Vector3, n: Vector3, t: Vector3, uv: Vector2) -> void:
+	batch.verts.append(p)
+	batch.normals.append(n)
+	batch.tangents.append_array(PackedFloat32Array([t.x, t.y, t.z, 1.0]))
+	batch.uvs.append(uv)
+	batch.colors.append(Color.WHITE)
 
 
 ## 상자의 6개 면(바깥에서 봤을 때 시계 방향 = Godot 앞면)을 정점 배열에 추가한다.
-static func _append_box(verts: PackedVector3Array, normals: PackedVector3Array, indices: PackedInt32Array,
-		xform: Transform3D, size: Vector3) -> void:
+static func _append_box(batch: Batch, xform: Transform3D, size: Vector3) -> void:
 	var half: Vector3 = size * 0.5
 	for axis: int in range(3):
 		var u_axis: int = (axis + 1) % 3
 		var v_axis: int = (axis + 2) % 3
 		for sign_value: int in [1, -1]:
-			var base: int = verts.size()
+			var base: int = batch.verts.size()
 			var normal: Vector3 = Vector3.ZERO
 			normal[axis] = float(sign_value)
+			var tangent_local: Vector3 = Vector3.ZERO
+			tangent_local[u_axis] = 1.0
+			var world_normal: Vector3 = (xform.basis * normal).normalized()
+			var world_tangent: Vector3 = (xform.basis * tangent_local).normalized()
 			var corners: Array[Vector2] = [Vector2(-1, -1), Vector2(-1, 1), Vector2(1, 1), Vector2(1, -1)]
 			if sign_value < 0:
 				corners = [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]
@@ -508,9 +498,49 @@ static func _append_box(verts: PackedVector3Array, normals: PackedVector3Array, 
 				p[axis] = half[axis] * float(sign_value)
 				p[u_axis] = half[u_axis] * corner.x
 				p[v_axis] = half[v_axis] * corner.y
-				verts.append(xform * p)
-				normals.append((xform.basis * normal).normalized())
-			indices.append_array(PackedInt32Array([base, base + 1, base + 2, base, base + 2, base + 3]))
+				_append_vertex(batch, xform * p, world_normal, world_tangent, Vector2.ZERO)
+			batch.indices.append_array(PackedInt32Array([base, base + 1, base + 2, base, base + 2, base + 3]))
+
+
+## 세운 원통(위 반지름 r_top, 아래 r_bottom). 옆면 + 위·아래 뚜껑.
+static func _append_cylinder(batch: Batch, xform: Transform3D, r_top: float, r_bottom: float, height: float,
+		segments: int, caps: bool) -> void:
+	var half_h: float = height * 0.5
+	var slope: float = (r_bottom - r_top) / maxf(height, 0.001)
+	for i: int in range(segments):
+		var a0: float = TAU * float(i) / float(segments)
+		var a1: float = TAU * float(i + 1) / float(segments)
+		var d0 := Vector3(cos(a0), 0.0, sin(a0))
+		var d1 := Vector3(cos(a1), 0.0, sin(a1))
+		var a := Vector3(d0.x * r_bottom, -half_h, d0.z * r_bottom)
+		var b := Vector3(d0.x * r_top, half_h, d0.z * r_top)
+		var c := Vector3(d1.x * r_top, half_h, d1.z * r_top)
+		var d := Vector3(d1.x * r_bottom, -half_h, d1.z * r_bottom)
+		var n0: Vector3 = (xform.basis * Vector3(d0.x, slope, d0.z)).normalized()
+		var n1: Vector3 = (xform.basis * Vector3(d1.x, slope, d1.z)).normalized()
+		var t0: Vector3 = (xform.basis * Vector3(-d0.z, 0.0, d0.x)).normalized()
+		var t1: Vector3 = (xform.basis * Vector3(-d1.z, 0.0, d1.x)).normalized()
+		var base: int = batch.verts.size()
+		_append_vertex(batch, xform * a, n0, t0, Vector2.ZERO)
+		_append_vertex(batch, xform * b, n0, t0, Vector2.ZERO)
+		_append_vertex(batch, xform * c, n1, t1, Vector2.ZERO)
+		_append_vertex(batch, xform * d, n1, t1, Vector2.ZERO)
+		batch.indices.append_array(PackedInt32Array([base, base + 3, base + 2, base, base + 2, base + 1]))
+		if caps:
+			var up: Vector3 = (xform.basis * Vector3.UP).normalized()
+			var tangent: Vector3 = (xform.basis * Vector3.RIGHT).normalized()
+			var top_c := Vector3(0.0, half_h, 0.0)
+			var bot_c := Vector3(0.0, -half_h, 0.0)
+			var tb: int = batch.verts.size()
+			_append_vertex(batch, xform * top_c, up, tangent, Vector2.ZERO)
+			_append_vertex(batch, xform * b, up, tangent, Vector2.ZERO)
+			_append_vertex(batch, xform * c, up, tangent, Vector2.ZERO)
+			batch.indices.append_array(PackedInt32Array([tb, tb + 1, tb + 2]))
+			var bb: int = batch.verts.size()
+			_append_vertex(batch, xform * bot_c, -up, tangent, Vector2.ZERO)
+			_append_vertex(batch, xform * a, -up, tangent, Vector2.ZERO)
+			_append_vertex(batch, xform * d, -up, tangent, Vector2.ZERO)
+			batch.indices.append_array(PackedInt32Array([bb, bb + 2, bb + 1]))
 
 
 # --- 내비메시 ---

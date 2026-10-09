@@ -43,6 +43,9 @@ const FLASH_TIME: float = 0.07
 const HIT_FLASH_TIME: float = 0.06
 const BODY_COLOR := Color(0.24, 0.29, 0.14)
 const CORPSE_COLOR := Color(0.14, 0.15, 0.12)
+## 살아 있는 적의 약한 자체 발광 (가시성). 시체는 끈다.
+const ALIVE_GLOW := Color(0.36, 0.44, 0.2)
+const ALIVE_GLOW_ENERGY: float = 0.4
 
 @export var enemy_name: String = "적"
 ## 머리 위 이름·상태·HP 글자 (개발용).
@@ -204,6 +207,14 @@ func _build_visuals() -> void:
 	_head_mat = StandardMaterial3D.new()
 	_head_mat.albedo_color = BODY_COLOR.lightened(0.25)
 	_head_mat.roughness = 0.9
+	# 어두운 실내·안개 속에서도 보이도록 약한 자체 발광 + 가장자리 빛 (M10)
+	for mat: StandardMaterial3D in [_body_mat, _head_mat]:
+		mat.emission_enabled = true
+		mat.emission = ALIVE_GLOW
+		mat.emission_energy_multiplier = ALIVE_GLOW_ENERGY
+		mat.rim_enabled = true
+		mat.rim = 0.7
+		mat.rim_tint = 0.5
 
 	var body := MeshInstance3D.new()
 	var body_mesh := CapsuleMesh.new()
@@ -673,6 +684,10 @@ func _on_died() -> void:
 	_shape_node.position = Vector3(0.0, BODY_RADIUS, -BODY_HEIGHT * 0.5)
 	_body_mat.albedo_color = CORPSE_COLOR
 	_head_mat.albedo_color = CORPSE_COLOR.lightened(0.25)
+	_body_mat.emission_enabled = false
+	_head_mat.emission_enabled = false
+	_body_mat.rim_enabled = false
+	_head_mat.rim_enabled = false
 	_muzzle.visible = false
 	_label.position.y = 0.9
 	_build_corpse_loot()

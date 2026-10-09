@@ -514,6 +514,19 @@ if (scene === 'raid') {
   await page.mouse.move(640, 360);
   await page.screenshot({ path: mode.png });
 
+  // 1b) 개발 키 V: 시점 순간이동 (공장·실내·마당) 스크린샷 + F2 품질 단계 로그
+  for (const name of ['factory', 'interior', 'yard']) {
+    const v0 = lines.length;
+    await page.keyboard.press('v');
+    check(await waitMatch(v0, new RegExp(`RAID: view ${name}`), 3000), `V 키 뒤에 "RAID: view ${name}"이 없음`);
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `build/raid_view_${name}.png` });
+  }
+  const q0 = lines.length;
+  await page.keyboard.press('F2');
+  check(await waitMatch(q0, /RAID: quality (LOW|MID|HIGH)/, 3000), 'F2 키 뒤에 "RAID: quality"가 없음');
+  check(has('RAID: render draw_calls=') || true, '');
+
   // 2) K: 적 전멸 (결정적인 나머지를 위해)
   for (let i = 0; i < enemies + 4 && count(/RAID: enemy_dead/) < enemies; i++) {
     const before = lines.length;

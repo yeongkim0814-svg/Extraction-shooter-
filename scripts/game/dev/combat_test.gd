@@ -35,6 +35,7 @@ var _touch_was_active: bool = false
 
 
 func _ready() -> void:
+	_apply_industrial_look()
 	_rng.randomize()
 	_authority = CombatLoadout.build()
 	_player.global_position = _spawn.global_position
@@ -63,6 +64,24 @@ func _ready() -> void:
 	_post_setup()
 	await get_tree().process_frame
 	print(PREFIX + "ready")
+
+
+## M10: 레이드와 같은 흐린 산업단지 환경과 콘크리트·아스팔트 재질을 가볍게 입힌다 (게임플레이·배치는 그대로).
+func _apply_industrial_look() -> void:
+	var world_env := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if world_env != null:
+		# 개발 씬은 가볍게: 글로우·색 보정은 끄고 나머지(하늘·톤맵·안개)만 레이드와 맞춘다.
+		var env: Environment = (load("res://assets/env/industrial_env.tres") as Environment).duplicate() as Environment
+		env.glow_enabled = false
+		env.adjustment_enabled = false
+		world_env.environment = env
+	var sun := get_node_or_null("Sun") as DirectionalLight3D
+	if sun != null:
+		sun.light_color = Color(1.0, 0.84, 0.68)
+		sun.light_energy = 1.3
+		sun.directional_shadow_max_distance = 40.0
+		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	IndustrialMaterials.restyle_csg(self)
 
 
 ## 하위 씬이 덮어쓰는 훅: 플레이어·HUD·가방 구성이 끝난 직후, "ready" 로그 전에 불린다.

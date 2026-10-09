@@ -13,11 +13,15 @@ extends AiTest
 ##   "RAID: power_on" / "RAID: extract_enter <id>" / "RAID: extract_progress <id> <25|50|75>" / "RAID: extracted <id>"
 ##   "RAID: player_dead" / "RAID: results <EXTRACTED|KILLED|TIMED_OUT> value=<n> lost=<n>"
 ##   "RAID: results_buttons retry=<x>,<y> menu=<x>,<y>"
+##   "RAID: quality <LOW|MID|HIGH>"              그래픽 품질 단계 (시작 때·바꿀 때)
+##   "RAID: render draw_calls=<n> objects=<n> primitives=<n> fps=<n>"   5초마다 렌더 통계
+##   "RAID: view <이름>"                          개발 시점으로 순간이동 (V)
 ## 개발 키(데스크톱): K 가까운 적 처치 · T 다음 탈출 지점으로 순간이동 · G 가장 가까운 안 연 컨테이너로 순간이동 ·
-##                  P 전원 켜기 · F 열기/작동.
+##                  P 전원 켜기 · F 열기/작동 · V 다음 시점(공장·내부·야적장…) · F2 그래픽 품질 순환 (터치는 네 손가락 동시 탭).
+## (Q는 무기 전환이라 품질 키로 쓰지 않는다.)
 
 const RAID_PREFIX: String = "RAID: "
-const RAID_HINT: String = "WASD 이동  ·  좌클릭 사격  ·  Tab 가방  ·  F 열기  ·  개발: K 적 처치  T 탈출지점  G 상자  P 전원"
+const RAID_HINT: String = "WASD 이동  ·  좌클릭 사격  ·  Tab 가방  ·  F 열기  ·  개발: K 적 처치  T 탈출지점  G 상자  P 전원  V 시점  F2 품질"
 const RESULTS_SCENE: PackedScene = preload("res://scenes/ui/raid_results.tscn")
 const MENU_SCENE_PATH: String = "res://scenes/dev/dev_menu.tscn"
 ## 레이드 제한 시간 (초).
@@ -30,6 +34,10 @@ const MOVE_INTERRUPT_DISTANCE: float = 0.5
 const POWER_FLAG: StringName = &"power_on"
 ## G 키로 컨테이너 앞에 설 때의 거리 (m).
 const TELEPORT_STAND_DISTANCE: float = 1.6
+## 렌더 통계를 로그로 남기는 간격 (초).
+const RENDER_LOG_INTERVAL: float = 5.0
+## 터치로 품질을 넘기는 동시 터치 수.
+const QUALITY_TOUCH_COUNT: int = 4
 
 @onready var _map: IndustrialMap = $Map
 
@@ -51,6 +59,11 @@ var _noise_pending: bool = false
 var _noise_cooldown: float = 0.0
 var _results: RaidResults = null
 var _extraction_text: String = ""
+var _quality: GraphicsQuality
+var _view_index: int = 0
+var _render_timer: float = 0.0
+var _render_frames: int = 0
+var _touch_points: Dictionary[int, bool] = {}
 
 
 func _hint_text() -> String:
@@ -66,9 +79,28 @@ func _post_setup() -> void:
 	_session.start_loadout()
 	_session.start_raid(RAID_SECONDS)
 	_authority.events_emitted.connect(_on_authority_events)
+	_setup_quality()
 	_player.hit_target.damaged.connect(func(_result: DamageModel.HitResult) -> void: _interrupt_search("damage"))
 	_player.weapons.shot_fired.connect(func(_ammo_id: StringName, _rounds: int) -> void: _interrupt_search("fire"))
 	super._post_setup()
+
+
+## 그래픽 품질 적용기를 달고 기기 기본 단계를 적용한다.
+func _setup_quality() -> void:
+	_quality = GraphicsQuality.new()
+	_quality.name = "GraphicsQuality"
+	add_child(_quality)
+	_quality.setup($WorldEnvironment as WorldEnvironment, $Sun as DirectionalLight3D, get_viewport())
+	_quality.apply(GraphicsQuality.detect_default())
+	print(RAID_PREFIX + "quality " + GraphicsTier.tier_name(_quality.tier))
+
+
+## [개발] 품질 단계를 다음으로 넘기고 토스트로 알린다.
+func _cycle_quality() -> void:
+	var tier: GraphicsTier.Tier = _quality.cycle()
+	var tier_text: String = GraphicsTier.tier_name(tier)
+	_hud.show_toast("그래픽 품질: " + tier_text)
+	print(RAID_PREFIX + "quality " + tier_text)
 
 
 ## 내비메시를 굽고 컨테이너·적·탈출 지점을 세운다 (굽기는 동기: 웹 빌드는 스레드가 없다).
@@ -308,12 +340,28 @@ func _process(delta: float) -> void:
 		_director.report_noise(_player.global_position, SEARCH_NOISE_RADIUS, _player)
 	if _open_loot != &"" and _player.global_position.distance_to(_open_origin) > MOVE_INTERRUPT_DISTANCE:
 		_interrupt_search("move")
+	_log_render_stats(delta)
 	_session.tick(delta)
 	if _session.state == RaidSession.State.DEAD:
 		_finish_raid()
 		return
 	_update_extraction(delta)
 	_hud.set_raid_info(RaidSummary.format_remaining(_session.time_limit - _session.elapsed), _extraction_text)
+
+
+## 5초마다 렌더 통계(그리기 호출·객체·삼각형·프레임)를 로그로 남긴다.
+func _log_render_stats(delta: float) -> void:
+	_render_timer += delta
+	_render_frames += 1
+	if _render_timer < RENDER_LOG_INTERVAL:
+		return
+	var fps: int = roundi(float(_render_frames) / _render_timer)
+	var draw_calls: int = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
+	var objects: int = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME))
+	var primitives: int = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))
+	print(RAID_PREFIX + "render draw_calls=%d objects=%d primitives=%d fps=%d" % [draw_calls, objects, primitives, fps])
+	_render_timer = 0.0
+	_render_frames = 0
 
 
 func _on_enemy_died(enemy: EnemyAgent) -> void:
@@ -366,6 +414,15 @@ func _log_result_buttons() -> void:
 
 func _input(event: InputEvent) -> void:
 	super._input(event)
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if touch.pressed:
+			_touch_points[touch.index] = true
+			if _touch_points.size() == QUALITY_TOUCH_COUNT and _world_ready and not _ended and not is_inventory_open():
+				_cycle_quality()
+		else:
+			_touch_points.erase(touch.index)
+		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo or is_inventory_open() or _player_dead or _ended or not _world_ready:
 		return
@@ -376,9 +433,27 @@ func _input(event: InputEvent) -> void:
 			_dev_teleport_to_container()
 		KEY_P:
 			_set_power()
+		KEY_V:
+			_dev_next_view()
+		KEY_F2:
+			_cycle_quality()
 
 
-## [개발] 다음 탈출 지점 위로 순간이동 (정문 → 하수구 → 화물 엘리베이터 순).
+## [개발] 다음 개발 시점(맵의 view_points)으로 순간이동해 정해 둔 방향을 바라본다 (스크린샷용).
+func _dev_next_view() -> void:
+	if _map.view_points.is_empty():
+		return
+	var view: Dictionary = _map.view_points[_view_index % _map.view_points.size()]
+	_view_index += 1
+	# 스크린샷 도중 죽지 않게 체력을 채우고 출혈을 멈춘다 (개발 전용)
+	_player.health.stop_bleeding()
+	_player.health.heal(1000.0)
+	_teleport_player(view["pos"] as Vector3)
+	_player.set_look(deg_to_rad(float(view["yaw_deg"])), deg_to_rad(float(view["pitch_deg"])))
+	print(RAID_PREFIX + "view " + String(view["name"]))
+
+
+## [개발] 다음 탈출 지점 위로 순간이동 (정문 → 철길 → 화물 엘리베이터 순).
 func _dev_teleport_to_extraction() -> void:
 	var zones: Array[ExtractionZone] = _map.extraction_zones
 	var zone: ExtractionZone = zones[_extract_cycle % zones.size()]

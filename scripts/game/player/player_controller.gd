@@ -81,6 +81,13 @@ func look_pitch() -> float:
 	return _pitch
 
 
+## [개발] 시점을 바로 정한다 (순간이동 뒤 보는 방향). 라디안, yaw는 y축 회전, pitch는 위(+)/아래(-).
+func set_look(yaw: float, pitch: float) -> void:
+	rotation.y = yaw
+	_pitch = clampf(pitch, -PITCH_LIMIT, PITCH_LIMIT)
+	head.rotation = Vector3(_pitch, 0.0, 0.0)
+
+
 ## 이번 프레임에 시점이 돌아간 양 (라디안, x 오른쪽 +, y 아래 +). 무기 룩 스웨이용.
 func last_look() -> Vector2:
 	return _last_look

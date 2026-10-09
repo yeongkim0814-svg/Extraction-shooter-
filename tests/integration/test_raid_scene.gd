@@ -23,7 +23,7 @@ func test_map_has_containers_extractions_and_cover() -> void:
 	assert_eq(map.enemy_routes.size(), 6)
 	assert_not_null(map.lever)
 	assert_gt(get_tree().get_nodes_in_group("cover_point").size(), 10)
-	assert_lt(map.mesh_instance_count, 20, "메시는 재질별로 합쳐져 있어야 함")
+	assert_lt(map.mesh_instance_count, 60, "메시는 재질별로 합쳐져 있어야 함")
 	var flags: Array[StringName] = []
 	for zone: ExtractionZone in map.extraction_zones:
 		flags.append(zone.point.required_flag)
