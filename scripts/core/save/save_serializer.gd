@@ -26,7 +26,9 @@ static func to_dict(inventory: Inventory, ids: IdGenerator) -> Dictionary:
 	var stash: ItemGrid = inventory.get_grid(Inventory.STASH)
 	var roots: Array[ItemInstance] = []
 	for item: ItemInstance in inventory.get_items():
-		if not String(item.container_key).begins_with("item_"):
+		# 외부 컨테이너(시체·상자) 안 아이템은 월드 소유라 저장하지 않는다.
+		if not String(item.container_key).begins_with("item_") \
+				and not Inventory.is_external_key(item.container_key):
 			roots.append(item)
 	roots.sort_custom(_by_id)
 	var items: Array = []

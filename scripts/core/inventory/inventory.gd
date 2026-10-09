@@ -6,12 +6,14 @@ extends RefCounted
 ## 컨테이너 키
 ##   그리드: &"stash", &"pocket_0"~&"pocket_3", &"item_<아이템 id>_<그리드 번호>"
 ##   슬롯:   EquipmentSlots.key_of(slot)  (예: &"slot_backpack")
+##   외부:   &"loot_<번호>"  시체·상자 등 월드 컨테이너. 열려 있는 동안만 루트 그리드로 붙는다 (attach_external).
 ##
 ## 중첩 규칙: 내부 그리드를 가진 아이템(배낭·리그 등)은 다른 아이템의 그리드에 넣을 수 없다.
 ## 이 규칙 하나로 "배낭 안 배낭"과 "자기 자신 안에 넣기"가 모두 막힌다.
 
 const STASH := &"stash"
 const POCKET_COUNT := 4
+const EXTERNAL_PREFIX := "loot_"
 
 var equipment := EquipmentSlots.new()
 ## 레이드 중에는 true: 스태시(와 그 안의 컨테이너 내용물)에 넣기·꺼내기·변경이 모두 막힌다.
@@ -35,6 +37,28 @@ static func pocket_key(index: int) -> StringName:
 
 static func item_grid_key(item_id: int, index: int) -> StringName:
 	return StringName("item_%d_%d" % [item_id, index])
+
+
+static func external_key(number: int) -> StringName:
+	return StringName(EXTERNAL_PREFIX + str(number))
+
+
+## 정규 형태의 외부 컨테이너 키인지 (&"loot_7"; &"loot_07"·&"loot_-1"은 아님).
+static func is_external_key(key: StringName) -> bool:
+	var text := String(key)
+	if not text.begins_with(EXTERNAL_PREFIX):
+		return false
+	var number: String = text.substr(EXTERNAL_PREFIX.length())
+	return number.is_valid_int() and number.to_int() > 0 and str(number.to_int()) == number
+
+
+## 지금 붙어 있는 외부 컨테이너 키 목록.
+func external_keys() -> Array[StringName]:
+	var keys: Array[StringName] = []
+	for key: StringName in _root_grids:
+		if is_external_key(key):
+			keys.append(key)
+	return keys
 
 
 # --- 조회 ---
@@ -249,6 +273,37 @@ func try_reshape(item_id: int, apply: Callable, revert: Callable) -> bool:
 	return false
 
 
+## 외부 컨테이너(시체·상자)의 그리드를 루트 그리드로 붙인다. 안의 아이템이 등록되어 일반 이동 명령으로 옮길 수 있다.
+## 그리드 객체는 월드(권한자)가 계속 소유하므로, 떼어 낸 뒤에도 남은 아이템은 그리드에 그대로 있다.
+func attach_external(key: StringName, grid: ItemGrid) -> CommandResult:
+	if not is_external_key(key) or grid == null:
+		return CommandResult.failure(CommandResult.UNKNOWN_CONTAINER)
+	if _root_grids.has(key):
+		return CommandResult.failure(CommandResult.ALREADY_ADDED)
+	for item: ItemInstance in grid.get_items():
+		if _has_nested_container(item):
+			return CommandResult.failure(CommandResult.NESTING_NOT_ALLOWED)
+		if _contains_registered(item):
+			return CommandResult.failure(CommandResult.ALREADY_ADDED)
+	_root_grids[key] = grid
+	for item: ItemInstance in grid.get_items():
+		item.container_key = key
+		_register(item)
+	return CommandResult.success([DomainEvent.new(DomainEvent.CONTAINER_OPENED, {"container": key})])
+
+
+## 외부 컨테이너를 뗀다. 남은 아이템은 등록만 풀리고 그리드(와 위치)는 그대로 남는다.
+func detach_external(key: StringName) -> CommandResult:
+	if not is_external_key(key) or not _root_grids.has(key):
+		return CommandResult.failure(CommandResult.UNKNOWN_CONTAINER)
+	var removed_ids: Array[int] = []
+	for item: ItemInstance in _root_grids[key].get_items():
+		_unregister(item, removed_ids)
+	_root_grids.erase(key)
+	return CommandResult.success([DomainEvent.new(DomainEvent.CONTAINER_CLOSED,
+			{"container": key, "removed_ids": removed_ids})])
+
+
 ## 레이드 중 스태시 잠금에 걸리는 아이템인지 (명령 검증용).
 func is_locked(item: ItemInstance) -> bool:
 	return _is_locked(item)
@@ -349,6 +404,17 @@ func _detach(item: ItemInstance) -> void:
 		if grid != null:
 			grid.remove(item)
 	item.container_key = &""
+
+
+## item 또는 그 내용물 중 이미 이 인벤토리에 등록된 id가 있는지.
+func _contains_registered(item: ItemInstance) -> bool:
+	if _items.has(item.id):
+		return true
+	for grid: ItemGrid in item.grids:
+		for child: ItemInstance in grid.get_items():
+			if _contains_registered(child):
+				return true
+	return false
 
 
 func _register(item: ItemInstance) -> void:
