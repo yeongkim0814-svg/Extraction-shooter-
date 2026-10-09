@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_flat.gdshader" id="1_20i2w"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="2_gw4s0"]
+
+[resource]
+resource_name = "flat_rubber"
+render_priority = 0
+shader = ExtResource("1_20i2w")
+shader_parameter/detail_tex = ExtResource("2_gw4s0")
+shader_parameter/albedo = Color(0.101960786, 0.101960786, 0.10980392, 1)
+shader_parameter/roughness = 0.9
+shader_parameter/metallic = 0.0
+shader_parameter/specular_amount = null
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/rain_streak_strength = null

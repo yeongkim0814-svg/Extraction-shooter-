@@ -1,0 +1,29 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_ground.gdshader" id="1_fk278"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/ground_concrete_albedo.webp" id="2_a2fmk"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="3_kwad8"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/ground_concrete_normal.webp" id="4_35b5h"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/ground_concrete_orm.webp" id="5_gkq2g"]
+
+[resource]
+resource_name = "ground_concrete"
+render_priority = 0
+shader = ExtResource("1_fk278")
+shader_parameter/albedo_tex = ExtResource("2_a2fmk")
+shader_parameter/orm_tex = ExtResource("5_gkq2g")
+shader_parameter/normal_tex = ExtResource("4_35b5h")
+shader_parameter/detail_tex = ExtResource("3_kwad8")
+shader_parameter/tile_size = null
+shader_parameter/second_angle_deg = null
+shader_parameter/second_scale = null
+shader_parameter/second_offset = null
+shader_parameter/blend_contrast = null
+shader_parameter/normal_scale = null
+shader_parameter/specular_amount = null
+shader_parameter/base_tint = Color(1, 1, 1, 1)
+shader_parameter/wet_darken = null
+shader_parameter/wet_roughness = null
+shader_parameter/dirt_color = null
+shader_parameter/moss_color = null
+shader_parameter/breakup = null

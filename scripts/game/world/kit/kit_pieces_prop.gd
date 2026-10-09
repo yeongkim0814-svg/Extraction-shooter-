@@ -32,5 +32,5 @@ static func lamp_sodium(kb: KitBuild) -> void:
 	# 갓: 위가 좁고 아래가 넓은 원뿔대
 	kb.use(KitMaterials.PIPE_TEAL)
 	kb.mesh.add_cylinder(Transform3D(Basis.IDENTITY, Vector3(0.0, -1.14, 0.0)), 0.32, 0.18, 16, 0.0, 0.1)
-	kb.cylinder(KitMaterials.FLUORO, Transform3D(Basis.IDENTITY, Vector3(0.0, -1.2, 0.0)), 0.06, 0.08, 10, 0.0, false, false)
+	kb.cylinder(KitMaterials.FLUORO_SODIUM, Transform3D(Basis.IDENTITY, Vector3(0.0, -1.2, 0.0)), 0.06, 0.08, 10, 0.0, false, false)
 	kb.marker("LIGHT_sodium", Transform3D(Basis.IDENTITY, Vector3(0.0, -1.28, 0.0)))

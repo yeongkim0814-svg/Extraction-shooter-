@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_flat.gdshader" id="1_en7e3"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="2_lnwnr"]
+
+[resource]
+resource_name = "flat_metal"
+render_priority = 0
+shader = ExtResource("1_en7e3")
+shader_parameter/detail_tex = ExtResource("2_lnwnr")
+shader_parameter/albedo = Color(0.43137255, 0.4509804, 0.47843137, 1)
+shader_parameter/roughness = 0.6
+shader_parameter/metallic = 0.5
+shader_parameter/specular_amount = null
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/rain_streak_strength = null

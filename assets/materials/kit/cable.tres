@@ -1,0 +1,30 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_trim.gdshader" id="1_w1pxs"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_albedo.webp" id="2_dtxet"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="3_gii1t"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_mask.webp" id="4_r7asu"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_normal.webp" id="5_lf8li"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_orm.webp" id="6_hhhvf"]
+
+[resource]
+resource_name = "cable"
+render_priority = 0
+shader = ExtResource("1_w1pxs")
+shader_parameter/albedo_tex = ExtResource("2_dtxet")
+shader_parameter/orm_tex = ExtResource("6_hhhvf")
+shader_parameter/normal_tex = ExtResource("5_lf8li")
+shader_parameter/mask_tex = ExtResource("4_r7asu")
+shader_parameter/detail_tex = ExtResource("3_gii1t")
+shader_parameter/paint_color = Color(1, 1, 1, 1)
+shader_parameter/base_tint = Color(1, 1, 1, 1)
+shader_parameter/roughness_scale = 1.0
+shader_parameter/metallic_scale = 1.0
+shader_parameter/normal_scale = 1.0
+shader_parameter/specular_amount = null
+shader_parameter/emission_color = Color(0.9019608, 0.9490196, 1, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/use_vertex_ao = null

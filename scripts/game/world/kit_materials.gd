@@ -8,6 +8,8 @@ const DIR: String = "res://assets/textures/v2/"
 const SHADER_TRIM: String = "res://assets/shaders/kit_trim.gdshader"
 const SHADER_FLAT: String = "res://assets/shaders/kit_flat.gdshader"
 const SHADER_GROUND: String = "res://assets/shaders/kit_ground.gdshader"
+## 저장된 재질(.tres) 폴더. tools/build_kit.gd가 모든 ID를 여기에 저장하고 부품 메시가 이 파일을 참조한다 (부품끼리 재질 공유).
+const SAVED_DIR: String = "res://assets/materials/kit/"
 
 ## 팔레트 (ART.md 11.4). 페인트는 옅은 바탕(~#CDCBC4)에 곱해지므로 결과는 이보다 약간 어둡다.
 const PAINT_RUST_RED: Color = Color("B3452B")
@@ -57,12 +59,18 @@ const SIGN: StringName = &"sign"
 const FLUORO: StringName = &"fluoro"
 const DOOR_STEEL: StringName = &"door_steel"
 const DUCT: StringName = &"duct"
+## 발광 줄을 나트륨·비상등 색으로 쓰는 변형 (램프 전구·비상등 몸체).
+const FLUORO_SODIUM: StringName = &"fluoro_sodium"
+const EMERGENCY: StringName = &"emergency"
 ## 단색 넓은 면 ID.
 const FLAT_CONCRETE: StringName = &"flat_concrete"
 const FLAT_CONCRETE_DARK: StringName = &"flat_concrete_dark"
 const FLAT_METAL: StringName = &"flat_metal"
 const FLAT_ROOF: StringName = &"flat_roof"
 const FLAT_TANK_WHITE: StringName = &"flat_tank_white"
+const FLAT_GLASS: StringName = &"flat_glass"
+const FLAT_WOOD: StringName = &"flat_wood"
+const FLAT_RUBBER: StringName = &"flat_rubber"
 ## 바닥 ID.
 const GROUND_ASPHALT: StringName = &"ground_asphalt"
 const GROUND_CONCRETE: StringName = &"ground_concrete"
@@ -97,6 +105,8 @@ const _TRIM: Dictionary[StringName, Array] = {
 	CABINET_GREY: [3, &"cabinet", Color("8A8F95"), {}],
 	SIGN: [3, &"sign", PAINT_WARNING_YELLOW, {}],
 	FLUORO: [3, &"fluoro", PAINT_FADED_WHITE, {"emit": 2.0}],
+	FLUORO_SODIUM: [3, &"fluoro", PAINT_FADED_WHITE, {"emit": 3.0, "emit_color": LIGHT_SODIUM}],
+	EMERGENCY: [3, &"fluoro", PAINT_FADED_WHITE, {"emit": 3.0, "emit_color": LIGHT_EMERGENCY}],
 	DOOR_STEEL: [3, &"door_hw", PAINT_TEAL_GREY, {}],
 	DUCT: [3, &"duct", Color.WHITE, {}],
 }
@@ -108,6 +118,9 @@ const _FLAT: Dictionary[StringName, Array] = {
 	FLAT_METAL: [METAL_BASE, 0.6, 0.5],
 	FLAT_ROOF: [Color("55524F"), 0.88, 0.05],
 	FLAT_TANK_WHITE: [PAINT_FADED_WHITE, 0.55, 0.2],
+	FLAT_GLASS: [Color("1C2226"), 0.08, 0.0],
+	FLAT_WOOD: [Color("7A5A3C"), 0.85, 0.0],
+	FLAT_RUBBER: [Color("1A1A1C"), 0.9, 0.0],
 }
 
 ## 바닥 사양: ID -> [텍스처 이름 조각, 틴트].
@@ -168,12 +181,25 @@ static func v_range(id: StringName) -> Vector2:
 	return KitLayout.v_range(sheet_of(id), strip_of(id))
 
 
+## 저장된 재질을 먼저 쓸지. 굽기 도구는 false로 두고 사양에서 새로 만든다.
+static var prefer_saved: bool = true
+
+
 static func get_material(id: StringName) -> Material:
 	if _cache.has(id):
 		return _cache[id]
-	var m: Material = _create(id)
+	var m: Material = null
+	var saved: String = saved_path(id)
+	if prefer_saved and ResourceLoader.exists(saved):
+		m = load(saved) as Material
+	if m == null:
+		m = _create(id)
 	_cache[id] = m
 	return m
+
+
+static func saved_path(id: StringName) -> String:
+	return SAVED_DIR + String(id) + ".tres"
 
 
 static func clear_cache() -> void:
@@ -212,7 +238,7 @@ static func _make_trim(id: StringName) -> Material:
 	m.set_shader_parameter("roughness_scale", float(extra.get("rough", 1.0)))
 	m.set_shader_parameter("metallic_scale", float(extra.get("metal", 1.0)))
 	m.set_shader_parameter("normal_scale", float(extra.get("normal", 1.0)))
-	m.set_shader_parameter("emission_color", LIGHT_FLUORESCENT)
+	m.set_shader_parameter("emission_color", extra.get("emit_color", LIGHT_FLUORESCENT))
 	m.set_shader_parameter("emission_energy", float(extra.get("emit", 0.0)))
 	return m
 

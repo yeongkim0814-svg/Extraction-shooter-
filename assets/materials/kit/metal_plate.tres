@@ -1,0 +1,30 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_trim.gdshader" id="1_q58d4"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t2_albedo.webp" id="2_3h8yd"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="3_svywv"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t2_mask.webp" id="4_hal5h"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t2_normal.webp" id="5_f33lf"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t2_orm.webp" id="6_v5jdr"]
+
+[resource]
+resource_name = "metal_plate"
+render_priority = 0
+shader = ExtResource("1_q58d4")
+shader_parameter/albedo_tex = ExtResource("2_3h8yd")
+shader_parameter/orm_tex = ExtResource("6_v5jdr")
+shader_parameter/normal_tex = ExtResource("5_f33lf")
+shader_parameter/mask_tex = ExtResource("4_hal5h")
+shader_parameter/detail_tex = ExtResource("3_svywv")
+shader_parameter/paint_color = Color(0.36078432, 0.52156866, 0.5372549, 1)
+shader_parameter/base_tint = Color(1, 1, 1, 1)
+shader_parameter/roughness_scale = 1.0
+shader_parameter/metallic_scale = 1.0
+shader_parameter/normal_scale = 1.0
+shader_parameter/specular_amount = null
+shader_parameter/emission_color = Color(0.9019608, 0.9490196, 1, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/use_vertex_ao = null

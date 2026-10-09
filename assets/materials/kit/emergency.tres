@@ -1,0 +1,30 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_trim.gdshader" id="1_i3w07"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_albedo.webp" id="2_p0eym"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="3_pgydm"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_mask.webp" id="4_y2d82"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_normal.webp" id="5_obm52"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/t3_orm.webp" id="6_ad7bn"]
+
+[resource]
+resource_name = "emergency"
+render_priority = 0
+shader = ExtResource("1_i3w07")
+shader_parameter/albedo_tex = ExtResource("2_p0eym")
+shader_parameter/orm_tex = ExtResource("6_ad7bn")
+shader_parameter/normal_tex = ExtResource("5_obm52")
+shader_parameter/mask_tex = ExtResource("4_y2d82")
+shader_parameter/detail_tex = ExtResource("3_pgydm")
+shader_parameter/paint_color = Color(0.92156863, 0.9019608, 0.81960785, 1)
+shader_parameter/base_tint = Color(1, 1, 1, 1)
+shader_parameter/roughness_scale = 1.0
+shader_parameter/metallic_scale = 1.0
+shader_parameter/normal_scale = 1.0
+shader_parameter/specular_amount = null
+shader_parameter/emission_color = Color(0.2509804, 0.8509804, 1, 1)
+shader_parameter/emission_energy = 3.0
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/use_vertex_ao = null

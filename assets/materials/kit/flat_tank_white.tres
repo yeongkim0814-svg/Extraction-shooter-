@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_flat.gdshader" id="1_5lb0l"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="2_emhui"]
+
+[resource]
+resource_name = "flat_tank_white"
+render_priority = 0
+shader = ExtResource("1_5lb0l")
+shader_parameter/detail_tex = ExtResource("2_emhui")
+shader_parameter/albedo = Color(0.92156863, 0.9019608, 0.81960785, 1)
+shader_parameter/roughness = 0.55
+shader_parameter/metallic = 0.2
+shader_parameter/specular_amount = null
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/rain_streak_strength = null

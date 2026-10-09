@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_flat.gdshader" id="1_5uyf6"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="2_8shai"]
+
+[resource]
+resource_name = "flat_roof"
+render_priority = 0
+shader = ExtResource("1_5uyf6")
+shader_parameter/detail_tex = ExtResource("2_8shai")
+shader_parameter/albedo = Color(0.33333334, 0.32156864, 0.30980393, 1)
+shader_parameter/roughness = 0.88
+shader_parameter/metallic = 0.05
+shader_parameter/specular_amount = null
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/rain_streak_strength = null

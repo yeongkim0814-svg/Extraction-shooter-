@@ -18,8 +18,8 @@ func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--only="):
 			only = arg.substr("--only=".length()).split(",", false)
+	var failed: int = _save_materials()
 	var index: Dictionary = {}
-	var failed: int = 0
 	for piece: StringName in KitCatalog.names():
 		if not only.is_empty() and not only.has(String(piece)):
 			continue
@@ -79,6 +79,24 @@ func _bake(piece: StringName) -> Dictionary:
 	return {"category": category, "tris": tris, "surfaces": mesh.get_surface_count(), "shapes": kb.collision.size(),
 		"uv2": uv2_ok, "lod": lods > 0, "size": [snappedf(aabb.size.x, 0.01), snappedf(aabb.size.y, 0.01), snappedf(aabb.size.z, 0.01)],
 		"markers": marker_names}
+
+
+## 모든 재질 ID를 사양에서 새로 만들어 .tres로 저장한다 (부품 메시가 외부 재질을 참조하게). 반환: 실패 수.
+func _save_materials() -> int:
+	KitMaterials.prefer_saved = false
+	KitMaterials.clear_cache()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(KitMaterials.SAVED_DIR))
+	var failed: int = 0
+	for id: StringName in KitMaterials.all_ids():
+		var m: Material = KitMaterials.get_material(id)
+		var path: String = KitMaterials.saved_path(id)
+		if ResourceSaver.save(m, path) != OK:
+			print("KIT: FAIL 재질 저장 %s" % id)
+			failed += 1
+			continue
+		m.take_over_path(path)
+	print("KIT: materials saved=%d" % (KitMaterials.all_ids().size() - failed))
+	return failed
 
 
 ## ImporterMesh로 LOD를 만든다. 실패하면 null (원본을 쓴다).
