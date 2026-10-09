@@ -28,9 +28,12 @@ static func build(m: IndustrialMap) -> void:
 	else:
 		_hall(m)
 		_hall_interior(m)
-	_main_block(m)
-	_stacks(m)
-	_north_yard(m)
+	if m.add_zone(&"factory_block"):
+		_block_gameplay(m)
+	else:
+		_main_block(m)
+		_stacks(m)
+		_north_yard(m)
 
 
 static func _hall(m: IndustrialMap) -> void:
@@ -68,11 +71,17 @@ static func _hall(m: IndustrialMap) -> void:
 static func _hall_gameplay(m: IndustrialMap) -> void:
 	for z: float in [-56.0, -68.0]:
 		for x: float in [-40.0, -28.0, -16.0, -4.0]:
-			m.cover_markers(x, z, 0.2, 0.2, 0.0, 0.8)
+			m.cover_markers(x, z, 0.35, 0.35, 0.0, 0.8)
 	for spec: Array in _COVER:
 		var c: Vector3 = spec[0]
 		var size: Vector3 = spec[1]
 		m.cover_markers(c.x, c.z, size.x * 0.5, size.z * 0.5, 0.0, 0.9)
+	IndustrialProps.cover_forklift(m, Vector3(-27.0, 0.0, -61.0))
+	IndustrialProps.cover_pallet_stack(m, Vector3(-38.0, 0.0, -50.0), 0.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(-37.0, 0.0, -52.5), 90.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(2.0, 0.0, -56.0), 0.0)
+	IndustrialProps.cover_barrels(m, Vector3(-3.0, 0.0, -73.5))
+	IndustrialProps.cover_barrels(m, Vector3(-42.0, 0.0, -70.0))
 	_hall_loot(m)
 
 
@@ -162,7 +171,11 @@ static func _main_block(m: IndustrialMap) -> void:
 	for x: float in [10.0, 16.0, 22.0, 28.0, 34.0]:
 		m.box(Vector3(x, 9.5, -50.25), Vector3(0.06, 1.0, 0.06), STEEL, Basis.IDENTITY, false, false)
 		m.beam(Vector3(x, 9.0, -51.0), Vector3(x, 4.0, -50.0), 0.15, STEEL)
-	# 큰 "03" 표시 (희미하게 바랜 흰 페인트)
+	_label_03(m)
+
+
+## 큰 "03" 표시 (희미하게 바랜 흰 페인트). 구역 씬을 쓸 때도 맵 코드가 단다.
+static func _label_03(m: IndustrialMap) -> void:
 	var label := Label3D.new()
 	label.text = "03"
 	label.font = FONT
@@ -175,6 +188,19 @@ static func _main_block(m: IndustrialMap) -> void:
 	label.double_sided = false
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.add_child(label)
+
+
+
+## 구역 씬(ZoneFactoryBlock)을 쓸 때: 지오메트리·충돌은 구역 씬이 맡고, 여기서는 "03" 표시·연기 지점·엄폐 지점·루팅만 둔다.
+static func _block_gameplay(m: IndustrialMap) -> void:
+	_label_03(m)
+	m.smoke_points.append(Vector3(12.0, 46.5, -84.0))
+	m.smoke_points.append(Vector3(28.0, 52.5, -84.0))
+	for x: float in [-30.0, -20.0]:
+		m.cover_markers(x, -82.0, 4.0, 4.0, 0.0, 0.8)
+	IndustrialProps.cover_container(m, -38.0, -82.5, true)
+	IndustrialProps.cover_barrels(m, Vector3(-14.0, 0.0, -80.0))
+	m.loot(LootContainer.Kind.CRATE, Vector3(-25.0, 0.0, -78.0), 0.0)
 
 
 static func _stacks(m: IndustrialMap) -> void:

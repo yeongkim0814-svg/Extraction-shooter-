@@ -37,6 +37,8 @@ static func build(piece: StringName, kb: KitBuild) -> bool:
 			fire_extinguisher(kb)
 		&"lamp_sodium":
 			lamp_sodium(kb)
+		&"barrier_concrete":
+			barrier_concrete(kb)
 		_:
 			return false
 	return true
@@ -238,3 +240,16 @@ static func fire_extinguisher(kb: KitBuild) -> void:
 	KitParts.plain(kb, KitMaterials.FLAT_METAL, Vector3(0.0, 0.1, -0.1), Vector3(0.12, 0.3, 0.02))
 	kb.cylinder(KitMaterials.FLAT_METAL, KitParts.at(Vector3(0.0, 0.3, 0.0)), 0.088, 0.03, 10, 0.0, false, false)
 	kb.collide_box(KitParts.at(Vector3(0.0, 0.3, -0.02)), Vector3(0.2, 0.6, 0.24))
+
+
+## 콘크리트 차단벽 3.0 (X) x 1.0 x 0.7: 제이시형 단면(아래 넓고 위 좁음)을 압출, 윗면 경고 띠, 양 끝 갈고리 홈. 충돌은 3 x 1 x 0.7 상자 하나.
+static func barrier_concrete(kb: KitBuild) -> void:
+	var profile := PackedVector2Array([Vector2(-0.35, 0.0), Vector2(0.35, 0.0), Vector2(0.35, 0.18), Vector2(0.17, 0.5), Vector2(0.14, 1.0),
+			Vector2(-0.14, 1.0), Vector2(-0.17, 0.5), Vector2(-0.35, 0.18)])
+	kb.use(KitMaterials.FLAT_CONCRETE)
+	# 로컬 Z(압출 방향) -> X, 단면 X -> -Z
+	kb.mesh.add_prism(Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3.ZERO), profile, 3.0)
+	KitParts.plain(kb, KitMaterials.HAZARD, Vector3(0.0, 1.0, 0.0), Vector3(2.9, 0.012, 0.22))
+	for sx: float in [-1.0, 1.0]:
+		KitParts.plain(kb, KitMaterials.FLAT_CONCRETE_DARK, Vector3(sx * 1.49, 0.2, 0.0), Vector3(0.03, 0.6, 0.3))
+	kb.collide_box(KitParts.at(Vector3(0.0, 0.5, 0.0)), Vector3(3.0, 1.0, 0.7))

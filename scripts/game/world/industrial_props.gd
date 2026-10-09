@@ -48,9 +48,14 @@ static func pallet_stack(m: IndustrialMap, pos: Vector3, yaw_deg: float, layers:
 	var size := Vector3(1.1, h, 0.7)
 	m.box(pos + Vector3(0, 0.14 + h * 0.5, 0), size, mat, _basis(yaw_deg))
 	if markers:
-		var yaw_i: int = int(round(yaw_deg)) % 180
-		var half := Vector2(0.55, 0.35) if yaw_i == 0 else Vector2(0.35, 0.55)
-		m.cover_markers(pos.x, pos.z, half.x, half.y, pos.y, 0.9)
+		cover_pallet_stack(m, pos, yaw_deg)
+
+
+## 팔레트 더미의 엄폐 지점만 (구역 씬이 지오메트리·충돌을 맡을 때).
+static func cover_pallet_stack(m: IndustrialMap, pos: Vector3, yaw_deg: float) -> void:
+	var yaw_i: int = int(round(yaw_deg)) % 180
+	var half := Vector2(0.55, 0.35) if yaw_i == 0 else Vector2(0.35, 0.55)
+	m.cover_markers(pos.x, pos.z, half.x, half.y, pos.y, 0.9)
 
 
 ## 드럼통 (녹슨 철, 충돌 있음).
@@ -64,6 +69,11 @@ static func barrels(m: IndustrialMap, pos: Vector3, count: int = 3) -> void:
 	var offsets: Array[Vector2] = [Vector2(0, 0), Vector2(0.75, 0.1), Vector2(0.3, 0.7), Vector2(-0.5, 0.6)]
 	for i: int in range(mini(count, offsets.size())):
 		barrel(m, pos + Vector3(offsets[i].x, 0, offsets[i].y), mats[i % mats.size()])
+	cover_barrels(m, pos)
+
+
+## 드럼통 무리의 엄폐 지점만.
+static func cover_barrels(m: IndustrialMap, pos: Vector3) -> void:
 	m.cover_markers(pos.x + 0.2, pos.z + 0.3, 0.9, 0.7, pos.y, 0.8)
 
 
@@ -71,6 +81,12 @@ static func barrels(m: IndustrialMap, pos: Vector3, count: int = 3) -> void:
 static func barrier(m: IndustrialMap, pos: Vector3, east_west: bool = true) -> void:
 	var size := Vector3(3.0, 1.0, 0.7) if east_west else Vector3(0.7, 1.0, 3.0)
 	m.cover_box(Vector3(pos.x, pos.y + 0.5, pos.z), size, CONCRETE)
+
+
+## 차단벽의 엄폐 지점만.
+static func cover_barrier(m: IndustrialMap, pos: Vector3, east_west: bool = true) -> void:
+	var size := Vector3(3.0, 1.0, 0.7) if east_west else Vector3(0.7, 1.0, 3.0)
+	m.cover_markers(pos.x, pos.z, size.x * 0.5, size.z * 0.5, pos.y, 0.9)
 
 
 ## 지게차 (노란 차체, 앞 = -z).
@@ -87,6 +103,11 @@ static func forklift(m: IndustrialMap, pos: Vector3, yaw_deg: float) -> void:
 	for corner: Vector2 in [Vector2(-0.55, -0.35), Vector2(0.55, -0.35), Vector2(-0.55, 0.6), Vector2(0.55, 0.6)]:
 		_wheel(m, pos, yaw_deg, Vector3(corner.x, 0.3, corner.y), 0.3, 0.2)
 	m.collider(_at(pos, yaw_deg, Vector3(0, 0.9, 0.0)), Vector3(1.3, 1.8, 2.6), true, _basis(yaw_deg))
+	cover_forklift(m, pos)
+
+
+## 지게차의 엄폐 지점만.
+static func cover_forklift(m: IndustrialMap, pos: Vector3) -> void:
 	m.cover_markers(pos.x, pos.z, 0.7, 1.4, pos.y, 0.9)
 
 
@@ -101,6 +122,11 @@ static func truck(m: IndustrialMap, pos: Vector3, yaw_deg: float, cab_mat: Strin
 			_wheel(m, pos, yaw_deg, Vector3(x, 0.55, z), 0.55, 0.35)
 	m.collider(_at(pos, yaw_deg, Vector3(0, 2.0, 0.9)), Vector3(2.5, 3.4, 5.6), true, _basis(yaw_deg))
 	m.collider(_at(pos, yaw_deg, Vector3(0, 1.3, -3.0)), Vector3(2.3, 2.1, 1.9), true, _basis(yaw_deg))
+	cover_truck(m, pos)
+
+
+## 트럭의 엄폐 지점만.
+static func cover_truck(m: IndustrialMap, pos: Vector3) -> void:
 	m.cover_markers(pos.x, pos.z, 1.3, 3.8, pos.y, 1.0)
 
 
@@ -140,6 +166,12 @@ static func shelf(m: IndustrialMap, center: Vector3, length: float, east_west: b
 				_part(m, center, yaw, Vector3(cx, y + 0.04 + h * 0.5, 0), Vector3(w, h, 0.7), mat)
 	var size := Vector3(length, 3.0, 1.0) if east_west else Vector3(1.0, 3.0, length)
 	m.collider(center + Vector3(0, 1.5, 0), size)
+	cover_shelf(m, center, length, east_west)
+
+
+## 선반 열의 엄폐 지점만.
+static func cover_shelf(m: IndustrialMap, center: Vector3, length: float, east_west: bool) -> void:
+	var size := Vector3(length, 3.0, 1.0) if east_west else Vector3(1.0, 3.0, length)
 	m.cover_markers(center.x, center.z, size.x * 0.5, size.z * 0.5, center.y, 0.9)
 
 
@@ -157,10 +189,15 @@ static func container(m: IndustrialMap, cx: float, cz: float, mat: StringName, l
 		var lateral: Vector3 = Vector3.BACK if east_west else Vector3.RIGHT
 		m.box(center + end_dir * (half + 0.02) + lateral * side, bar, STEEL, Basis.IDENTITY, false)
 	if layer == 0 and markers:
-		if east_west:
-			m.cover_markers(cx, cz, 6.0, 1.2, 0.0, 0.9)
-		else:
-			m.cover_markers(cx, cz, 1.2, 6.0, 0.0, 0.9)
+		cover_container(m, cx, cz, east_west)
+
+
+## 컨테이너(맨 아래 줄)의 엄폐 지점만.
+static func cover_container(m: IndustrialMap, cx: float, cz: float, east_west: bool = true) -> void:
+	if east_west:
+		m.cover_markers(cx, cz, 6.0, 1.2, 0.0, 0.9)
+	else:
+		m.cover_markers(cx, cz, 1.2, 6.0, 0.0, 0.9)
 
 
 ## 화물차(박스카): 철길 위, 길이 14 (남북).
@@ -175,4 +212,9 @@ static func boxcar(m: IndustrialMap, cx: float, cz: float, mat: StringName) -> v
 		for dx: float in [-0.9, 0.9]:
 			var orientation := Basis(Vector3.BACK, PI * 0.5)
 			m.cylinder(Vector3(cx + dx, 0.5, cz + dz), 0.5, 0.5, 0.2, STEEL, 8, orientation, Vector3.ZERO, true, true)
+	cover_boxcar(m, cx, cz)
+
+
+## 화물차의 엄폐 지점만.
+static func cover_boxcar(m: IndustrialMap, cx: float, cz: float) -> void:
 	m.cover_markers(cx, cz, 1.5, 6.8, 0.0, 1.0)

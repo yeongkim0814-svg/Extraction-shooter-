@@ -32,6 +32,10 @@ const PIECES: Dictionary[StringName, StringName] = {
 	# LARGE
 	&"container_20ft_red": LARGE,
 	&"container_20ft_teal": LARGE,
+	&"container_20ft_olive": LARGE,
+	&"car_sedan_teal": LARGE,
+	&"car_sedan_red": LARGE,
+	&"car_sedan_olive": LARGE,
 	&"tank_vertical": LARGE,
 	&"pipe_rack_8m": LARGE,
 	&"chimney": LARGE,
@@ -55,6 +59,7 @@ const PIECES: Dictionary[StringName, StringName] = {
 	&"lamp_fluoro": PROP,
 	&"lamp_emergency": PROP,
 	&"fire_extinguisher": PROP,
+	&"barrier_concrete": PROP,
 	# DRESSING
 	&"rubble_small": DRESSING,
 	&"rubble_large": DRESSING,

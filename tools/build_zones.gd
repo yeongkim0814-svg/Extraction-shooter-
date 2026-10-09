@@ -79,10 +79,17 @@ func _bake(zone: StringName) -> bool:
 			st.generate_tangents()
 			st.commit(mesh)
 			mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+		var pre_tris: int = 0
+		for si: int in range(mesh.get_surface_count()):
+			pre_tris += int((mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3)
 		if mesh.lightmap_unwrap(Transform3D.IDENTITY, TEXEL_SIZE) != OK:
 			push_warning("ZONE: lightmap_unwrap 실패 %s %s" % [zone, key])
+		var post_tris: int = 0
 		for si: int in range(mesh.get_surface_count()):
-			cell_tris += int((mesh.surface_get_arrays(si)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3)
+			post_tris += int((mesh.surface_get_arrays(si)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3)
+		cell_tris += post_tris
+		if post_tris < pre_tris:
+			print("ZONE:   칸 %s 언랩이 삼각형을 잃음 %d -> %d" % [key, pre_tris, post_tris])
 		var hint: Vector2i = mesh.get_lightmap_size_hint()
 		if hint.x > HINT_WARN or hint.y > HINT_WARN:
 			over += 1
@@ -148,10 +155,30 @@ func _tool_for(cells: Dictionary[Vector2i, Dictionary], key: Vector2i, mat: Mate
 
 
 ## 부품 메시 전체를 부품 중심이 속한 칸 하나에 넣는다 (부품을 쪼개지 않는다).
-func _add_mesh(cells: Dictionary[Vector2i, Dictionary], mesh: ArrayMesh, xform: Transform3D) -> void:
+func _add_mesh(cells: Dictionary[Vector2i, Dictionary], mesh_in: ArrayMesh, xform: Transform3D) -> void:
+	var mesh: ArrayMesh = _indexed(mesh_in)
 	var key: Vector2i = _cell_of(xform * mesh.get_aabb().get_center())
 	for s: int in range(mesh.get_surface_count()):
 		_tool_for(cells, key, mesh.surface_get_material(s)).append_from(mesh, s, xform)
+
+
+## 모든 표면에 인덱스 배열을 보장한 사본. SurfaceTool.append_from은 인덱스 있는 메시와 없는 메시를 섞어 합치면
+## 인덱스 없는 쪽 삼각형을 조용히 잃는다 (인덱스 배열이 있는 쪽만 참조됨) -> 합치기 전에 모두 인덱스 메시로 맞춘다.
+static func _indexed(mesh: ArrayMesh) -> ArrayMesh:
+	var all_indexed: bool = true
+	for s: int in range(mesh.get_surface_count()):
+		if mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] == null:
+			all_indexed = false
+	if all_indexed:
+		return mesh
+	var out := ArrayMesh.new()
+	for s: int in range(mesh.get_surface_count()):
+		var st := SurfaceTool.new()
+		st.create_from(mesh, s)
+		st.index()
+		st.commit(out)
+		out.surface_set_material(out.get_surface_count() - 1, mesh.surface_get_material(s))
+	return out
 
 
 ## 큰 메시(바닥·맞춤 지오메트리)는 MeshChunker로 칸마다 잘라 넣는다.

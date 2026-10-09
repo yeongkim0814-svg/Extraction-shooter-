@@ -9,6 +9,14 @@ static func build(piece: StringName, kb: KitBuild) -> bool:
 			container_20ft(kb, KitMaterials.METAL_CORRUGATED_RED)
 		&"container_20ft_teal":
 			container_20ft(kb, KitMaterials.METAL_CORRUGATED_TEAL)
+		&"container_20ft_olive":
+			container_20ft(kb, KitMaterials.METAL_CHIPPED)
+		&"car_sedan_teal":
+			car_sedan(kb, KitMaterials.METAL_PLATE)
+		&"car_sedan_red":
+			car_sedan(kb, KitMaterials.BAND_RED)
+		&"car_sedan_olive":
+			car_sedan(kb, KitMaterials.METAL_CHIPPED)
 		&"tank_vertical":
 			tank_vertical(kb)
 		&"pipe_rack_8m":
@@ -269,3 +277,33 @@ static func guard_booth(kb: KitBuild) -> void:
 	kb.collide_box(KitParts.at(Vector3(0.0, wall_h + 0.1, 0.0)), Vector3(roof, 0.2, roof))
 	# 바닥판 (안쪽)
 	kb.block(KitMaterials.FLAT_CONCRETE_DARK, Vector3.ZERO, Vector3(s - t * 2.0, 0.05, s - t * 2.0), 0.0, false)
+
+
+## 버려진 승용차 4.2 (X, 앞 = +X) x 1.8 (Z) x 1.45: 페인트 차체(아래) + 유리 캐빈 + 지붕, 범퍼·전조등, 바퀴 넷.
+## paint = 차체 트림 재질 (청회·빨강·올리브). 충돌은 상자 하나.
+static func car_sedan(kb: KitBuild, paint: StringName) -> void:
+	var f: StringName = KitMaterials.FLAT_METAL
+	# 차체 아래 (바퀴 위까지) + 보닛·트렁크 윗면
+	kb.block(paint, Vector3(0.0, 0.28, 0.0), Vector3(4.2, 0.5, 1.8), KitBuild.BEVEL_SMALL, false)
+	kb.block(paint, Vector3(1.25, 0.78, 0.0), Vector3(1.5, 0.1, 1.74), 0.0, false)
+	kb.block(paint, Vector3(-1.5, 0.78, 0.0), Vector3(1.1, 0.1, 1.74), 0.0, false)
+	# 캐빈: 기둥 네 개 + 유리 (앞·뒤·옆) + 지붕
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			kb.strut(paint, Vector3(0.45 * sx - 0.15, 0.85, 0.78 * sz), Vector3(0.38 * sx - 0.15, 1.38, 0.7 * sz), 0.07)
+	KitParts.slab(kb, KitMaterials.FLAT_GLASS, Vector3(0.62, 1.12, 0.0), Vector3(0.03, 0.5, 1.4))
+	KitParts.slab(kb, KitMaterials.FLAT_GLASS, Vector3(-0.97, 1.12, 0.0), Vector3(0.03, 0.5, 1.4))
+	for sz: float in [-1.0, 1.0]:
+		KitParts.slab(kb, KitMaterials.FLAT_GLASS, Vector3(-0.15, 1.12, sz * 0.75), Vector3(1.3, 0.48, 0.02))
+	kb.block(paint, Vector3(-0.17, 1.36, 0.0), Vector3(1.4, 0.06, 1.46), KitBuild.BEVEL_SMALL, false)
+	# 범퍼·그릴·전조등·번호판 자리
+	for sx: float in [-1.0, 1.0]:
+		kb.block(f, Vector3(sx * 2.12, 0.15, 0.0), Vector3(0.1, 0.18, 1.7), 0.0, false)
+	for sz: float in [-1.0, 1.0]:
+		KitParts.plain(kb, KitMaterials.FLUORO, Vector3(2.11, 0.5, sz * 0.62), Vector3(0.03, 0.12, 0.28))
+		KitParts.plain(kb, KitMaterials.FLAT_RUBBER, Vector3(-2.11, 0.5, sz * 0.62), Vector3(0.03, 0.12, 0.28))
+	KitParts.plain(kb, KitMaterials.VENT, Vector3(2.11, 0.3, 0.0), Vector3(0.03, 0.14, 0.8))
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			KitParts.wheel(kb, Vector3(sx * 1.3, 0.3, sz * 0.82), 0.3, 0.22, 10)
+	kb.collide_box(KitParts.at(Vector3(0.0, 0.7, 0.0)), Vector3(4.2, 1.4, 1.8))

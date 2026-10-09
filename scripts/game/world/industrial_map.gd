@@ -56,6 +56,8 @@ var smoke_points: Array[Vector3] = []
 var weed_lines: Array[Vector3] = []
 ## 붙인 구역 씬 이름 (add_zone).
 var zones: Array[StringName] = []
+## 구역 씬을 끄고 옛 코드 지오메트리를 쓸 구역 (게임플레이 동일성 검사·비교용). 비어 있으면 있는 구역 씬을 모두 쓴다.
+static var disabled_zones: Array[StringName] = []
 
 var _batches: Dictionary[StringName, Batch] = {}
 var _nav_boxes: Array[BoxRec] = []
@@ -257,6 +259,8 @@ func cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float,
 ## 구역 씬(tools/build_zones.gd 결과)이 있으면 지오메트리 아래에 붙이고 true. 충돌 상자는 내비메시 기준으로도 기록한다.
 ## 구역 씬은 맵 좌표로 만들어져 있어 변환 없이 붙인다. 없으면 false (호출한 쪽이 옛 코드 지오메트리를 만든다).
 func add_zone(zone: StringName) -> bool:
+	if disabled_zones.has(zone):
+		return false
 	var path: String = ZoneCatalog.scene_path(zone)
 	if not ResourceLoader.exists(path):
 		return false

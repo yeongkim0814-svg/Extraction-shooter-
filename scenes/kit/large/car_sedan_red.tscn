@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/large/car_sedan_red_mesh.res" id="1_pkeoj"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_53oj2"]
+size = Vector3(4.2, 1.4, 1.8)
+
+[node name="CarSedanRed" type="Node3D" unique_id=580026287]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1115060700]
+mesh = ExtResource("1_pkeoj")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=725218873]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1762783282]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("BoxShape3D_53oj2")
