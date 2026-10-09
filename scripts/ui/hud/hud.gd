@@ -97,6 +97,8 @@ func _draw() -> void:
 	if _hit_left > 0.0:
 		_draw_hit_marker(center)
 	_draw_reload(font, center)
+	if _player.input.sprint_lock.is_locked():
+		_draw_sprint_lock(font)
 	if _toast_left > 0.0:
 		_draw_banner(font, _toast_text, 64.0, 24)
 	elif not _hint_text.is_empty():
@@ -165,6 +167,13 @@ func _draw_reload(font: Font, center: Vector2) -> void:
 	draw_rect(Rect2(rect.position, Vector2(rect.size.x * progress, rect.size.y)), Color(0.95, 0.8, 0.35))
 	draw_rect(rect, InventoryStyle.PANEL_BORDER, false, 1.5)
 	_text(font, Vector2(rect.position.x, rect.position.y + 34.0), "재장전 중", 20, InventoryStyle.TEXT,
+			HORIZONTAL_ALIGNMENT_CENTER, rect.size.x)
+
+
+func _draw_sprint_lock(font: Font) -> void:
+	var rect := Rect2(MARGIN, MARGIN + 66.0, 150.0, 30.0)
+	draw_style_box(_ammo_box, rect)
+	_text(font, Vector2(rect.position.x, rect.position.y + 22.0), "자동 달리기", 18, Color(1.0, 0.82, 0.3),
 			HORIZONTAL_ALIGNMENT_CENTER, rect.size.x)
 
 

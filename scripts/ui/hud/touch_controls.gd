@@ -26,6 +26,11 @@ const FILL := Color(0.09, 0.1, 0.13, 0.5)
 const FILL_PRESSED := Color(0.45, 0.62, 0.95, 0.7)
 const FILL_FIRE_PRESSED := Color(0.85, 0.3, 0.25, 0.75)
 const FILL_ACTIVE := Color(0.3, 0.45, 0.7, 0.6)
+const LOCK_IDLE := Color(0.7, 0.78, 0.95, 0.55)
+const LOCK_ACTIVE := Color(1.0, 0.82, 0.3, 0.95)
+## 달리기 잠금 안내 원: 링 중심에서 위로 이 배수 거리, 이 배수 반지름.
+const LOCK_ICON_DIST: float = 1.85
+const LOCK_ICON_SIZE: float = 0.45
 
 signal visibility_toggled(shown: bool)
 
@@ -40,10 +45,15 @@ var _pressed_count: Array[int] = [0, 0, 0, 0, 0, 0]
 var _active: bool = false
 var _last_touch_msec: int = -100000
 var _toggle_on: Array[bool] = [false, false, false, false, false, false]
+var _finger: Vector2 = Vector2.ZERO        # 조이스틱을 누른 손가락의 현재 위치
+var _lock_origin: Vector2 = Vector2.ZERO   # 잠금 중 조이스틱 기준 위치 (놓은 자리)
+var _lock_drawn: bool = false
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 기준점 고정: 손가락을 링 위로 끌어올려 달리기 잠금 존에 넣으려면 기준점이 따라오면 안 된다
+	_stick.follow = false
 	_centers.resize(BUTTON_ROLES.size())
 	resized.connect(_layout)
 	_layout()
@@ -101,9 +111,11 @@ func _process(_delta: float) -> void:
 		return
 	var ads: bool = _player.is_ads()
 	var crouch: bool = _player.is_crouching()
-	if ads != _toggle_on[1] or crouch != _toggle_on[3]:
+	var locked: bool = _state != null and _state.sprint_lock.is_locked()
+	if ads != _toggle_on[1] or crouch != _toggle_on[3] or locked != _lock_drawn:
 		_toggle_on[1] = ads
 		_toggle_on[3] = crouch
+		_lock_drawn = locked
 		queue_redraw()
 
 
@@ -141,7 +153,10 @@ func _touch_down(index: int, pos: Vector2) -> void:
 		_button_pressed(BUTTON_ROLES[hit])
 	elif pos.x < size.x * STICK_ZONE_RATIO and not _stick.active:
 		_touch_roles[index] = Role.STICK
+		# 잠금 중 조이스틱 영역을 다시 누르면 잠금 취소 + 새 터치가 정상적으로 조작을 넘겨받는다
+		_state.sprint_lock.cancel(SprintLock.Reason.TOUCH, false)
 		_stick.begin(pos)
+		_finger = pos
 		_apply_stick()
 	else:
 		_touch_roles[index] = Role.LOOK
@@ -154,8 +169,12 @@ func _touch_up(index: int) -> void:
 	var role: int = _touch_roles[index]
 	_touch_roles.erase(index)
 	if role == Role.STICK:
+		var offset: Vector2 = _finger - _stick.origin
 		_stick.end()
 		_apply_stick()
+		# 링 위쪽 잠금 존 안에서 놓으면 달리기 잠금 ON
+		if _state.sprint_lock.release_stick(offset, _stick.radius):
+			_lock_origin = _stick.origin
 	elif role == Role.LOOK:
 		pass
 	else:
@@ -171,6 +190,7 @@ func _touch_move(index: int, pos: Vector2, relative: Vector2) -> void:
 		return
 	var role: int = _touch_roles[index]
 	if role == Role.STICK:
+		_finger = pos
 		_stick.update(pos)
 		_apply_stick()
 		queue_redraw()
@@ -182,6 +202,7 @@ func _touch_move(index: int, pos: Vector2, relative: Vector2) -> void:
 func _apply_stick() -> void:
 	_state.set_move(SRC, _stick.vector)
 	_state.set_sprint(SRC, _stick.is_sprint())
+	_state.sprint_lock.update_stick(_stick.vector)
 
 
 func _button_pressed(role: Role) -> void:
@@ -227,6 +248,11 @@ func _draw() -> void:
 		draw_circle(_stick.origin, _stick.radius, Color(0.09, 0.1, 0.13, 0.35))
 		draw_arc(_stick.origin, _stick.radius, 0.0, TAU, 48, InventoryStyle.PANEL_BORDER, 2.0, true)
 		draw_circle(_stick.knob_position(), _stick.radius * 0.42, Color(0.55, 0.68, 0.95, 0.6))
+		var zone: SprintLock.Zone = SprintLock.zone_of(_finger - _stick.origin, _stick.radius)
+		if zone != SprintLock.Zone.NONE:
+			_draw_lock_zone(font, zone == SprintLock.Zone.INSIDE)
+	elif _state != null and _state.sprint_lock.is_locked():
+		_draw_locked_stick(font)
 	else:
 		var hint := Vector2(size.x * 0.12 + _stick.radius, size.y - MARGIN - _stick.radius - 20.0)
 		draw_arc(hint, _stick.radius, 0.0, TAU, 48, Color(0.45, 0.5, 0.62, 0.35), 2.0, true)
@@ -245,3 +271,39 @@ func _draw() -> void:
 				LABEL_FONT_SIZE, 5, Color(0, 0, 0, 0.7))
 		draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_CENTER, radius * 2.0,
 				LABEL_FONT_SIZE, InventoryStyle.TEXT)
+
+
+## 드래그 중 링 위쪽에 뜨는 "자동 달리기" 안내 (존 안이면 강조).
+func _draw_lock_zone(font: Font, inside: bool) -> void:
+	var r: float = _stick.radius * LOCK_ICON_SIZE
+	var center: Vector2 = _stick.origin + Vector2(0.0, -_stick.radius * LOCK_ICON_DIST)
+	var color: Color = LOCK_ACTIVE if inside else LOCK_IDLE
+	draw_circle(center, r, Color(0.09, 0.1, 0.13, 0.55 if inside else 0.4))
+	draw_arc(center, r, 0.0, TAU, 40, color, 3.0 if inside else 2.0, true)
+	_draw_lock_icon(center, r * 0.9, color)
+	_draw_label(font, "자동 달리기", Vector2(center.x, center.y - r - 10.0), 20, color)
+
+
+## 잠금 중: 놓은 자리에 조이스틱 기반이 남고, 손잡이는 위쪽에 고정 + 자물쇠.
+func _draw_locked_stick(font: Font) -> void:
+	var radius: float = _stick.radius
+	draw_circle(_lock_origin, radius, Color(0.09, 0.1, 0.13, 0.35))
+	draw_arc(_lock_origin, radius, 0.0, TAU, 48, LOCK_ACTIVE, 2.5, true)
+	var knob: Vector2 = _lock_origin + Vector2(0.0, -radius)
+	draw_circle(knob, radius * 0.42, Color(1.0, 0.82, 0.3, 0.55))
+	_draw_lock_icon(knob, radius * 0.36, Color(0.1, 0.1, 0.1, 0.95))
+	_draw_label(font, "자동 달리기", Vector2(_lock_origin.x, _lock_origin.y + radius + 28.0), 20, LOCK_ACTIVE)
+
+
+## 자물쇠 아이콘 (몸통 + 고리). size = 대략 반폭.
+func _draw_lock_icon(center: Vector2, size_px: float, color: Color) -> void:
+	var body := Rect2(center + Vector2(-size_px * 0.6, -size_px * 0.05), Vector2(size_px * 1.2, size_px * 0.85))
+	draw_rect(body, color)
+	draw_arc(center + Vector2(0.0, -size_px * 0.05), size_px * 0.38, PI, TAU, 16, color, maxf(size_px * 0.16, 2.0), true)
+
+
+func _draw_label(font: Font, text: String, pos: Vector2, font_size: int, color: Color) -> void:
+	var half: float = 90.0
+	var at := Vector2(pos.x - half, pos.y)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_CENTER, half * 2.0, font_size, 5, Color(0, 0, 0, 0.7))
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_CENTER, half * 2.0, font_size, color)

@@ -25,6 +25,9 @@ var _crouch_toggle: bool = false
 var _ads_toggle: bool = false
 var _slot_select: int = -1
 
+## 달리기 잠금(자동 달리기) 상태·판단. 사격·조준·앉기 입력은 아래 press_*/set_*에서 잠금을 취소한다.
+var sprint_lock := SprintLock.new()
+
 
 # --- 지속 상태 (소스별) ---
 
@@ -37,6 +40,8 @@ func set_sprint(source: Source, on: bool) -> void:
 
 
 func set_crouch_held(source: Source, on: bool) -> void:
+	if on and not is_crouch_held():
+		sprint_lock.cancel(SprintLock.Reason.CROUCH, is_sprint())
 	_crouch_held[source] = on
 
 
@@ -45,6 +50,8 @@ func set_fire_held(source: Source, on: bool) -> void:
 
 
 func set_ads_held(source: Source, on: bool) -> void:
+	if on and not is_ads_held():
+		sprint_lock.cancel(SprintLock.Reason.ADS, is_sprint())
 	_ads_held[source] = on
 
 
@@ -55,8 +62,27 @@ func move() -> Vector2:
 	return a if a.length_squared() >= b.length_squared() else b
 
 
+## 눌러서 하는 달리기 (스틱 가장자리 / Shift). 잠금은 포함하지 않는다.
 func is_sprint() -> bool:
 	return _sprint[0] or _sprint[1]
+
+
+## 실제 달리기 여부: 잠금이거나, 눌린 달리기가 사격·조준 등으로 억제되지 않았을 때.
+func sprint_active() -> bool:
+	return sprint_lock.sprinting(is_sprint())
+
+
+## 이동 벡터 + 달리기 잠금 반영: 잠금 중이면 항상 앞(-y)으로 (좌우 입력은 유지). 방향은 몸의 yaw가 정한다.
+func effective_move() -> Vector2:
+	var m: Vector2 = move()
+	if sprint_lock.is_locked():
+		return Vector2(m.x, -1.0).limit_length(1.0)
+	return m
+
+
+## 물리 틱마다 한 번 (시간 진행, 눌린 달리기 억제 해제 판단).
+func tick(delta: float) -> void:
+	sprint_lock.advance(delta, is_sprint())
 
 
 func is_crouch_held() -> bool:
@@ -96,6 +122,7 @@ func consume_look() -> Vector2:
 # --- 한 번만 처리하는 이벤트 ---
 
 func press_fire() -> void:
+	sprint_lock.cancel(SprintLock.Reason.FIRE, is_sprint())
 	_fire_pressed = true
 
 
@@ -112,10 +139,12 @@ func press_switch() -> void:
 
 
 func press_crouch_toggle() -> void:
+	sprint_lock.cancel(SprintLock.Reason.CROUCH, is_sprint())
 	_crouch_toggle = true
 
 
 func press_ads_toggle() -> void:
+	sprint_lock.cancel(SprintLock.Reason.ADS, is_sprint())
 	_ads_toggle = true
 
 

@@ -176,6 +176,12 @@ func _physics_process(_delta: float) -> void:
 		return
 	if not _trigger.wants_fire(runtime.is_automatic(), now):
 		return
+	var raise_wait: float = input.sprint_lock.fire_block_remaining()
+	if raise_wait > 0.0:
+		# 달리기를 접고 총을 들어 올리는 중: 눌림은 유지해 두었다가 끝나면 쏜다
+		if pressed or input.is_fire_held():
+			_trigger.press(now + raise_wait)
+		return
 	if runtime.rounds() <= 0:
 		if pressed:
 			dry_fired.emit()

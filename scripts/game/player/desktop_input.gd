@@ -2,6 +2,8 @@ class_name DesktopInput
 extends Node
 ## 키보드/마우스 → InputState. WASD, Shift 달리기, Ctrl/C 앉기, Space 점프, 마우스 시점(포인터 잠금),
 ## 좌클릭 사격, 우클릭 ADS(누르는 동안), R 재장전, 1/2/3 무기 선택, Q 무기 교체, Esc 마우스 해제.
+## CapsLock = 자동 달리기(달리기 잠금) 토글. S·Ctrl/C·좌클릭·우클릭·포커스 아웃은 잠금을 취소하고 W는 유지한다.
+## (Alt는 브라우저/OS 메뉴 포커스를 가로채 CapsLock으로 정했다. macOS는 켤 때 keydown, 끌 때 keyup만 오는 것을 SprintLock이 보정.)
 ## 웹에서는 사용자 클릭 이벤트 안에서만 포인터 잠금을 요청한다. 잠겨 있지 않아도 좌클릭 사격은 된다.
 
 const SRC: InputState.Source = InputState.Source.KEYBOARD
@@ -32,6 +34,7 @@ func _process(_delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and state != null:
 		state.release_source(SRC)
+		state.sprint_lock.cancel(SprintLock.Reason.FOCUS, false)
 
 
 func _input(event: InputEvent) -> void:
@@ -66,9 +69,14 @@ func _on_key(event: InputEventKey) -> void:
 	if event.echo:
 		return
 	used.emit()
+	if event.physical_keycode == KEY_CAPSLOCK:
+		state.sprint_lock.key_toggle_event(event.pressed)
+		return
 	if not event.pressed:
 		return
 	match event.physical_keycode:
+		KEY_S:
+			state.sprint_lock.cancel(SprintLock.Reason.KEY_BACK, state.is_sprint())
 		KEY_SPACE:
 			state.press_jump()
 		KEY_R:

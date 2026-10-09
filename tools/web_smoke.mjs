@@ -28,6 +28,7 @@ const MODES = {
     png: 'build/combat_smoke.png',
     png2: 'build/combat_smoke_after.png',
     pngTouch: 'build/combat_smoke_touch.png',
+    pngSprint: 'build/combat_smoke_sprint.png',
     log: 'build/combat_smoke_console.log',
   },
 };
@@ -150,6 +151,46 @@ if (scene === 'combat') {
   const turned = pose && base ? Math.abs(((pose.yaw - base.yaw + 540) % 360) - 180) : 0;
   check(moved > 0.8, `터치: 조이스틱으로 이동하지 않음 (이동 ${moved.toFixed(2)}m, base=${JSON.stringify(base)}, pose=${JSON.stringify(pose)})`);
   check(turned > 3, `터치: 오른쪽 드래그로 시점이 돌아가지 않음 (회전 ${turned.toFixed(1)}도)`);
+
+  // 4) 달리기 잠금: 조이스틱을 링 위쪽 존까지 끌어올려 놓으면 손가락 없이 계속 달린다. 다시 누르면 해제.
+  await page.waitForTimeout(500);
+  // 벽에 막히지 않도록 먼저 시점을 정면(yaw 0, -z 방향 = 사격장 안쪽)으로 돌린다. 오른쪽으로 끌면 yaw가 줄어든다 (0.2도/px).
+  for (let k = 0; k < 6; k++) {
+    const cur = poseOf(0);
+    const dyaw = cur ? ((0 - cur.yaw + 540) % 360) - 180 : 0;
+    if (Math.abs(dyaw) < 15) break;
+    const px = Math.max(-420, Math.min(420, -dyaw / 0.2005));
+    const x0 = px >= 0 ? 600 : 1100;
+    await send('touchStart', [tp(3, x0, 200)]);
+    for (let i = 1; i <= 10; i++) { await send('touchMove', [tp(3, x0 + px * i / 10, 200)]); await page.waitForTimeout(40); }
+    await send('touchEnd', []);
+    await page.waitForTimeout(700);
+  }
+  const s0 = lines.length;
+  await send('touchStart', [tp(1, 160, 560)]);
+  await page.waitForTimeout(150);
+  for (let i = 1; i <= 10; i++) {
+    await send('touchMove', [tp(1, 160, 560 - i * 20)]);   // 200px 위 = 반지름의 약 2배 (잠금 존 안)
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(300);
+  await send('touchEnd', []);
+  const locked = await waitMatch(s0, /COMBAT_TEST: sprint_lock on/, 3000);
+  check(locked, '달리기 잠금: "sprint_lock on" 로그가 없음');
+  await page.waitForTimeout(250);
+  const p1 = poseOf(0);
+  const mark = lines.length;
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: mode.pngSprint });   // 잠금 안내가 보이는 화면 (손가락 없음)
+  await page.waitForTimeout(100);
+  const p2 = poseOf(mark) ?? poseOf(0);
+  const ran = p1 && p2 ? Math.hypot(p2.x - p1.x, p2.z - p1.z) : 0;
+  check(ran > 2, `달리기 잠금: 손가락 없이 이동하지 않음 (${ran.toFixed(2)}m, p1=${JSON.stringify(p1)}, p2=${JSON.stringify(p2)})`);
+  const u0 = lines.length;
+  await send('touchStart', [tp(1, 160, 560)]);   // 조이스틱 영역 다시 터치 -> 해제
+  await page.waitForTimeout(100);
+  await send('touchEnd', []);
+  check(await waitMatch(u0, /COMBAT_TEST: sprint_lock off touch/, 3000), '조이스틱 재터치: "sprint_lock off touch" 로그가 없음');
 
   await browser.close();
   if (failures.filter(Boolean).length) { finish(failures.filter(Boolean).join('\n      ')); process.exit(1); }

@@ -98,6 +98,7 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	input.tick(delta)
 	if input.consume_ads_toggle():
 		_ads_toggled = not _ads_toggled
 	if input.consume_crouch_toggle():
@@ -110,12 +111,12 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.y = JUMP_VELOCITY
 
-	var move: Vector2 = input.move()
+	var move: Vector2 = input.effective_move()
 	var wish: Vector3 = transform.basis * Vector3(move.x, 0.0, move.y)
 	var speed: float = WALK_SPEED
 	if _crouching:
 		speed = CROUCH_SPEED
-	elif input.is_sprint() and move.y < -0.1 and not is_ads():
+	elif input.sprint_active() and move.y < -0.1 and not is_ads():
 		speed = SPRINT_SPEED
 	if is_ads():
 		speed *= ADS_SPEED_MULT
@@ -125,6 +126,8 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+	var real: Vector3 = get_real_velocity()
+	input.sprint_lock.update_motion(Vector2(real.x, real.z).length(), delta)
 
 
 func _update_crouch(want: bool) -> void:

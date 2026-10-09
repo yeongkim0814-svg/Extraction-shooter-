@@ -84,3 +84,63 @@ func test_crouch_jump_and_pitch_clamp() -> void:
 	_player.input.press_jump()
 	await wait_physics_frames(5)
 	assert_gt(_player.velocity.y + (_player.global_position.y - 0.1), 0.2, "점프로 떠오름")
+
+
+func test_sprint_lock_runs_forward_then_fire_cancels() -> void:
+	var lock: SprintLock = _player.input.sprint_lock
+	var logs: Array[String] = []
+	lock.cancelled.connect(func(r: StringName) -> void: logs.append(String(r)))
+	await wait_physics_frames(20)
+	var start: Vector3 = _player.global_position
+	lock.engage()   # 스틱에 손가락이 없는 상태
+	assert_eq(_player.input.move(), Vector2.ZERO)
+	await wait_seconds(1.0)
+	var run: float = start.distance_to(_player.global_position)
+	assert_gt(run, 2.0, "잠금 중 1초 동안 앞으로 이동 (%.2f m)" % run)
+	assert_true(lock.is_locked())
+	# 시점을 돌려도 계속 달린다 (방향은 yaw를 따름)
+	var forward_before: Vector3 = -_player.global_basis.z
+	_player.input.add_look(Vector2(0.4, 0.0))
+	await wait_physics_frames(3)
+	assert_true(lock.is_locked())
+	assert_lt(forward_before.dot(-_player.global_basis.z), 0.99, "yaw가 돌아감")
+	# 점프는 잠금을 유지
+	_player.input.press_jump()
+	await wait_physics_frames(3)
+	assert_true(lock.is_locked())
+	# 사격으로 취소
+	var rifle: WeaponRuntime = _player.weapons.current_runtime()
+	var rounds: int = rifle.rounds()
+	_player.input.set_fire_held(InputState.Source.KEYBOARD, true)
+	_player.input.press_fire()
+	await wait_physics_frames(3)
+	assert_false(lock.is_locked())
+	assert_eq(logs, ["fire"] as Array[String])
+	assert_eq(rifle.rounds(), rounds, "0.2초 지연 동안 사격 불가")
+	await wait_seconds(0.5)
+	assert_lt(rifle.rounds(), rounds, "지연 뒤 누르고 있으면 사격")
+	_player.input.set_fire_held(InputState.Source.KEYBOARD, false)
+	await wait_seconds(0.3)
+	var horizontal := Vector2(_player.velocity.x, _player.velocity.z)
+	assert_lt(horizontal.length(), 0.5, "달리기 멈춤")
+
+
+func test_sprint_lock_cancelled_by_ads_press_which_then_engages() -> void:
+	var lock: SprintLock = _player.input.sprint_lock
+	lock.engage()
+	await wait_physics_frames(5)
+	_player.input.press_ads_toggle()
+	await wait_physics_frames(3)
+	assert_false(lock.is_locked())
+	assert_true(_player.is_ads())
+	assert_true(lock.can_fire(), "조준 취소는 사격 지연 없음")
+
+
+func test_sprint_lock_wall_stop_cancels() -> void:
+	var lock: SprintLock = _player.input.sprint_lock
+	_player.global_position = Vector3(0.0, 0.1, -19.0)   # 북쪽 벽 앞, 정면(-z)이 벽
+	_player.rotation.y = 0.0
+	await wait_physics_frames(3)
+	lock.engage()
+	await wait_seconds(1.5)
+	assert_false(lock.is_locked(), "벽에 막혀 0.5초 이상 멈추면 해제")

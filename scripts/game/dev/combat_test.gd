@@ -7,6 +7,7 @@ extends Node3D
 ##   "COMBAT_TEST: reload <ok|error [코드]>"
 ##   "COMBAT_TEST: kill <target>"
 ##   "COMBAT_TEST: dry"
+##   "COMBAT_TEST: sprint_lock on" / "COMBAT_TEST: sprint_lock off <touch|pull_down|ads|fire|crouch|wall|key_back|toggle|focus>"
 ##   "COMBAT_TEST: pos x=<m> z=<m> yaw=<deg>"   위치·시점이 바뀌었을 때만 (최대 0.5초에 한 번)
 
 const PREFIX: String = "COMBAT_TEST: "
@@ -37,6 +38,9 @@ func _ready() -> void:
 	weapons.shot_fired.connect(_on_shot)
 	weapons.hit_registered.connect(_on_hit)
 	weapons.reload_finished.connect(_on_reload_finished)
+	var lock: SprintLock = _player.input.sprint_lock
+	lock.engaged.connect(func() -> void: print(PREFIX + "sprint_lock on"))
+	lock.cancelled.connect(func(reason: StringName) -> void: print(PREFIX + "sprint_lock off " + String(reason)))
 	weapons.dry_fired.connect(func() -> void: print(PREFIX + "dry"))
 	await get_tree().process_frame
 	print(PREFIX + "ready")
