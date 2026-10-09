@@ -5,13 +5,13 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_vsleh"]
 size = Vector3(1.2, 0.24, 1)
 
-[node name="RubbleSmall" type="Node3D" unique_id=1949934333]
+[node name="RubbleSmall" type="Node3D" unique_id=761680660]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=603655507]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=6774105]
 mesh = ExtResource("1_ygv5y")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=743663569]
+[node name="Body" type="StaticBody3D" parent="." unique_id=302061877]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=340346973]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=951290442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
 shape = SubResource("BoxShape3D_vsleh")

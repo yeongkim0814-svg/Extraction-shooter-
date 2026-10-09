@@ -8,17 +8,17 @@ size = Vector3(1, 0.12, 3.5938537)
 [sub_resource type="BoxShape3D" id="BoxShape3D_yhf80"]
 size = Vector3(1, 0.1, 0.8)
 
-[node name="StairsSteel2m" type="Node3D" unique_id=373518077]
+[node name="StairsSteel2m" type="Node3D" unique_id=32609211]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1821128082]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2143472126]
 mesh = ExtResource("1_heacd")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=824802172]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1735208443]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1201230909]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=563062109]
 transform = Transform3D(-1, 0, 0, 0, 0.8625838, -0.5059143, 0, -0.5059143, -0.8625838, 0, 1.0213506, 1.55)
 shape = SubResource("BoxShape3D_jjrdu")
 
-[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1411742670]
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1753062659]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 3.5)
 shape = SubResource("BoxShape3D_yhf80")

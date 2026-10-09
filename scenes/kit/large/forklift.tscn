@@ -5,13 +5,13 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_s6a2p"]
 size = Vector3(2.3, 1.4, 1.2)
 
-[node name="Forklift" type="Node3D" unique_id=1511291404]
+[node name="Forklift" type="Node3D" unique_id=1123087082]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=417986721]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1555222709]
 mesh = ExtResource("1_4mg60")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=541082272]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1449617053]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1567069450]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=2140416183]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 shape = SubResource("BoxShape3D_s6a2p")

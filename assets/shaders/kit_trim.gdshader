@@ -2,7 +2,7 @@ shader_type spatial;
 // 트림시트 v2 + 페인트 마스크 재칠 (LightmapGI 장면용). 텍스처 규약은 tools/gen_textures_v2.py 참고.
 //   albedo sRGB / orm: R AO, G 거칠기, B 금속성 (선형) / normal: OpenGL(Y+) / mask: R 높이, G 페인트(1 = paint_color 곱), B 발광.
 //   디테일 v2(detail_v2.webp, 선형 데이터)는 월드 좌표 주축 투영: R = 6 m 저주파 얼룩 (명도 +-8%), G = 1.5 m 때 (약하게), 거칠기도 같이 흔든다.
-//   정점 베이크 입력은 없다. 옵션 use_vertex_ao만 COLOR.r을 AO로 곱한다. Mobile·Compatibility 렌더러 모두에서 컴파일되는 기능만 쓴다.
+//   정점 베이크 입력은 없다. 정점 색 RGB는 페인트 색이다 (use_vertex_paint). Mobile·Compatibility 렌더러 모두에서 컴파일되는 기능만 쓴다.
 
 render_mode specular_schlick_ggx;
 
@@ -24,7 +24,15 @@ uniform float detail_strength : hint_range(0.0, 1.0) = 1.0;
 // 바닥 근처 때: 월드 y가 이 높이보다 낮을수록 어두워지고 거칠어진다.
 uniform float ground_dirt_height : hint_range(0.0, 3.0) = 0.5;
 uniform float ground_dirt_strength : hint_range(0.0, 1.0) = 0.35;
-uniform bool use_vertex_ao = false;
+// 정점 색 RGB = 페인트 색 (KitMaterials.vertex_color). 시트마다 재질 하나를 공유하고 소품마다 색만 정점에 담는다.
+uniform bool use_vertex_paint = true;
+
+// 정점 색은 sRGB로 저장한다. 선형으로 계산하는 렌더러(Forward+·Mobile)에서만 선형으로 바꾼다
+// (BaseMaterial3D의 vertex_color_is_srgb와 같은 방식, Compatibility는 OUTPUT_IS_SRGB가 참이라 그대로 쓴다).
+vec3 vertex_srgb_to_linear(vec3 c) {
+	return mix(pow((c + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), c * (1.0 / 12.92), lessThan(c, vec3(0.04045)));
+}
+
 
 varying vec3 world_pos;
 varying vec3 world_n;
@@ -52,7 +60,9 @@ void fragment() {
 	float low = clamp((d_low.r - 0.5) * 2.0, -1.0, 1.0);
 	float mid = clamp((d_mid.g - 0.5) * 2.0, -1.0, 1.0);
 
-	vec3 col = mix(alb.rgb, alb.rgb * paint_color.rgb, msk.g) * base_tint.rgb;
+	vec3 vc = OUTPUT_IS_SRGB ? COLOR.rgb : vertex_srgb_to_linear(COLOR.rgb);
+	vec3 paint = use_vertex_paint ? vc * paint_color.rgb : paint_color.rgb;
+	vec3 col = mix(alb.rgb, alb.rgb * paint, msk.g) * base_tint.rgb;
 	col *= 1.0 + (low * 0.08 + mid * 0.03) * detail_strength;
 
 	// 바닥 근처 때 (높이 경계는 디테일 G로 들쭉날쭉하게)
@@ -63,9 +73,6 @@ void fragment() {
 	float rough = orm.g * roughness_scale + mid * -0.10 * detail_strength + 0.2 * dirt;
 
 	float ao = orm.r;
-	if (use_vertex_ao) {
-		ao *= COLOR.r;
-	}
 
 	ALBEDO = col;
 	ROUGHNESS = clamp(rough, 0.04, 1.0);

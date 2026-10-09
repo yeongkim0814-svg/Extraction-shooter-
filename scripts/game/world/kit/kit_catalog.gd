@@ -17,6 +17,7 @@ const PIECES: Dictionary[StringName, StringName] = {
 	&"wall_4m_door": BUILDING,
 	&"door_steel": BUILDING,
 	&"wall_4m_shutter": BUILDING,
+	&"wall_4m_shutter_open": BUILDING,
 	&"wall_4m_damaged": BUILDING,
 	&"wall_corner": BUILDING,
 	&"pillar_steel": BUILDING,

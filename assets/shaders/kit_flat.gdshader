@@ -10,6 +10,15 @@ uniform sampler2D detail_tex : filter_linear_mipmap, repeat_enable;
 uniform vec4 albedo : source_color = vec4(0.55, 0.54, 0.52, 1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 0.9;
 uniform float metallic : hint_range(0.0, 1.0) = 0.0;
+// 정점 색 RGB = 색, A = 거칠기 (KitMaterials.vertex_color). 금속/비금속 재질 둘을 모든 단색 면이 나눠 쓴다.
+uniform bool use_vertex_color = true;
+
+// 정점 색은 sRGB로 저장한다. 선형으로 계산하는 렌더러(Forward+·Mobile)에서만 선형으로 바꾼다
+// (BaseMaterial3D의 vertex_color_is_srgb와 같은 방식, Compatibility는 OUTPUT_IS_SRGB가 참이라 그대로 쓴다).
+vec3 vertex_srgb_to_linear(vec3 c) {
+	return mix(pow((c + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), c * (1.0 / 12.92), lessThan(c, vec3(0.04045)));
+}
+
 uniform float specular_amount : hint_range(0.0, 1.0) = 0.3;
 uniform float detail_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float ground_dirt_height : hint_range(0.0, 3.0) = 0.5;
@@ -35,7 +44,10 @@ void fragment() {
 	float low = clamp((texture(detail_tex, duv * (1.0 / 6.0)).r - 0.5) * 2.0, -1.0, 1.0);
 	vec3 d_mid = texture(detail_tex, duv * (1.0 / 1.5)).rgb;
 	float mid = clamp((d_mid.g - 0.5) * 2.0, -1.0, 1.0);
-	vec3 col = albedo.rgb * (1.0 + (low * 0.045 + mid * 0.02) * detail_strength);
+	vec3 vc = OUTPUT_IS_SRGB ? COLOR.rgb : vertex_srgb_to_linear(COLOR.rgb);
+	vec3 base = use_vertex_color ? vc * albedo.rgb : albedo.rgb;
+	float base_rough = use_vertex_color ? COLOR.a : roughness;
+	vec3 col = base * (1.0 + (low * 0.045 + mid * 0.02) * detail_strength);
 
 	// 바닥 근처 때
 	float dirt_h = ground_dirt_height * (0.75 + 0.5 * d_mid.g);
@@ -50,7 +62,7 @@ void fragment() {
 	col *= 1.0 - 0.18 * rain_streak_strength * streak_m * wall;
 
 	ALBEDO = col;
-	ROUGHNESS = clamp(roughness - 0.05 * mid * detail_strength + 0.15 * dirt, 0.04, 1.0);
+	ROUGHNESS = clamp(base_rough - 0.05 * mid * detail_strength + 0.15 * dirt, 0.04, 1.0);
 	METALLIC = metallic;
 	SPECULAR = specular_amount;
 }

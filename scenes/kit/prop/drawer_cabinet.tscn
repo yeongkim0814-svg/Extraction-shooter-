@@ -5,17 +5,17 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_2vxv5"]
 size = Vector3(0.6, 1.3, 0.65)
 
-[node name="DrawerCabinet" type="Node3D" unique_id=897942488]
+[node name="DrawerCabinet" type="Node3D" unique_id=1013615044]
 metadata/loot_kind = "drawers"
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1016478303]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1162150920]
 mesh = ExtResource("1_mgrad")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=389711538]
+[node name="Body" type="StaticBody3D" parent="." unique_id=752635315]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1916772050]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=766595079]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 shape = SubResource("BoxShape3D_2vxv5")
 
-[node name="LOOT" type="Marker3D" parent="." unique_id=322333439]
+[node name="LOOT" type="Marker3D" parent="." unique_id=860021895]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0.34)

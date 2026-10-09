@@ -5,17 +5,17 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_pt2ek"]
 size = Vector3(1.24, 0.45, 0.52)
 
-[node name="CrateMilitary" type="Node3D" unique_id=2070306757]
+[node name="CrateMilitary" type="Node3D" unique_id=1321907186]
 metadata/loot_kind = "military_crate"
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=371769381]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=557112301]
 mesh = ExtResource("1_2c5fm")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=88966305]
+[node name="Body" type="StaticBody3D" parent="." unique_id=872382284]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1505217736]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=2032861169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0)
 shape = SubResource("BoxShape3D_pt2ek")
 
-[node name="LOOT" type="Marker3D" parent="." unique_id=1818634365]
+[node name="LOOT" type="Marker3D" parent="." unique_id=230060382]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)

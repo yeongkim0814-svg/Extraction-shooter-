@@ -85,8 +85,8 @@ static func puddle_2m(kb: KitBuild) -> void:
 		var rr: float = rng.randf_range(0.65, 1.0) * (1.0 if i % 3 != 0 else 0.8)
 		ring.append(Vector3(cos(a) * rr * 1.0 * 1.0, 0.01, sin(a) * rr * 0.75))
 	var old_tint: Color = kb.mesh.tint
-	kb.mesh.tint = Color(0.0, 1.0, 1.0)
 	kb.use(KitMaterials.GROUND_CONCRETE)
+	kb.mesh.tint = Color(0.0, 1.0, 1.0)  # kit_ground: 젖음 = 1 - COLOR.r (use가 정점 색을 흰색으로 둔 뒤에 바꾼다)
 	for i: int in range(n):
 		kb.mesh.add_triangle(Transform3D.IDENTITY, Vector3(0.0, 0.01, 0.0), ring[i], ring[(i + 1) % n], Vector3.UP)
 	kb.mesh.tint = old_tint

@@ -54,6 +54,8 @@ var lamp_count: int = 0
 var smoke_points: Array[Vector3] = []
 ## 잡초를 심을 가장자리 구간 (시작, 끝) 쌍. industrial_atmosphere가 읽는다.
 var weed_lines: Array[Vector3] = []
+## 붙인 구역 씬 이름 (add_zone).
+var zones: Array[StringName] = []
 
 var _batches: Dictionary[StringName, Batch] = {}
 var _nav_boxes: Array[BoxRec] = []
@@ -250,6 +252,31 @@ func cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float,
 		marker.add_to_group(&"cover_point")
 		_cover_root.add_child(marker)
 		cover_count += 1
+
+
+## 구역 씬(tools/build_zones.gd 결과)이 있으면 지오메트리 아래에 붙이고 true. 충돌 상자는 내비메시 기준으로도 기록한다.
+## 구역 씬은 맵 좌표로 만들어져 있어 변환 없이 붙인다. 없으면 false (호출한 쪽이 옛 코드 지오메트리를 만든다).
+func add_zone(zone: StringName) -> bool:
+	var path: String = ZoneCatalog.scene_path(zone)
+	if not ResourceLoader.exists(path):
+		return false
+	var packed: PackedScene = load(path) as PackedScene
+	if packed == null:
+		return false
+	var node: Node3D = packed.instantiate() as Node3D
+	region.add_child(node)
+	var body: Node = node.get_node_or_null(^"Body")
+	if body != null:
+		for child: Node in body.get_children():
+			var cs := child as CollisionShape3D
+			if cs != null and cs.shape is BoxShape3D:
+				_record_nav(cs.transform, (cs.shape as BoxShape3D).size)
+				box_count += 1
+	for child: Node in node.get_children():
+		if child is MeshInstance3D:
+			mesh_instance_count += 1
+	zones.append(zone)
+	return true
 
 
 func loot(kind: LootContainer.Kind, pos: Vector3, yaw_deg: float) -> void:

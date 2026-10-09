@@ -8,17 +8,17 @@ size = Vector3(3.7, 6, 3.7)
 [sub_resource type="BoxShape3D" id="BoxShape3D_l2bf0"]
 size = Vector3(4.2, 0.4, 4.2)
 
-[node name="TankVertical" type="Node3D" unique_id=1827367600]
+[node name="TankVertical" type="Node3D" unique_id=394137197]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1732543461]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1291987556]
 mesh = ExtResource("1_tasf3")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=338747026]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1605134855]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=941454390]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=6062296]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
 shape = SubResource("BoxShape3D_vsyrd")
 
-[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1870397945]
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1579106585]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 shape = SubResource("BoxShape3D_l2bf0")

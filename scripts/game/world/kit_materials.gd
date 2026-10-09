@@ -1,7 +1,11 @@
 class_name KitMaterials
 extends RefCounted
 ## 텍스처 v2 재질 라이브러리 (docs/ART.md 11장). 트림시트 3장(tools/gen_textures_v2.py) + 단색 넓은 면 + 바닥 3종.
-## 재질 ID -> 캐시된 Material. 트림 ID는 (시트, 줄)을 알려 주므로 메시 빌더가 KitLayout으로 UV를 맞출 수 있다.
+## 재질 ID는 "공유 재질 + 정점 색" 쌍이다 (그리기 호출 절감: 페인트 색마다 재질을 나누면 칸 하나에 재질 수십 개가 생긴다).
+##   트림: 시트마다 재질 하나(발광 변형만 따로), 정점 색 RGB = 페인트 색(sRGB). 단색: 금속/비금속 재질 둘, 정점 색 RGB = 색, A = 거칠기.
+##   바닥: 텍스처마다 재질 하나, 정점 색은 kit_ground 규약(흰색 = 마른 맨바닥).
+## get_material(id)는 공유 재질, vertex_color(id)는 그 ID의 정점 색. KitBuild.use가 둘 다 메시 빌더에 넣는다.
+## 트림 ID는 (시트, 줄)을 알려 주므로 메시 빌더가 KitLayout으로 UV를 맞출 수 있다.
 ## 텍스처가 없으면 push_warning을 남기고 자리표시자를 쓴다 (충돌하지 않는다).
 
 const DIR: String = "res://assets/textures/v2/"
@@ -185,16 +189,53 @@ static func v_range(id: StringName) -> Vector2:
 static var prefer_saved: bool = true
 
 
+## 이 ID가 쓰는 공유 재질의 키 (저장 파일 이름이기도 하다).
+static func material_key(id: StringName) -> StringName:
+	if _TRIM.has(id):
+		var extra: Dictionary = _TRIM[id][3]
+		if extra.has("emit"):
+			return StringName("trim%d_%s" % [int(_TRIM[id][0]), String(id)])
+		return StringName("trim%d" % int(_TRIM[id][0]))
+	if _FLAT.has(id):
+		return &"flat_metal" if float(_FLAT[id][2]) > 0.25 else &"flat"
+	if _GROUND.has(id):
+		return StringName(String(id))
+	return &"fallback"
+
+
+## 모든 공유 재질 키.
+static func material_keys() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in all_ids():
+		var key: StringName = material_key(id)
+		if not out.has(key):
+			out.append(key)
+	return out
+
+
+## 이 ID의 정점 색 (sRGB, 셰이더가 렌더러에 맞게 선형으로 바꾼다). 트림 = 페인트, 단색 = 색 + A 거칠기, 바닥 = 흰색.
+static func vertex_color(id: StringName) -> Color:
+	if _TRIM.has(id):
+		var paint: Color = _TRIM[id][2]
+		return Color(paint.r, paint.g, paint.b, 1.0)
+	if _FLAT.has(id):
+		var c: Color = _FLAT[id][0]
+		return Color(c.r, c.g, c.b, float(_FLAT[id][1]))
+	return Color.WHITE
+
+
 static func get_material(id: StringName) -> Material:
-	if _cache.has(id):
-		return _cache[id]
+	var key: StringName = material_key(id)
+	if _cache.has(key):
+		return _cache[key]
 	var m: Material = null
-	var saved: String = saved_path(id)
+	var saved: String = saved_path(key)
 	if prefer_saved and ResourceLoader.exists(saved):
 		m = load(saved) as Material
 	if m == null:
 		m = _create(id)
-	_cache[id] = m
+		m.resource_name = String(key)
+	_cache[key] = m
 	return m
 
 
@@ -233,7 +274,7 @@ static func _make_trim(id: StringName) -> Material:
 	m.set_shader_parameter("normal_tex", _tex(tag + "_normal"))
 	m.set_shader_parameter("mask_tex", _tex(tag + "_mask"))
 	m.set_shader_parameter("detail_tex", _tex("detail_v2"))
-	m.set_shader_parameter("paint_color", spec[2])
+	m.set_shader_parameter("paint_color", Color.WHITE)
 	m.set_shader_parameter("base_tint", extra.get("tint", Color.WHITE))
 	m.set_shader_parameter("roughness_scale", float(extra.get("rough", 1.0)))
 	m.set_shader_parameter("metallic_scale", float(extra.get("metal", 1.0)))
@@ -249,9 +290,9 @@ static func _make_flat(id: StringName) -> Material:
 	m.resource_name = String(id)
 	m.shader = _shader(SHADER_FLAT)
 	m.set_shader_parameter("detail_tex", _tex("detail_v2"))
-	m.set_shader_parameter("albedo", spec[0])
+	m.set_shader_parameter("albedo", Color.WHITE)
 	m.set_shader_parameter("roughness", float(spec[1]))
-	m.set_shader_parameter("metallic", float(spec[2]))
+	m.set_shader_parameter("metallic", 0.5 if float(spec[2]) > 0.25 else 0.0)
 	return m
 
 

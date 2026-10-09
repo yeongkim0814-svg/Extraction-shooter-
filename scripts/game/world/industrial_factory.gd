@@ -18,12 +18,16 @@ const HALL_Z0: float = -76.0
 const HALL_Z1: float = -48.0
 const HALL_H: float = 9.5
 const WALL_T: float = 0.6
-const CATWALK_Y: float = 4.2
+const CATWALK_Y: float = 4.0
 
 
 static func build(m: IndustrialMap) -> void:
-	_hall(m)
-	_hall_interior(m)
+	if m.add_zone(&"factory_hall"):
+		_hall_gameplay(m)
+		_hall_fx(m)
+	else:
+		_hall(m)
+		_hall_interior(m)
 	_main_block(m)
 	_stacks(m)
 	_north_yard(m)
@@ -60,6 +64,39 @@ static func _hall(m: IndustrialMap) -> void:
 		m.hanging_lamp(pos, 2.6)
 
 
+## 구역 씬을 쓸 때: 지오메트리는 구역 씬(ZoneFactoryHall)이 맡고, 여기서는 엄폐 지점·루팅·충돌 있는 기계만 둔다.
+static func _hall_gameplay(m: IndustrialMap) -> void:
+	for z: float in [-56.0, -68.0]:
+		for x: float in [-40.0, -28.0, -16.0, -4.0]:
+			m.cover_markers(x, z, 0.2, 0.2, 0.0, 0.8)
+	for spec: Array in _COVER:
+		var c: Vector3 = spec[0]
+		var size: Vector3 = spec[1]
+		m.cover_markers(c.x, c.z, size.x * 0.5, size.z * 0.5, 0.0, 0.9)
+	_hall_loot(m)
+
+
+## 구역 씬을 쓸 때의 효과: 천창·북쪽 창으로 들어오는 빛줄기 카드.
+static func _hall_fx(m: IndustrialMap) -> void:
+	for x: float in [-38.0, -30.0, -22.0, -14.0, -6.0, 2.0]:
+		m.light_shaft(Vector3(x - 1.6, 0, -62.0), Vector3(x + 1.6, 0, -62.0), 7.9, Vector3(0.25, -0.0, 0.35), 9.0, 0.08, 0.0)
+
+
+## 엄폐 기계·상자 (가운데, 크기). 구역 씬(ZoneFactoryHall._props)과 옛 코드가 같은 자리를 쓴다.
+const _COVER: Array[Array] = [
+	[Vector3(-12.0, 1.3, -64.0), Vector3(6.0, 2.6, 3.0)],
+	[Vector3(-6.0, 1.0, -72.4), Vector3(3.0, 2.0, 2.4)],
+	[Vector3(-35.0, 0.6, -64.0), Vector3(2.4, 1.2, 1.6)],
+]
+
+
+static func _hall_loot(m: IndustrialMap) -> void:
+	m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(-9.0, 0.0, -74.2), 0.0)
+	m.loot(LootContainer.Kind.CRATE, Vector3(-31.5, 0.0, -66.8), 0.0)
+	m.loot(LootContainer.Kind.TOOLBOX, Vector3(-39.0, 0.0, -55.0), 90.0)
+	m.loot(LootContainer.Kind.MEDBAG, Vector3(-24.0, CATWALK_Y, -74.6), 0.0)
+
+
 static func _hall_interior(m: IndustrialMap) -> void:
 	# 기둥: 두 줄
 	for z: float in [-56.0, -68.0]:
@@ -83,10 +120,10 @@ static func _hall_interior(m: IndustrialMap) -> void:
 		m.box(Vector3(x, CATWALK_Y + 0.5, z_near - 0.01), Vector3(0.05, 1.0, 0.05), STEEL, Basis.IDENTITY, false, false)
 	m.ramp_z(-41.7, 2.4, -57.5, z_near, 0.0, CATWALK_Y, STEEL)
 	# 기계·소품 (엄폐)
-	m.cover_box(Vector3(-12.0, 1.3, -64.0), Vector3(6.0, 2.6, 3.0), RUST)
-	m.cover_box(Vector3(-6.0, 1.0, -72.4), Vector3(3.0, 2.0, 2.4), STEEL)
+	m.cover_box(_COVER[0][0], _COVER[0][1], RUST)
+	m.cover_box(_COVER[1][0], _COVER[1][1], STEEL)
 	m.box(Vector3(-12.0, 2.75, -64.0), Vector3(5.2, 0.3, 2.4), STEEL, Basis.IDENTITY, false)
-	m.cover_box(Vector3(-35.0, 0.6, -64.0), Vector3(2.4, 1.2, 1.6), CONCRETE_DARK)
+	m.cover_box(_COVER[2][0], _COVER[2][1], CONCRETE_DARK)
 	IndustrialProps.forklift(m, Vector3(-27.0, 0.0, -61.0), 20.0)
 	IndustrialProps.pallet_stack(m, Vector3(-38.0, 0.0, -50.0), 0.0, 2)
 	IndustrialProps.pallet_stack(m, Vector3(-37.0, 0.0, -52.5), 90.0, 1)
@@ -94,10 +131,7 @@ static func _hall_interior(m: IndustrialMap) -> void:
 	IndustrialProps.pallet(m, Vector3(-22.0, 0.0, -73.0), 10.0)
 	IndustrialProps.barrels(m, Vector3(-3.0, 0.0, -73.5), 4)
 	IndustrialProps.barrels(m, Vector3(-42.0, 0.0, -70.0), 3)
-	m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(-9.0, 0.0, -74.2), 0.0)
-	m.loot(LootContainer.Kind.CRATE, Vector3(-31.5, 0.0, -66.8), 0.0)
-	m.loot(LootContainer.Kind.TOOLBOX, Vector3(-39.0, 0.0, -55.0), 90.0)
-	m.loot(LootContainer.Kind.MEDBAG, Vector3(-24.0, CATWALK_Y, -74.0), 0.0)
+	_hall_loot(m)
 
 
 ## 본관 블록 + 부속동. 남쪽 면에 큰 "03".

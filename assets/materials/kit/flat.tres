@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/kit_flat.gdshader" id="1_hrcje"]
+[ext_resource type="Texture2D" path="res://assets/textures/v2/detail_v2.webp" id="2_g8ycv"]
+
+[resource]
+resource_name = "flat"
+render_priority = 0
+shader = ExtResource("1_hrcje")
+shader_parameter/detail_tex = ExtResource("2_g8ycv")
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/roughness = 0.92
+shader_parameter/metallic = 0.0
+shader_parameter/use_vertex_color = null
+shader_parameter/specular_amount = null
+shader_parameter/detail_strength = null
+shader_parameter/ground_dirt_height = null
+shader_parameter/ground_dirt_strength = null
+shader_parameter/rain_streak_strength = null

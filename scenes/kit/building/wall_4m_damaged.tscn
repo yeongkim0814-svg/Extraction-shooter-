@@ -17,35 +17,35 @@ size = Vector3(1.65, 1.55, 0.35)
 [sub_resource type="BoxShape3D" id="BoxShape3D_jwmqt"]
 size = Vector3(2, 0.3, 0.7)
 
-[node name="Wall4mDamaged" type="Node3D" unique_id=1316880145]
+[node name="Wall4mDamaged" type="Node3D" unique_id=732824902]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1716956824]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1053494299]
 mesh = ExtResource("1_gxigr")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=206617258]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1186616123]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1513211117]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=222658717]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.35, 2, 0)
 shape = SubResource("BoxShape3D_pqqja")
 
-[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1118943823]
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1184477406]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.475, 2, 0)
 shape = SubResource("BoxShape3D_0gypl")
 
-[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=788729380]
+[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=1723989484]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.125, 0.5, 0)
 shape = SubResource("BoxShape3D_ga63p")
 
-[node name="Shape3" type="CollisionShape3D" parent="Body" unique_id=1534699819]
+[node name="Shape3" type="CollisionShape3D" parent="Body" unique_id=1360133499]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.125, 3.225, 0)
 shape = SubResource("BoxShape3D_32oey")
 
-[node name="Shape4" type="CollisionShape3D" parent="Body" unique_id=1811355148]
+[node name="Shape4" type="CollisionShape3D" parent="Body" unique_id=821479613]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.15, 0.6)
 shape = SubResource("BoxShape3D_jwmqt")
 
-[node name="SNAP_L" type="Marker3D" parent="." unique_id=760575602]
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=1489735401]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
 
-[node name="SNAP_R" type="Marker3D" parent="." unique_id=559904923]
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=999735240]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)

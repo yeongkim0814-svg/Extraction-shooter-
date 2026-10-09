@@ -25,6 +25,8 @@ static func build(piece: StringName, kb: KitBuild) -> bool:
 			door_steel(kb)
 		&"wall_4m_shutter":
 			wall_4m_shutter(kb)
+		&"wall_4m_shutter_open":
+			wall_4m_shutter(kb, true)
 		&"wall_4m_damaged":
 			wall_4m_damaged(kb)
 		&"wall_corner":
@@ -162,7 +164,8 @@ static func door_steel(kb: KitBuild) -> void:
 
 
 ## 셔터 벽: 구멍 3.2 x 3.4, 말아 올린 셔터가 반쯤 열림 (아랫단 1.1 m). 위에 말이통, 양옆 레일, 문턱에 경고 띠.
-static func wall_4m_shutter(kb: KitBuild) -> void:
+## fully_open이면 셔터를 끝까지 말아 올려 아랫단만 말이통 밑에 보인다 (사람·AI가 서서 지나가는 큰 출입구).
+static func wall_4m_shutter(kb: KitBuild, fully_open: bool = false) -> void:
 	var x0: float = -1.6
 	var x1: float = 1.6
 	var top: float = 3.4
@@ -170,13 +173,14 @@ static func wall_4m_shutter(kb: KitBuild) -> void:
 	# 충돌: 양옆·위 + 셔터 커튼 (1.1 m 아래로 숙여 지나갈 수 있다)
 	_collide_opening(kb, x0, x1, 0.0, top)
 	# 셔터 커튼: 슬랫 띠 네 장을 쌓아 줄이 늘어지지 않게
-	var bottom: float = 1.1
-	var segs: int = 4
-	var seg_h: float = (3.3 - bottom) / float(segs)
-	for i: int in range(segs):
-		KitParts.plain(kb, KitMaterials.SHUTTER, Vector3(0.0, bottom + seg_h * float(i), 0.0), Vector3(x1 - x0 - 0.16, seg_h, 0.04))
+	var bottom: float = 3.22 if fully_open else 1.1
+	if not fully_open:
+		var segs: int = 4
+		var seg_h: float = (3.3 - bottom) / float(segs)
+		for i: int in range(segs):
+			KitParts.plain(kb, KitMaterials.SHUTTER, Vector3(0.0, bottom + seg_h * float(i), 0.0), Vector3(x1 - x0 - 0.16, seg_h, 0.04))
+		kb.collide_box(KitParts.at(Vector3(0.0, (bottom + 3.3) * 0.5, 0.0)), Vector3(x1 - x0, 3.3 - bottom, 0.08))
 	KitParts.plain(kb, KitMaterials.FLAT_METAL, Vector3(0.0, bottom - 0.08, 0.0), Vector3(x1 - x0 - 0.12, 0.08, 0.08))
-	kb.collide_box(KitParts.at(Vector3(0.0, (bottom + 3.3) * 0.5, 0.0)), Vector3(x1 - x0, 3.3 - bottom, 0.08))
 	# 말이통 (벽 바깥쪽 위)
 	kb.block(KitMaterials.METAL_PLATE, Vector3(0.0, 3.3, 0.16), Vector3(x1 - x0 + 0.3, 0.45, 0.3), KitBuild.BEVEL_SMALL, false)
 	# 양옆 레일

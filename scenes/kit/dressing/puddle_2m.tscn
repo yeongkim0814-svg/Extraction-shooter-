@@ -2,7 +2,7 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/kit/dressing/puddle_2m_mesh.res" id="1_6yoxj"]
 
-[node name="Puddle2m" type="Node3D" unique_id=17883813]
+[node name="Puddle2m" type="Node3D" unique_id=202751623]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1406320876]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=319007021]
 mesh = ExtResource("1_6yoxj")

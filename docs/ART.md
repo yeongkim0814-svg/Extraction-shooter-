@@ -299,3 +299,12 @@ M10 체크포인트 결과: 스타일라이즈드로 전환하지 않고 세미�
 5. 구역별 조명 배치 + 탭 굽기 절차
 6. 효과·색 보정·품질 단계 조정 -> 탭 fps 측정
 - 스타일 비교 씬(`?scene=style_a~d`)은 참고용으로 남기고 더 키우지 않는다.
+
+### 11.9 구역 씬 (맵 재조립)
+- 구역 = 라이트맵 굽기 단위. 정의는 `scripts/game/world/zones/zone_<구역>.gd`(ZoneBuilder로 부품·맞춤 지오메트리·바닥·빛 배치), 목록은 `ZoneCatalog`.
+- `godot --headless --path . --script tools/build_zones.gd` -> `scenes/raid/zones/<구역>.tscn` + `<구역>/cell_x_z.res`.
+  부품 메시는 16 m 칸·공유 재질별로 합친다 (부품마다 노드를 두지 않는다). 충돌은 `Body` 하나, 빛은 `Lights`, 굽기 노드 `LightmapGI`.
+- 재질은 공유 재질 11개 + 정점 색 (트림 = 페인트 색, 단색 = 색 + A 거칠기, sRGB 저장 -> 셰이더가 렌더러별 변환).
+- `IndustrialMap.add_zone()`이 구역 씬이 있으면 붙이고 충돌을 내비메시 기준에 넣는다. 게임플레이(루팅·엄폐·순찰·탈출)는 맵 코드 그대로.
+- 진행: 공장 홀(`factory_hall`) 시범 완료. 나머지 구역은 옛 코드 지오메트리.
+- 태블릿 굽기: `res://scenes/raid/zones/<구역>.tscn`을 열고 LightmapGI 선택 -> 굽기 (프로브 끔·품질 Low·바운스 2가 미리 설정됨) -> `<구역>.lmbake`로 저장 -> 씬 저장.

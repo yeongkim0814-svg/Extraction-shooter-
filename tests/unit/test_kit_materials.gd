@@ -30,3 +30,19 @@ func test_non_trim_ids_have_no_strip() -> void:
 
 func test_unknown_id_does_not_crash() -> void:
 	assert_not_null(KitMaterials.get_material(&"__nope__"))
+
+
+func test_same_sheet_trims_share_material_and_differ_by_vertex_color() -> void:
+	assert_same(KitMaterials.get_material(KitMaterials.PIPE_RED), KitMaterials.get_material(KitMaterials.PIPE_TEAL))
+	assert_ne(KitMaterials.vertex_color(KitMaterials.PIPE_RED), KitMaterials.vertex_color(KitMaterials.PIPE_TEAL))
+	assert_ne(KitMaterials.material_key(KitMaterials.FLUORO), KitMaterials.material_key(KitMaterials.VENT))
+
+
+func test_flat_vertex_color_carries_roughness() -> void:
+	assert_almost_eq(KitMaterials.vertex_color(KitMaterials.FLAT_GLASS).a, 0.08, 0.001)
+	assert_eq(KitMaterials.material_key(KitMaterials.FLAT_METAL), &"flat_metal")
+	assert_eq(KitMaterials.material_key(KitMaterials.FLAT_CONCRETE), &"flat")
+
+
+func test_shared_material_count_is_small() -> void:
+	assert_true(KitMaterials.material_keys().size() <= 12, "공유 재질 %d개" % KitMaterials.material_keys().size())

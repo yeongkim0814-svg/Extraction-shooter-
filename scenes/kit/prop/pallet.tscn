@@ -5,13 +5,13 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_jp54e"]
 size = Vector3(1.2, 0.144, 0.8)
 
-[node name="Pallet" type="Node3D" unique_id=1528530734]
+[node name="Pallet" type="Node3D" unique_id=713866794]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=860351799]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2028533636]
 mesh = ExtResource("1_tokda")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=659588647]
+[node name="Body" type="StaticBody3D" parent="." unique_id=739696557]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=215310146]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=172695618]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.072, 0)
 shape = SubResource("BoxShape3D_jp54e")

@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/wall_4m_shutter_open_mesh.res" id="1_k46pm"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vq7w5"]
+size = Vector3(0.4, 4, 0.35)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yvdwg"]
+size = Vector3(0.4, 4, 0.35)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2bh7p"]
+size = Vector3(3.2, 0.6, 0.35)
+
+[node name="Wall4mShutterOpen" type="Node3D" unique_id=823623073]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=277257820]
+mesh = ExtResource("1_k46pm")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1226274199]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=217508818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 2, 0)
+shape = SubResource("BoxShape3D_vq7w5")
+
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=783685850]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 2, 0)
+shape = SubResource("BoxShape3D_yvdwg")
+
+[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=1946251891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.7, 0)
+shape = SubResource("BoxShape3D_2bh7p")
+
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=458041847]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
+
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=2056503983]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)

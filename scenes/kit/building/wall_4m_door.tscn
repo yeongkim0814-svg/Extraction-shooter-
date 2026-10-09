@@ -11,27 +11,27 @@ size = Vector3(0.43, 4, 0.35)
 [sub_resource type="BoxShape3D" id="BoxShape3D_r30n0"]
 size = Vector3(1.14, 1.83, 0.35)
 
-[node name="Wall4mDoor" type="Node3D" unique_id=1342771809]
+[node name="Wall4mDoor" type="Node3D" unique_id=583003239]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2063552996]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1741227804]
 mesh = ExtResource("1_gackx")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=1948903524]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1394485123]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1191248151]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1191698278]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.785, 2, 0)
 shape = SubResource("BoxShape3D_7lj0u")
 
-[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=58857641]
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=544697175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.785, 2, 0)
 shape = SubResource("BoxShape3D_1wade")
 
-[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=2082919144]
+[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=400071815]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 3.085, 0)
 shape = SubResource("BoxShape3D_r30n0")
 
-[node name="SNAP_L" type="Marker3D" parent="." unique_id=1144537389]
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=24658860]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
 
-[node name="SNAP_R" type="Marker3D" parent="." unique_id=1929239812]
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=1540264771]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)

@@ -14,31 +14,31 @@ size = Vector3(2.4, 1.2, 0.35)
 [sub_resource type="BoxShape3D" id="BoxShape3D_wrjti"]
 size = Vector3(2.4, 1.3, 0.35)
 
-[node name="Wall4mWindow" type="Node3D" unique_id=2068388566]
+[node name="Wall4mWindow" type="Node3D" unique_id=1841527635]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1944453913]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1045847677]
 mesh = ExtResource("1_xdjqc")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=738999438]
+[node name="Body" type="StaticBody3D" parent="." unique_id=400208764]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=2012879914]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1963200068]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 2, 0)
 shape = SubResource("BoxShape3D_6ahru")
 
-[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1460243525]
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=501405443]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 2, 0)
 shape = SubResource("BoxShape3D_1qhtc")
 
-[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=1156288906]
+[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=1989908974]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 shape = SubResource("BoxShape3D_8whoh")
 
-[node name="Shape3" type="CollisionShape3D" parent="Body" unique_id=1050486876]
+[node name="Shape3" type="CollisionShape3D" parent="Body" unique_id=1828763627]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.35, 0)
 shape = SubResource("BoxShape3D_wrjti")
 
-[node name="SNAP_L" type="Marker3D" parent="." unique_id=610397559]
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=1401291852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
 
-[node name="SNAP_R" type="Marker3D" parent="." unique_id=97884663]
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=319345874]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)

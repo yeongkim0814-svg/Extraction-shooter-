@@ -5,19 +5,19 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_2rqqi"]
 size = Vector3(0.5, 4, 0.5)
 
-[node name="WallCorner" type="Node3D" unique_id=1325963399]
+[node name="WallCorner" type="Node3D" unique_id=925480702]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2098390504]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1344005942]
 mesh = ExtResource("1_ol8q1")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=1290971262]
+[node name="Body" type="StaticBody3D" parent="." unique_id=417993051]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1400014865]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1995531954]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 shape = SubResource("BoxShape3D_2rqqi")
 
-[node name="SNAP_L" type="Marker3D" parent="." unique_id=56474102]
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=1716879709]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, 0)
 
-[node name="SNAP_R" type="Marker3D" parent="." unique_id=1686934350]
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=171676783]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0, 0)

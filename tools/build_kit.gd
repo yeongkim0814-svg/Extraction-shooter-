@@ -87,16 +87,23 @@ func _save_materials() -> int:
 	KitMaterials.clear_cache()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(KitMaterials.SAVED_DIR))
 	var failed: int = 0
-	for id: StringName in KitMaterials.all_ids():
-		var m: Material = KitMaterials.get_material(id)
-		var path: String = KitMaterials.saved_path(id)
+	for key: StringName in KitMaterials.material_keys():
+		var m: Material = KitMaterials.get_material(_id_for_key(key))
+		var path: String = KitMaterials.saved_path(key)
 		if ResourceSaver.save(m, path) != OK:
-			print("KIT: FAIL 재질 저장 %s" % id)
+			print("KIT: FAIL 재질 저장 %s" % key)
 			failed += 1
 			continue
 		m.take_over_path(path)
-	print("KIT: materials saved=%d" % (KitMaterials.all_ids().size() - failed))
+	print("KIT: materials saved=%d" % (KitMaterials.material_keys().size() - failed))
 	return failed
+
+
+static func _id_for_key(key: StringName) -> StringName:
+	for id: StringName in KitMaterials.all_ids():
+		if KitMaterials.material_key(id) == key:
+			return id
+	return key
 
 
 ## ImporterMesh로 LOD를 만든다. 실패하면 null (원본을 쓴다).

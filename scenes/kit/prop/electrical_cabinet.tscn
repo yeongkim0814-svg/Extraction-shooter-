@@ -5,13 +5,13 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_e8pg2"]
 size = Vector3(0.86, 1.8, 0.46)
 
-[node name="ElectricalCabinet" type="Node3D" unique_id=901737101]
+[node name="ElectricalCabinet" type="Node3D" unique_id=2050306925]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=234737463]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=780553573]
 mesh = ExtResource("1_cug7q")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=338980932]
+[node name="Body" type="StaticBody3D" parent="." unique_id=621671064]
 
-[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=13600420]
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1626301672]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("BoxShape3D_e8pg2")

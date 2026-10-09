@@ -33,6 +33,7 @@ func _init(name_: StringName) -> void:
 ## 재질과 줄 배정. top/bottom이 비면 옆면 줄을 쓴다. 트림이 아니면 줄 사상을 끈다.
 func use(id: StringName, top: StringName = &"", bottom: StringName = &"") -> void:
 	mesh.surface(KitMaterials.get_material(id))
+	mesh.color(KitMaterials.vertex_color(id))
 	if not KitMaterials.is_trim(id):
 		mesh.trim_strips = PackedVector2Array()
 		return

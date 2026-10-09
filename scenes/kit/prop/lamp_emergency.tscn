@@ -2,10 +2,10 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/kit/prop/lamp_emergency_mesh.res" id="1_1n1s2"]
 
-[node name="LampEmergency" type="Node3D" unique_id=1399291380]
+[node name="LampEmergency" type="Node3D" unique_id=1594732373]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2011593287]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2010615994]
 mesh = ExtResource("1_1n1s2")
 
-[node name="LIGHT_emergency" type="Marker3D" parent="." unique_id=924284561]
+[node name="LIGHT_emergency" type="Marker3D" parent="." unique_id=170241331]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.13)

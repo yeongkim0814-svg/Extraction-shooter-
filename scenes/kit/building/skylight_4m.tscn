@@ -2,7 +2,7 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/kit/building/skylight_4m_mesh.res" id="1_a3uol"]
 
-[node name="Skylight4m" type="Node3D" unique_id=1899083660]
+[node name="Skylight4m" type="Node3D" unique_id=685596531]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1101598207]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1260117226]
 mesh = ExtResource("1_a3uol")
