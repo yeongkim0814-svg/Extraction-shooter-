@@ -3,6 +3,8 @@ extends RefCounted
 ## 조립된 무기 트리의 노드: 부품 하나와 소켓별 자식 노드.
 
 var def: WeaponPartDef
+## 이 부품으로 장착된 인벤토리 아이템 (떼면 이 아이템이 돌아간다). 기본 내장 부품이면 null.
+var item: ItemInstance = null
 var children: Dictionary[StringName, WeaponPartNode] = {}
 
 

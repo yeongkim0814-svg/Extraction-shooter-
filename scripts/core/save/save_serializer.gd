@@ -84,7 +84,11 @@ static func _node_to_dict(node: WeaponPartNode) -> Dictionary:
 		var child: WeaponPartNode = node.children.get(socket.name)
 		if child != null:
 			children[String(socket.name)] = _node_to_dict(child)
-	return {"part": String(node.def.id), "children": children}
+	var data: Dictionary = {"part": String(node.def.id), "children": children}
+	if node.item != null:
+		data["item_id"] = node.item.id
+		data["fir"] = node.item.found_in_raid
+	return data
 
 
 # --- 불러오기 ---
@@ -290,9 +294,35 @@ static func _attach_children(assembly: WeaponAssembly, path: Array[StringName], 
 			return false
 		var child_path: Array[StringName] = path.duplicate()
 		child_path.append(socket_name)
+		if (child as Dictionary).has("item_id"):
+			var part_item: ItemInstance = _build_part_item(child as Dictionary, part, item_id, ctx)
+			if part_item == null:
+				return false
+			assembly.find_node(child_path).item = part_item
 		if not _attach_children(assembly, child_path, child as Dictionary, item_id, ctx):
 			return false
 	return true
+
+
+## 무기에 장착된 부품 아이템을 복원한다 (id 중복 검사 포함).
+static func _build_part_item(node: Dictionary, part: WeaponPartDef, weapon_id: int, ctx: _Ctx) -> ItemInstance:
+	var raw_id: Variant = node["item_id"]
+	if not (typeof(raw_id) == TYPE_INT or (typeof(raw_id) == TYPE_FLOAT and float(raw_id) == floorf(float(raw_id)))):
+		ctx.error = "item %d: invalid part item_id" % weapon_id
+		return null
+	var part_id: int = int(raw_id)
+	if part_id <= 0 or ctx.seen.has(part_id):
+		ctx.error = "item %d: duplicate or invalid part item id %d" % [weapon_id, part_id]
+		return null
+	var item_def: ItemDef = ctx.db.get_item(part.id)
+	if item_def == null:
+		ctx.error = "item %d: no item def for part '%s'" % [weapon_id, part.id]
+		return null
+	ctx.seen[part_id] = true
+	ctx.max_id = maxi(ctx.max_id, part_id)
+	var item := ItemInstance.new(part_id, item_def, 1)
+	item.found_in_raid = bool(node.get("fir", false))
+	return item
 
 
 static func _build_magazine(raw: Variant, item_id: int, ctx: _Ctx) -> Magazine:

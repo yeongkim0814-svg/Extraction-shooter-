@@ -228,6 +228,32 @@ func discard(item_id: int) -> CommandResult:
 	return CommandResult.success(_remove(item))
 
 
+## 아이템 모양을 바꾸는 변경(무기 부품 장착 등)을 그리드 공간을 검증하며 적용한다.
+## apply()로 바꾼 뒤 같은 자리에 들어가지 않으면 revert()로 되돌리고 false. 슬롯에 있으면 항상 적용.
+func try_reshape(item_id: int, apply: Callable, revert: Callable) -> bool:
+	var item: ItemInstance = get_item(item_id)
+	if item == null:
+		return false
+	var grid: ItemGrid = get_grid(item.container_key)
+	if grid == null:
+		apply.call()
+		return true
+	var cell: Vector2i = item.position
+	var was_rotated: bool = item.rotated
+	grid.remove(item)
+	apply.call()
+	if grid.try_place(item, cell, was_rotated):
+		return true
+	revert.call()
+	grid.try_place(item, cell, was_rotated)
+	return false
+
+
+## 레이드 중 스태시 잠금에 걸리는 아이템인지 (명령 검증용).
+func is_locked(item: ItemInstance) -> bool:
+	return _is_locked(item)
+
+
 # --- 불변식 ---
 
 ## 모든 그리드가 일관되고, 등록된 아이템 = 그리드·슬롯을 따라가며 찾은 아이템이며,

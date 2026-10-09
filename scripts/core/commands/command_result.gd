@@ -16,6 +16,8 @@ const NOT_A_WEAPON := &"not_a_weapon"
 const WEAPON_NOT_EQUIPPED := &"weapon_not_equipped"
 const MAGAZINE_FULL := &"magazine_full"
 const NO_AMMO := &"no_ammo"
+const NOT_A_PART := &"not_a_part"
+const HAS_ATTACHMENTS := &"has_attachments"
 const NOT_IMPLEMENTED := &"not_implemented"
 
 var ok: bool

@@ -31,11 +31,14 @@ func _init(p_id: int, p_def: ItemDef, p_stack_count: int = 1) -> void:
 		grids.append(ItemGrid.new(size.x, size.y))
 
 
-## 회전 여부에 따른 점유 크기 (가로, 세로).
+## 회전 여부에 따른 점유 크기 (가로, 세로). 무기는 장착한 부품에 따라 커진다.
 func size_for(p_rotated: bool) -> Vector2i:
+	var base := Vector2i(def.width, def.height)
+	if weapon != null:
+		base = weapon.compute_size(base)
 	if p_rotated:
-		return Vector2i(def.height, def.width)
-	return Vector2i(def.width, def.height)
+		return Vector2i(base.y, base.x)
+	return base
 
 
 func size() -> Vector2i:
