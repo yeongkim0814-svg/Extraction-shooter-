@@ -5,29 +5,29 @@
 [ext_resource type="ArrayMesh" path="res://scenes/raid/zones/ground/cell_0_0.res" id="3_ab7y5"]
 [ext_resource type="ArrayMesh" path="res://scenes/raid/zones/ground/cell_-1_0.res" id="4_2q4wl"]
 
-[node name="ZoneGround" type="Node3D" unique_id=2089478214]
+[node name="ZoneGround" type="Node3D" unique_id=1419078764]
 
-[node name="Cell_999_999" type="MeshInstance3D" parent="." unique_id=1238373813]
+[node name="Cell_999_999" type="MeshInstance3D" parent="." unique_id=2087290062]
 cast_shadow = 0
 mesh = ExtResource("1_311nq")
 
-[node name="Cell_1000_999" type="MeshInstance3D" parent="." unique_id=785191539]
+[node name="Cell_1000_999" type="MeshInstance3D" parent="." unique_id=655353390]
 cast_shadow = 0
 mesh = ExtResource("2_np4n6")
 
-[node name="Cell_1000_1000" type="MeshInstance3D" parent="." unique_id=546922257]
+[node name="Cell_1000_1000" type="MeshInstance3D" parent="." unique_id=1472471611]
 cast_shadow = 0
 mesh = ExtResource("3_ab7y5")
 
-[node name="Cell_999_1000" type="MeshInstance3D" parent="." unique_id=165857819]
+[node name="Cell_999_1000" type="MeshInstance3D" parent="." unique_id=288709634]
 cast_shadow = 0
 mesh = ExtResource("4_2q4wl")
 
-[node name="Body" type="StaticBody3D" parent="." unique_id=659117522]
+[node name="Body" type="StaticBody3D" parent="." unique_id=1673919073]
 
-[node name="Lights" type="Node3D" parent="." unique_id=1062127290]
+[node name="Lights" type="Node3D" parent="." unique_id=944074159]
 
-[node name="LightmapGI" type="LightmapGI" parent="." unique_id=958378317]
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1103528426]
 quality = 0
 bounces = 2
 max_texture_size = 2048

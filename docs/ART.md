@@ -306,5 +306,6 @@ M10 체크포인트 결과: 스타일라이즈드로 전환하지 않고 세미�
   부품 메시는 16 m 칸·공유 재질별로 합친다 (부품마다 노드를 두지 않는다). 충돌은 `Body` 하나, 빛은 `Lights`, 굽기 노드 `LightmapGI`.
 - 재질은 공유 재질 11개 + 정점 색 (트림 = 페인트 색, 단색 = 색 + A 거칠기, sRGB 저장 -> 셰이더가 렌더러별 변환).
 - `IndustrialMap.add_zone()`이 구역 씬이 있으면 붙이고 충돌을 내비메시 기준에 넣는다. 게임플레이(루팅·엄폐·순찰·탈출)는 맵 코드 그대로.
-- 진행: 공장 홀(`factory_hall`) 시범 완료. 나머지 구역은 옛 코드 지오메트리.
+- 진행: 지면(`ground`)·공장 홀(`factory_hall`)·공장 본관(`factory_block`)·창고(`warehouses`)·단지(`site`: 사무동·정문·주차장·야적장)·시설(`infra`: 담장·철길·랙·크레인·감시탑) 구역 씬 완료. 먼 풍경(`build_skyline`)만 옛 코드 실루엣. 게임플레이 동일성은 구역을 끈/켠 맵의 엄폐·루팅·충돌 격자·내비 경로 비교로 확인한다 (`IndustrialMap.disabled_zones`).
+- 합치기 주의: `SurfaceTool.append_from`은 인덱스 있는/없는 메시를 섞으면 삼각형을 잃는다 -> `build_zones.gd`가 합치기 전에 인덱스를 맞춘다. 구역 칸 크기는 `ZoneBuilder.cell_m` (지면 88 m, 시설 64 m, 단지 44 m, 본관·창고 32 m)로 그리기 호출을 줄인다.
 - 태블릿 굽기: `res://scenes/raid/zones/<구역>.tscn`을 열고 LightmapGI 선택 -> 굽기 (프로브 끔·품질 Low·바운스 2가 미리 설정됨) -> `<구역>.lmbake`로 저장 -> 씬 저장.
