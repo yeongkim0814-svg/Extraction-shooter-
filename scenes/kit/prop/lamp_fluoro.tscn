@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/lamp_fluoro_mesh.res" id="1_vyir2"]
+
+[node name="LampFluoro" type="Node3D" unique_id=1431261061]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=934867811]
+mesh = ExtResource("1_vyir2")
+
+[node name="LIGHT_fluoro" type="Marker3D" parent="." unique_id=2086797297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.52, 0)

@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/pillar_steel_mesh.res" id="1_iley8"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vsw85"]
+size = Vector3(0.3, 4, 0.3)
+
+[node name="PillarSteel" type="Node3D" unique_id=1990514106]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=439651810]
+mesh = ExtResource("1_iley8")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=2133626692]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=882569901]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+shape = SubResource("BoxShape3D_vsw85")

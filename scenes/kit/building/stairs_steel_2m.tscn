@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/stairs_steel_2m_mesh.res" id="1_heacd"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jjrdu"]
+size = Vector3(1, 0.12, 3.5938537)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yhf80"]
+size = Vector3(1, 0.1, 0.8)
+
+[node name="StairsSteel2m" type="Node3D" unique_id=373518077]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1821128082]
+mesh = ExtResource("1_heacd")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=824802172]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1201230909]
+transform = Transform3D(-1, 0, 0, 0, 0.8625838, -0.5059143, 0, -0.5059143, -0.8625838, 0, 1.0213506, 1.55)
+shape = SubResource("BoxShape3D_jjrdu")
+
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1411742670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 3.5)
+shape = SubResource("BoxShape3D_yhf80")

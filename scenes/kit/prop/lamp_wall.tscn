@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/lamp_wall_mesh.res" id="1_abh3c"]
+
+[node name="LampWall" type="Node3D" unique_id=1071469508]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1223763495]
+mesh = ExtResource("1_abh3c")
+
+[node name="LIGHT_wall" type="Marker3D" parent="." unique_id=981662155]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.17)

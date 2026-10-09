@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/large/chimney_mesh.res" id="1_le0od"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hhi73"]
+size = Vector3(2.4, 1, 2.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ddxxe"]
+size = Vector3(1.3, 17, 1.3)
+
+[node name="Chimney" type="Node3D" unique_id=1183100145]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=973004127]
+mesh = ExtResource("1_le0od")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=72657583]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1567809390]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_hhi73")
+
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=1753801666]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.5, 0)
+shape = SubResource("BoxShape3D_ddxxe")

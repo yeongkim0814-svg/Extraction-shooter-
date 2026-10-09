@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/ladder_wall_4m_mesh.res" id="1_y1u8s"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_x87cw"]
+size = Vector3(0.5, 4, 0.16)
+
+[node name="LadderWall4m" type="Node3D" unique_id=536745439]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1589786419]
+mesh = ExtResource("1_y1u8s")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=370017914]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=300486425]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0.09)
+shape = SubResource("BoxShape3D_x87cw")

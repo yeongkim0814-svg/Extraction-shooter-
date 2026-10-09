@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/drawer_cabinet_mesh.res" id="1_mgrad"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2vxv5"]
+size = Vector3(0.6, 1.3, 0.65)
+
+[node name="DrawerCabinet" type="Node3D" unique_id=897942488]
+metadata/loot_kind = "drawers"
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1016478303]
+mesh = ExtResource("1_mgrad")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=389711538]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1916772050]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
+shape = SubResource("BoxShape3D_2vxv5")
+
+[node name="LOOT" type="Marker3D" parent="." unique_id=322333439]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0.34)

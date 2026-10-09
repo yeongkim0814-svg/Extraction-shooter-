@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/fire_extinguisher_mesh.res" id="1_eq4c4"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rq0c7"]
+size = Vector3(0.2, 0.6, 0.24)
+
+[node name="FireExtinguisher" type="Node3D" unique_id=236471249]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=735079682]
+mesh = ExtResource("1_eq4c4")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=235720796]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1225923971]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.02)
+shape = SubResource("BoxShape3D_rq0c7")

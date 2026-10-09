@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/barrel_teal_mesh.res" id="1_cm0xy"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7wt18"]
+size = Vector3(0.551, 0.88, 0.551)
+
+[node name="BarrelTeal" type="Node3D" unique_id=1894365004]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1411148349]
+mesh = ExtResource("1_cm0xy")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1993970911]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=442855411]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.44, 0)
+shape = SubResource("BoxShape3D_7wt18")

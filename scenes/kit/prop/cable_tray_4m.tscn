@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/cable_tray_4m_mesh.res" id="1_k8c6y"]
+
+[node name="CableTray4m" type="Node3D" unique_id=56529949]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=797587089]
+mesh = ExtResource("1_k8c6y")

@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/wall_corner_mesh.res" id="1_ol8q1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2rqqi"]
+size = Vector3(0.5, 4, 0.5)
+
+[node name="WallCorner" type="Node3D" unique_id=1325963399]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2098390504]
+mesh = ExtResource("1_ol8q1")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1290971262]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1400014865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+shape = SubResource("BoxShape3D_2rqqi")
+
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=56474102]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, 0)
+
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=1686934350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0, 0)

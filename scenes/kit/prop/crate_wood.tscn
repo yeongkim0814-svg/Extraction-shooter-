@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/crate_wood_mesh.res" id="1_3vdhv"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_j7aul"]
+size = Vector3(1, 0.8, 0.8)
+
+[node name="CrateWood" type="Node3D" unique_id=229845837]
+metadata/loot_kind = "crate"
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1457894898]
+mesh = ExtResource("1_3vdhv")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=390574336]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1244169574]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("BoxShape3D_j7aul")
+
+[node name="LOOT" type="Marker3D" parent="." unique_id=2049494257]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)

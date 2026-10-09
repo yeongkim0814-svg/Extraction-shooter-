@@ -2,10 +2,10 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/kit/prop/lamp_sodium_mesh.res" id="1_758bw"]
 
-[node name="LampSodium" type="Node3D" unique_id=780734155]
+[node name="LampSodium" type="Node3D" unique_id=2046572111]
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1322304842]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=43685225]
 mesh = ExtResource("1_758bw")
 
-[node name="LIGHT_sodium" type="Marker3D" parent="." unique_id=1115353943]
+[node name="LIGHT_sodium" type="Marker3D" parent="." unique_id=171243755]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.28, 0)

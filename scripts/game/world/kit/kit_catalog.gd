@@ -11,9 +11,55 @@ const DRESSING: StringName = &"dressing"
 
 ## 이름 -> 분류. 새 부품은 여기에 한 줄 + 분류 파일에 정의 하나.
 const PIECES: Dictionary[StringName, StringName] = {
+	# BUILDING
 	&"wall_4m": BUILDING,
+	&"wall_4m_window": BUILDING,
+	&"wall_4m_door": BUILDING,
+	&"door_steel": BUILDING,
+	&"wall_4m_shutter": BUILDING,
+	&"wall_4m_damaged": BUILDING,
+	&"wall_corner": BUILDING,
+	&"pillar_steel": BUILDING,
+	&"roof_truss_8m": BUILDING,
+	&"roof_panel_4m": BUILDING,
+	&"skylight_4m": BUILDING,
+	&"floor_slab_4m": BUILDING,
+	&"stairs_steel_2m": BUILDING,
+	&"catwalk_4m": BUILDING,
+	&"railing_4m": BUILDING,
+	&"loading_dock_4m": BUILDING,
+	# LARGE
+	&"container_20ft_red": LARGE,
+	&"container_20ft_teal": LARGE,
+	&"tank_vertical": LARGE,
+	&"pipe_rack_8m": LARGE,
+	&"chimney": LARGE,
+	&"truck_flatbed": LARGE,
+	&"forklift": LARGE,
+	&"guard_booth": LARGE,
+	# PROP
 	&"barrel": PROP,
+	&"barrel_red": PROP,
+	&"barrel_teal": PROP,
+	&"pallet": PROP,
+	&"crate_wood": PROP,
+	&"crate_military": PROP,
+	&"locker_steel": PROP,
+	&"drawer_cabinet": PROP,
+	&"electrical_cabinet": PROP,
+	&"cable_tray_4m": PROP,
+	&"ladder_wall_4m": PROP,
 	&"lamp_sodium": PROP,
+	&"lamp_wall": PROP,
+	&"lamp_fluoro": PROP,
+	&"lamp_emergency": PROP,
+	&"fire_extinguisher": PROP,
+	# DRESSING
+	&"rubble_small": DRESSING,
+	&"rubble_large": DRESSING,
+	&"debris_planks": DRESSING,
+	&"cable_hanging_4m": DRESSING,
+	&"puddle_2m": DRESSING,
 }
 
 

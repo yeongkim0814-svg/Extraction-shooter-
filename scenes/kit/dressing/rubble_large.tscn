@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/dressing/rubble_large_mesh.res" id="1_w3kmp"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_chq1m"]
+size = Vector3(2.6, 1, 2.2)
+
+[node name="RubbleLarge" type="Node3D" unique_id=1473528581]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=706655296]
+mesh = ExtResource("1_w3kmp")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1199537324]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=584690572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_chq1m")

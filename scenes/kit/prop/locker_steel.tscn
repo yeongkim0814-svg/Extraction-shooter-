@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/prop/locker_steel_mesh.res" id="1_aowy0"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_d2tg7"]
+size = Vector3(0.9, 1.9, 0.5)
+
+[node name="LockerSteel" type="Node3D" unique_id=1266104602]
+metadata/loot_kind = "locker"
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=568930697]
+mesh = ExtResource("1_aowy0")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1886113989]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1389137628]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+shape = SubResource("BoxShape3D_d2tg7")
+
+[node name="LOOT" type="Marker3D" parent="." unique_id=878004004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.3)

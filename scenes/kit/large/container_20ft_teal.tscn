@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/large/container_20ft_teal_mesh.res" id="1_afxuq"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_mvj81"]
+size = Vector3(6.06, 2.59, 2.44)
+
+[node name="Container20FtTeal" type="Node3D" unique_id=1203364008]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=393310528]
+mesh = ExtResource("1_afxuq")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=364425797]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=1825800759]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.295, 0)
+shape = SubResource("BoxShape3D_mvj81")

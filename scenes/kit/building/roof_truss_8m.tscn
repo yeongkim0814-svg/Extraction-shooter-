@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/roof_truss_8m_mesh.res" id="1_n2ue8"]
+
+[node name="RoofTruss8m" type="Node3D" unique_id=1281656156]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1763451733]
+mesh = ExtResource("1_n2ue8")

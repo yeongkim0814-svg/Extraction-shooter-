@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/large/pipe_rack_8m_mesh.res" id="1_61hsu"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_eork4"]
+size = Vector3(0.22, 5, 0.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yak85"]
+size = Vector3(0.22, 5, 0.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_stfc2"]
+size = Vector3(0.22, 5, 0.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12mi1"]
+size = Vector3(0.22, 5, 0.22)
+
+[node name="PipeRack8m" type="Node3D" unique_id=45471192]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1911101564]
+mesh = ExtResource("1_61hsu")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=536815502]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=837573280]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 2.5, -1.5)
+shape = SubResource("BoxShape3D_eork4")
+
+[node name="Shape1" type="CollisionShape3D" parent="Body" unique_id=873627634]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 2.5, 1.5)
+shape = SubResource("BoxShape3D_yak85")
+
+[node name="Shape2" type="CollisionShape3D" parent="Body" unique_id=778962774]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 2.5, -1.5)
+shape = SubResource("BoxShape3D_stfc2")
+
+[node name="Shape3" type="CollisionShape3D" parent="Body" unique_id=268860158]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 2.5, 1.5)
+shape = SubResource("BoxShape3D_12mi1")

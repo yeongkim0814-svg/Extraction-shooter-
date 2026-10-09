@@ -260,6 +260,15 @@ M10 체크포인트 결과: 스타일라이즈드로 전환하지 않고 세미�
 | 장식 | 잔해 더미, 종이·비닐, 늘어진 케이블, 담쟁이·잡초 카드, 웅덩이 |
 - 루팅 컨테이너(서랍장·캐비닛·더플백 등)는 같은 라이브러리에 넣고 `LootContainer`를 붙인 변형 씬으로 둔다.
 
+**구현된 부품 (1차, 45개)**: 크기 = 메시 경계 (m, X x Y x Z), tris = 삼각형. 예산 검사는 `tests/integration/test_kit_catalog.gd`. 벽 모듈은 `SNAP_L/R`, 램프는 `LIGHT_*`, 루팅 상자는 `LOOT` 표식과 `loot_kind` 메타를 가진다. 공통 도우미는 `kit_parts.gd` (난간·바퀴·구멍 난 벽·잔해).
+
+| 분류 | 부품 (크기, tris) |
+|---|---|
+| 건물 모듈 | catwalk_4m (4.0 x 1.2 x 1.2, 216), door_steel (1.0 x 2.1 x 0.1, 156), floor_slab_4m (4.0 x 0.3 x 4.0, 56), loading_dock_4m (4.0 x 1.2 x 3.1, 156), pillar_steel (0.5 x 4.0 x 0.5, 156), railing_4m (4.1 x 1.1 x 0.1, 108), roof_panel_4m (4.0 x 0.1 x 4.0, 36), roof_truss_8m (8.1 x 1.2 x 0.3, 552), skylight_4m (4.0 x 0.1 x 4.0, 108), stairs_steel_2m (1.0 x 3.0 x 4.0, 264), wall_4m (4.0 x 4.0 x 0.5, 148), wall_4m_damaged (4.0 x 4.0 x 1.1, 624), wall_4m_door (4.0 x 4.0 x 0.5, 400), wall_4m_shutter (4.0 x 4.0 x 0.7, 492), wall_4m_window (4.0 x 4.0 x 0.6, 580), wall_corner (0.6 x 4.0 x 0.6, 148) |
+| 대형 | chimney (2.4 x 18.0 x 2.4, 988), container_20ft_red (6.1 x 2.6 x 2.4, 512), container_20ft_teal (6.1 x 2.6 x 2.4, 512), forklift (2.2 x 2.1 x 1.2, 804), guard_booth (2.8 x 2.8 x 2.8, 380), pipe_rack_8m (8.0 x 5.7 x 3.4, 1040), tank_vertical (4.9 x 6.0 x 5.0, 1392), truck_flatbed (7.2 x 2.9 x 2.5, 1096) |
+| 소품 | barrel (0.6 x 0.9 x 0.6, 256), barrel_red (0.6 x 0.9 x 0.6, 256), barrel_teal (0.6 x 0.9 x 0.6, 256), cable_tray_4m (4.0 x 0.7 x 0.4, 276), crate_military (1.3 x 0.5 x 0.5, 256), crate_wood (1.0 x 0.8 x 0.8, 336), drawer_cabinet (0.6 x 1.3 x 0.7, 140), electrical_cabinet (0.9 x 2.5 x 0.5, 148), fire_extinguisher (0.2 x 0.6 x 0.2, 224), ladder_wall_4m (0.6 x 4.0 x 0.2, 372), lamp_emergency (0.3 x 0.1 x 0.1, 68), lamp_fluoro (1.3 x 0.5 x 0.2, 92), lamp_sodium (0.6 x 1.2 x 0.6, 196), lamp_wall (0.2 x 0.2 x 0.2, 92), locker_steel (0.9 x 1.9 x 0.5, 116), pallet (1.2 x 0.1 x 0.8, 204) |
+| 장식 | cable_hanging_4m (4.1 x 0.7 x 0.2, 216), debris_planks (2.5 x 0.2 x 1.8, 72), puddle_2m (1.6 x 0.0 x 1.1, 12), rubble_large (3.4 x 1.0 x 2.9, 512), rubble_small (1.1 x 0.7 x 1.3, 184) |
+
 ### 11.6 조명
 - **간접광**: 구역별 LightmapGI (바운스 2~3, 발광 표면 포함). 구역 = 굽는 단위 = 탭에서 한 번에 굽는 크기. 프로브는 낮게(탭 안정성).
 - **실시간 빛**: 손전등, 총구 화염, 깜빡이는 램프 구역당 1~2개만. 태양은 실시간 그림자(동적 물체용), 간접은 구움.

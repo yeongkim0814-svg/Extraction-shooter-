@@ -13,6 +13,310 @@
   "tris": 256,
   "uv2": true
  },
+ "barrel_red": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.6,
+   0.9,
+   0.59
+  ],
+  "surfaces": 2,
+  "tris": 256,
+  "uv2": true
+ },
+ "barrel_teal": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.6,
+   0.9,
+   0.59
+  ],
+  "surfaces": 2,
+  "tris": 256,
+  "uv2": true
+ },
+ "cable_hanging_4m": {
+  "category": "dressing",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   4.08,
+   0.69,
+   0.16
+  ],
+  "surfaces": 2,
+  "tris": 216,
+  "uv2": true
+ },
+ "cable_tray_4m": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   4.0,
+   0.72,
+   0.44
+  ],
+  "surfaces": 3,
+  "tris": 276,
+  "uv2": true
+ },
+ "catwalk_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 3,
+  "size": [
+   4.0,
+   1.24,
+   1.21
+  ],
+  "surfaces": 2,
+  "tris": 216,
+  "uv2": true
+ },
+ "chimney": {
+  "category": "large",
+  "lod": true,
+  "markers": [],
+  "shapes": 2,
+  "size": [
+   2.4,
+   18.0,
+   2.4
+  ],
+  "surfaces": 5,
+  "tris": 988,
+  "uv2": true
+ },
+ "container_20ft_red": {
+  "category": "large",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   6.14,
+   2.59,
+   2.44
+  ],
+  "surfaces": 3,
+  "tris": 512,
+  "uv2": true
+ },
+ "container_20ft_teal": {
+  "category": "large",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   6.14,
+   2.59,
+   2.44
+  ],
+  "surfaces": 3,
+  "tris": 512,
+  "uv2": true
+ },
+ "crate_military": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LOOT"
+  ],
+  "shapes": 1,
+  "size": [
+   1.27,
+   0.45,
+   0.54
+  ],
+  "surfaces": 2,
+  "tris": 256,
+  "uv2": true
+ },
+ "crate_wood": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LOOT"
+  ],
+  "shapes": 1,
+  "size": [
+   1.0,
+   0.81,
+   0.8
+  ],
+  "surfaces": 2,
+  "tris": 336,
+  "uv2": true
+ },
+ "debris_planks": {
+  "category": "dressing",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   2.51,
+   0.21,
+   1.78
+  ],
+  "surfaces": 1,
+  "tris": 72,
+  "uv2": true
+ },
+ "door_steel": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.97,
+   2.08,
+   0.12
+  ],
+  "surfaces": 2,
+  "tris": 156,
+  "uv2": true
+ },
+ "drawer_cabinet": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LOOT"
+  ],
+  "shapes": 1,
+  "size": [
+   0.6,
+   1.3,
+   0.68
+  ],
+  "surfaces": 2,
+  "tris": 140,
+  "uv2": true
+ },
+ "electrical_cabinet": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.86,
+   2.5,
+   0.46
+  ],
+  "surfaces": 5,
+  "tris": 148,
+  "uv2": true
+ },
+ "fire_extinguisher": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.21,
+   0.61,
+   0.19
+  ],
+  "surfaces": 3,
+  "tris": 224,
+  "uv2": true
+ },
+ "floor_slab_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   4.0,
+   0.3,
+   4.0
+  ],
+  "surfaces": 2,
+  "tris": 56,
+  "uv2": true
+ },
+ "forklift": {
+  "category": "large",
+  "lod": true,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   2.25,
+   2.11,
+   1.22
+  ],
+  "surfaces": 3,
+  "tris": 804,
+  "uv2": true
+ },
+ "guard_booth": {
+  "category": "large",
+  "lod": false,
+  "markers": [],
+  "shapes": 7,
+  "size": [
+   2.8,
+   2.8,
+   2.8
+  ],
+  "surfaces": 6,
+  "tris": 380,
+  "uv2": true
+ },
+ "ladder_wall_4m": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.57,
+   4.0,
+   0.18
+  ],
+  "surfaces": 2,
+  "tris": 372,
+  "uv2": true
+ },
+ "lamp_emergency": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LIGHT_emergency"
+  ],
+  "shapes": 0,
+  "size": [
+   0.35,
+   0.15,
+   0.11
+  ],
+  "surfaces": 2,
+  "tris": 68,
+  "uv2": true
+ },
+ "lamp_fluoro": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LIGHT_fluoro"
+  ],
+  "shapes": 0,
+  "size": [
+   1.3,
+   0.51,
+   0.16
+  ],
+  "surfaces": 2,
+  "tris": 92,
+  "uv2": true
+ },
  "lamp_sodium": {
   "category": "prop",
   "lod": false,
@@ -29,6 +333,234 @@
   "tris": 196,
   "uv2": true
  },
+ "lamp_wall": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LIGHT_wall"
+  ],
+  "shapes": 0,
+  "size": [
+   0.2,
+   0.16,
+   0.17
+  ],
+  "surfaces": 2,
+  "tris": 92,
+  "uv2": true
+ },
+ "loading_dock_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   4.0,
+   1.21,
+   3.07
+  ],
+  "surfaces": 4,
+  "tris": 156,
+  "uv2": true
+ },
+ "locker_steel": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LOOT"
+  ],
+  "shapes": 1,
+  "size": [
+   0.9,
+   1.9,
+   0.53
+  ],
+  "surfaces": 4,
+  "tris": 116,
+  "uv2": true
+ },
+ "pallet": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   1.2,
+   0.14,
+   0.8
+  ],
+  "surfaces": 1,
+  "tris": 204,
+  "uv2": true
+ },
+ "pillar_steel": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.5,
+   4.0,
+   0.5
+  ],
+  "surfaces": 3,
+  "tris": 156,
+  "uv2": true
+ },
+ "pipe_rack_8m": {
+  "category": "large",
+  "lod": true,
+  "markers": [],
+  "shapes": 4,
+  "size": [
+   8.0,
+   5.71,
+   3.4
+  ],
+  "surfaces": 6,
+  "tris": 1040,
+  "uv2": true
+ },
+ "puddle_2m": {
+  "category": "dressing",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   1.61,
+   0.0,
+   1.15
+  ],
+  "surfaces": 1,
+  "tris": 12,
+  "uv2": true
+ },
+ "railing_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   4.08,
+   1.07,
+   0.14
+  ],
+  "surfaces": 1,
+  "tris": 108,
+  "uv2": true
+ },
+ "roof_panel_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   4.0,
+   0.12,
+   4.0
+  ],
+  "surfaces": 3,
+  "tris": 36,
+  "uv2": true
+ },
+ "roof_truss_8m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   8.1,
+   1.21,
+   0.3
+  ],
+  "surfaces": 2,
+  "tris": 552,
+  "uv2": true
+ },
+ "rubble_large": {
+  "category": "dressing",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   3.41,
+   1.04,
+   2.92
+  ],
+  "surfaces": 3,
+  "tris": 512,
+  "uv2": true
+ },
+ "rubble_small": {
+  "category": "dressing",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   1.11,
+   0.71,
+   1.33
+  ],
+  "surfaces": 3,
+  "tris": 184,
+  "uv2": true
+ },
+ "skylight_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 0,
+  "size": [
+   4.0,
+   0.12,
+   4.0
+  ],
+  "surfaces": 2,
+  "tris": 108,
+  "uv2": true
+ },
+ "stairs_steel_2m": {
+  "category": "building",
+  "lod": false,
+  "markers": [],
+  "shapes": 2,
+  "size": [
+   1.0,
+   2.97,
+   4.01
+  ],
+  "surfaces": 3,
+  "tris": 264,
+  "uv2": true
+ },
+ "tank_vertical": {
+  "category": "large",
+  "lod": true,
+  "markers": [],
+  "shapes": 2,
+  "size": [
+   4.87,
+   6.0,
+   4.99
+  ],
+  "surfaces": 5,
+  "tris": 1392,
+  "uv2": true
+ },
+ "truck_flatbed": {
+  "category": "large",
+  "lod": true,
+  "markers": [],
+  "shapes": 3,
+  "size": [
+   7.22,
+   2.9,
+   2.5
+  ],
+  "surfaces": 7,
+  "tris": 1096,
+  "uv2": true
+ },
  "wall_4m": {
   "category": "building",
   "lod": false,
@@ -41,6 +573,91 @@
    4.0,
    4.0,
    0.45
+  ],
+  "surfaces": 3,
+  "tris": 148,
+  "uv2": true
+ },
+ "wall_4m_damaged": {
+  "category": "building",
+  "lod": true,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 5,
+  "size": [
+   4.0,
+   4.02,
+   1.14
+  ],
+  "surfaces": 5,
+  "tris": 624,
+  "uv2": true
+ },
+ "wall_4m_door": {
+  "category": "building",
+  "lod": false,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 3,
+  "size": [
+   4.0,
+   4.0,
+   0.45
+  ],
+  "surfaces": 4,
+  "tris": 400,
+  "uv2": true
+ },
+ "wall_4m_shutter": {
+  "category": "building",
+  "lod": false,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 4,
+  "size": [
+   4.0,
+   4.0,
+   0.72
+  ],
+  "surfaces": 7,
+  "tris": 492,
+  "uv2": true
+ },
+ "wall_4m_window": {
+  "category": "building",
+  "lod": false,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 4,
+  "size": [
+   4.0,
+   4.0,
+   0.63
+  ],
+  "surfaces": 5,
+  "tris": 580,
+  "uv2": true
+ },
+ "wall_corner": {
+  "category": "building",
+  "lod": false,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 1,
+  "size": [
+   0.6,
+   4.0,
+   0.6
   ],
   "surfaces": 3,
   "tris": 148,

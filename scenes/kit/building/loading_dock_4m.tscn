@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/loading_dock_4m_mesh.res" id="1_7jo3u"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_g8okl"]
+size = Vector3(4, 1.2, 3)
+
+[node name="LoadingDock4m" type="Node3D" unique_id=43744545]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1999144242]
+mesh = ExtResource("1_7jo3u")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1649266515]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=901909393]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_g8okl")
