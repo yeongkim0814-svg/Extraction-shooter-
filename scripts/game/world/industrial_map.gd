@@ -261,6 +261,8 @@ func cover_markers(cx: float, cz: float, half_x: float, half_z: float, y: float,
 func add_zone(zone: StringName) -> bool:
 	if disabled_zones.has(zone):
 		return false
+	if zones.has(zone):
+		return true
 	var path: String = ZoneCatalog.scene_path(zone)
 	if not ResourceLoader.exists(path):
 		return false

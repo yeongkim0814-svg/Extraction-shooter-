@@ -105,3 +105,37 @@ static func boxcar(zb: ZoneBuilder, cx: float, cz: float, panel: StringName) -> 
 		for dx: float in [-0.9, 0.9]:
 			kb.cylinder(KitMaterials.FLAT_RUBBER, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(cx + dx, 0.5, cz + dz)), 0.5, 0.2, 12,
 					0.03, false, false)
+
+
+## 선반 한 열 (옛 IndustrialProps.shelf와 같은 칸 수·상자 배치, 같은 충돌): 동서(east_west) 또는 남북, 깊이 1 m, 높이 3 m, 칸마다 짐.
+static func shelf(zb: ZoneBuilder, center: Vector3, length: float, east_west: bool, seed_value: int = 0) -> void:
+	var kb: KitBuild = zb.custom("props_shelves")
+	var basis: Basis = basis_of(0.0 if east_west else 90.0)
+	var bays: int = maxi(1, int(length / 3.0))
+	var bay_len: float = length / float(bays)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1000 + seed_value
+	var crate_mats: Array[StringName] = [KitMaterials.FLAT_WOOD, KitMaterials.METAL_CORRUGATED_RED, KitMaterials.FLAT_WOOD,
+			KitMaterials.METAL_CORRUGATED_TEAL, KitMaterials.FLAT_WOOD, KitMaterials.METAL_CHIPPED]
+	for i: int in range(bays + 1):
+		var offset: float = -length * 0.5 + bay_len * float(i)
+		for side: float in [-0.45, 0.45]:
+			kb.box(KitMaterials.BEAM_TEAL, _at(basis, center, Vector3(offset, 1.5, side)), Vector3(0.1, 3.0, 0.1), 0.0, false)
+	for level: int in range(3):
+		var y: float = 0.5 + 1.0 * float(level)
+		for side: float in [-0.45, 0.45]:
+			kb.box(KitMaterials.BEAM_YELLOW, _at(basis, center, Vector3(0.0, y, side)), Vector3(length, 0.08, 0.08), 0.0, false)
+		kb.box(KitMaterials.FLAT_WOOD, _at(basis, center, Vector3(0.0, y + 0.02, 0.0)), Vector3(length, 0.04, 0.9), 0.0, false)
+		for i: int in range(bays):
+			if rng.randf() < 0.75:
+				var mat: StringName = crate_mats[rng.randi() % crate_mats.size()]
+				var w: float = rng.randf_range(0.9, bay_len - 0.5)
+				var h: float = rng.randf_range(0.4, 0.8)
+				var cx: float = -length * 0.5 + bay_len * (float(i) + 0.5) + rng.randf_range(-0.2, 0.2)
+				kb.box(mat, _at(basis, center, Vector3(cx, y + 0.04 + h * 0.5, 0.0)), Vector3(w, h, 0.7), 0.01, false)
+	var size := Vector3(length, 3.0, 1.0) if east_west else Vector3(1.0, 3.0, length)
+	kb.collide_box(Transform3D(Basis.IDENTITY, center + Vector3(0.0, 1.5, 0.0)), size)
+
+
+static func _at(basis: Basis, center: Vector3, p: Vector3) -> Transform3D:
+	return Transform3D(basis, center + basis * p)

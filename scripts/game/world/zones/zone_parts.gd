@@ -134,3 +134,79 @@ static func tank(kb: KitBuild, base: Vector3, r: float, h: float, body: StringNa
 	# 충돌: collide_w가 0이면 없음 (맵 코드가 따로 둔다), 아니면 상자 하나
 	if collide_w > 0.0:
 		kb.collide_box(KitParts.at(base + Vector3(0.0, h * 0.5, 0.0)), Vector3(collide_w, h, collide_w))
+
+
+## 직선 벽 (옛 IndustrialMap.wall_x/wall_z와 같은 충돌): 고정 좌표 fixed, a~b 구간, 바닥 높이 y0, 높이 h, 두께 t, openings = Vector2(중심, 폭), 문 높이 door_h.
+## along_x가 true면 x 방향 벽 (z = fixed), false면 z 방향 벽 (x = fixed). 문 둘레는 frame 재질 틀 (hazard면 문턱 경고 띠).
+## plinth = 아래 콘크리트 굽, cap = 위 갓돌. 몸통은 panel 재질 (골함석은 세로 줄이라 세로로 늘어나도 괜찮다).
+static func panel_wall(kb: KitBuild, along_x: bool, fixed: float, a: float, b: float, h: float, t: float, panel: StringName,
+		openings: Array[Vector2], door_h: float, y0: float = 0.0, frame: StringName = KitMaterials.BEAM_YELLOW, hazard: bool = true,
+		plinth: bool = true, cap: bool = true) -> void:
+	var sorted: Array[Vector2] = openings.duplicate()
+	sorted.sort_custom(func(p: Vector2, q: Vector2) -> bool: return p.x < q.x)
+	var cursor: float = a
+	var solid: Array[Vector2] = []   # (시작, 끝) 통짜 구간 (전체 높이)
+	var lintels: Array[Vector2] = []  # 문 위
+	for o: Vector2 in sorted:
+		solid.append(Vector2(cursor, o.x - o.y * 0.5))
+		lintels.append(Vector2(o.x - o.y * 0.5, o.x + o.y * 0.5))
+		cursor = o.x + o.y * 0.5
+	solid.append(Vector2(cursor, b))
+	for seg: Vector2 in solid:
+		_wall_box(kb, along_x, fixed, seg.x, seg.y, y0, y0 + h, t, panel, true)
+		if plinth and seg.y - seg.x > 0.5:
+			_wall_box(kb, along_x, fixed, seg.x, seg.y, y0, y0 + 0.6, t + 0.08, KitMaterials.CONCRETE_WALL, false)
+	for seg: Vector2 in lintels:
+		_wall_box(kb, along_x, fixed, seg.x, seg.y, y0 + door_h, y0 + h, t, panel, true)
+		for edge: float in [seg.x, seg.y]:
+			_wall_box(kb, along_x, fixed, edge - 0.1, edge + 0.1, y0, y0 + door_h, t + 0.1, frame, false)
+		_wall_box(kb, along_x, fixed, seg.x - 0.1, seg.y + 0.1, y0 + door_h - 0.2, y0 + door_h, t + 0.1, frame, false)
+		if hazard:
+			_wall_box(kb, along_x, fixed, seg.x, seg.y, y0, y0 + 0.02, t + 0.3, KitMaterials.HAZARD, false)
+	if cap:
+		_wall_box(kb, along_x, fixed, a - 0.1, b + 0.1, y0 + h - 0.2, y0 + h, t + 0.12, KitMaterials.SILL, false)
+
+
+static func _wall_box(kb: KitBuild, along_x: bool, fixed: float, a: float, b: float, y0: float, y1: float, t: float, id: StringName,
+		collide: bool) -> void:
+	if b - a < 0.01 or y1 - y0 < 0.005:
+		return
+	var center := Vector3((a + b) * 0.5, (y0 + y1) * 0.5, fixed) if along_x else Vector3(fixed, (y0 + y1) * 0.5, (a + b) * 0.5)
+	var size := Vector3(b - a, y1 - y0, t) if along_x else Vector3(t, y1 - y0, b - a)
+	kb.box(id, KitParts.at(center), size, 0.0, collide)
+
+
+## z 방향 경사로 (IndustrialMap.ramp_z와 같은 기울기·충돌). z_low에서 높이 y_low, z_high에서 y_high. 윗면 재질 id, 윗면 줄 top_strip.
+static func ramp_z(kb: KitBuild, x: float, width: float, z_low: float, z_high: float, y_low: float, y_high: float, id: StringName,
+		thick: float = 0.3, top_strip: StringName = &"") -> void:
+	var run: float = absf(z_high - z_low)
+	var rise: float = y_high - y_low
+	var angle: float = atan2(absf(rise), run)
+	var length: float = sqrt(run * run + rise * rise)
+	var sign_value: float = -1.0 if z_high < z_low else 1.0
+	var tilt: float = angle * (-sign_value) * (1.0 if rise > 0.0 else -1.0)
+	var mid_y: float = (y_low + y_high) * 0.5 - thick * 0.5 / cos(angle)
+	kb.box(id, Transform3D(Basis(Vector3.RIGHT, tilt), Vector3(x, mid_y, (z_low + z_high) * 0.5)), Vector3(width, thick, length), 0.0, true, top_strip)
+
+
+## x 방향 경사로 (IndustrialMap.ramp_x와 같은 기울기·충돌).
+static func ramp_x(kb: KitBuild, z: float, width: float, x_low: float, x_high: float, y_low: float, y_high: float, id: StringName,
+		thick: float = 0.3, top_strip: StringName = &"") -> void:
+	var run: float = absf(x_high - x_low)
+	var rise: float = y_high - y_low
+	var angle: float = atan2(absf(rise), run)
+	var length: float = sqrt(run * run + rise * rise)
+	var toward_east: float = 1.0 if x_high > x_low else -1.0
+	var tilt: float = angle * toward_east * (1.0 if rise > 0.0 else -1.0)
+	var mid_y: float = (y_low + y_high) * 0.5 - thick * 0.5 / cos(angle)
+	kb.box(id, Transform3D(Basis(Vector3.BACK, tilt), Vector3((x_low + x_high) * 0.5, mid_y, z)), Vector3(length, thick, width), 0.0, true, top_strip)
+
+
+## 책상: 상판 + 양옆 판 + 서랍 (충돌 = 전체 상자 size). 로컬 x가 길이.
+static func desk(kb: KitBuild, pos: Vector3, size: Vector3) -> void:
+	var f: StringName = KitMaterials.FLAT_WOOD
+	kb.box(f, KitParts.at(pos + Vector3(0.0, size.y - 0.04, 0.0)), Vector3(size.x, 0.08, size.z), 0.01, false)
+	for sx: float in [-1.0, 1.0]:
+		kb.box(f, KitParts.at(pos + Vector3(sx * (size.x * 0.5 - 0.04), (size.y - 0.08) * 0.5, 0.0)), Vector3(0.08, size.y - 0.08, size.z - 0.06), 0.0, false)
+	kb.box(KitMaterials.CABINET_GREY, KitParts.at(pos + Vector3(size.x * 0.25, (size.y - 0.08) * 0.5, 0.0)), Vector3(size.x * 0.4, size.y - 0.1, size.z - 0.1), 0.01, false)
+	kb.collide_box(KitParts.at(pos + Vector3(0.0, size.y * 0.5, 0.0)), size)

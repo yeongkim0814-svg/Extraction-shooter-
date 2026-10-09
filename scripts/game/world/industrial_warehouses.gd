@@ -11,8 +11,46 @@ const DOOR_H: float = 4.6
 
 
 static func build(m: IndustrialMap) -> void:
+	if m.add_zone(&"warehouses"):
+		_gameplay(m, 40.0, 68.0, -34.0, -12.0, 0)
+		_gameplay(m, 40.0, 68.0, 6.0, 28.0, 1)
+		_fx(m, 40.0, 68.0, -34.0)
+		_fx(m, 40.0, 68.0, 6.0)
+		return
 	_warehouse(m, 40.0, 68.0, -34.0, -12.0, 0)
 	_warehouse(m, 40.0, 68.0, 6.0, 28.0, 1)
+
+
+## 구역 씬(ZoneWarehouses)을 쓸 때: 지오메트리·충돌은 구역 씬이 맡고, 여기서는 엄폐 지점과 루팅만 둔다 (옛 _warehouse와 같은 자리).
+static func _gameplay(m: IndustrialMap, x0: float, x1: float, z0: float, z1: float, index: int) -> void:
+	var cx: float = (x0 + x1) * 0.5
+	var mid_z: float = (z0 + z1) * 0.5
+	var lane_a: float = z0 + 5.0 if index == 0 else z0 + 4.5
+	var lane_b: float = z1 - 5.0 if index == 0 else z1 - 4.5
+	IndustrialProps.cover_shelf(m, Vector3(x0 + 10.0, 0, lane_a + 1.0), 12.0, true)
+	IndustrialProps.cover_shelf(m, Vector3(x0 + 10.0, 0, lane_b - 1.0), 12.0, true)
+	IndustrialProps.cover_shelf(m, Vector3(x1 - 9.0, 0, lane_a + 1.0), 10.0, true)
+	IndustrialProps.cover_shelf(m, Vector3(x1 - 9.0, 0, lane_b - 1.0), 10.0, true)
+	IndustrialProps.cover_pallet_stack(m, Vector3(cx - 2.0, 0, mid_z), 0.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(cx + 1.0, 0, mid_z + 1.0), 90.0)
+	IndustrialProps.cover_forklift(m, Vector3(x1 - 4.0, 0, mid_z + 1.0))
+	IndustrialProps.cover_barrels(m, Vector3(x0 + 2.0, 0, mid_z + (3.0 if index == 0 else -3.0)))
+	if index == 0:
+		m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(x0 + 2.2, 0.0, z0 + 1.2), 0.0)
+		m.loot(LootContainer.Kind.CRATE, Vector3(x1 - 2.0, 0.0, z0 + 1.2), 0.0)
+	else:
+		m.loot(LootContainer.Kind.DRAWER, Vector3(x1 - 1.0, 0.0, mid_z - 4.0), 270.0)
+		m.loot(LootContainer.Kind.MEDBAG, Vector3(cx + 1.5, 0.0, z0 + 1.0), 0.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(x0 - 3.0, 0, mid_z + 7.0), 90.0)
+
+
+## 구역 씬을 쓸 때의 효과: 낮은 해가 북쪽 높은 창으로 들어오는 가는 빛줄기 (공장 홀과 같은 해 방향, 어두운 창고라 약하게).
+static func _fx(m: IndustrialMap, x0: float, x1: float, z0: float) -> void:
+	var dir := Vector3(0.52, 0.0, 0.84)
+	var warm := Color(1.0, 0.82, 0.62)
+	for i: int in range(4):
+		var x: float = x0 + 5.0 + float(i) * 6.5
+		m.light_shaft(Vector3(x - 1.4, 0, z0 + 0.3), Vector3(x + 1.4, 0, z0 + 0.3), 7.5, dir, 16.0, 0.05, 0.01, warm)
 
 
 static func _warehouse(m: IndustrialMap, x0: float, x1: float, z0: float, z1: float, index: int) -> void:

@@ -19,6 +19,9 @@ const STOREY: float = IndustrialMap.STOREY
 
 
 static func build(m: IndustrialMap) -> void:
+	if m.add_zone(&"site"):
+		_gameplay(m)
+		return
 	_office(m)
 	_freight_lift(m)
 	_gate_and_guard_post(m)
@@ -26,6 +29,67 @@ static func build(m: IndustrialMap) -> void:
 	_container_yard(m)
 	_watchtower(m)
 	_open_ground_cover(m)
+
+
+## 구역 씬(ZoneSite, 감시탑은 ZoneInfra)을 쓸 때: 지오메트리·충돌은 구역 씬이 맡고, 여기서는 엄폐 지점·루팅·전원 레버·정문 표지만 둔다.
+## 부르는 순서·좌표는 옛 함수들과 같다.
+static func _gameplay(m: IndustrialMap) -> void:
+	# 사무동: 책상 (층마다 셋), 루팅, 레버
+	for pos: Vector2 in [Vector2(-44.0, 8.0), Vector2(-30.0, 19.0), Vector2(-42.0, 14.0)]:
+		m.cover_markers(pos.x, pos.y, 1.0, 0.45, 0.0, 0.9)
+		m.cover_markers(pos.x, pos.y, 1.0, 0.45, STOREY, 0.9)
+	m.loot(LootContainer.Kind.MEDBAG, Vector3(-44.0, 0.0, 20.0), 0.0)
+	m.loot(LootContainer.Kind.MEDBAG, Vector3(-32.0, STOREY, 3.0), 0.0)
+	m.loot(LootContainer.Kind.MEDBAG, Vector3(-28.0, STOREY, 20.5), 0.0)
+	m.loot(LootContainer.Kind.DRAWER, Vector3(-47.4, 0.0, 5.0), 90.0)
+	m.loot(LootContainer.Kind.DRAWER, Vector3(-27.0, 0.0, 21.4), 0.0)
+	_lever(m)
+	# 승강장 엄폐 상자
+	m.cover_markers(-56.0, 9.5, 0.8, 0.8, 0.0, 0.9)
+	# 정문·경비초소
+	_gate_label(m)
+	m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(-18.6, 0.0, 82.2), 0.0)
+	m.loot(LootContainer.Kind.DRAWER, Vector3(-10.0, 0.0, 82.5), 0.0)
+	for x: float in [-6.0, 7.0]:
+		IndustrialProps.cover_barrier(m, Vector3(x, 0.0, 66.0), true)
+	IndustrialProps.cover_barrier(m, Vector3(0.0, 0.0, 58.0), true)
+	# 주차장
+	IndustrialProps.cover_truck(m, Vector3(-60.5, 0.0, 35.5))
+	IndustrialProps.cover_truck(m, Vector3(-47.0, 0.0, 34.5))
+	IndustrialProps.cover_truck(m, Vector3(-36.0, 0.0, 55.5))
+	IndustrialProps.cover_forklift(m, Vector3(-30.0, 0.0, 46.0))
+	IndustrialProps.cover_barrels(m, Vector3(-52.0, 0.0, 45.0))
+	m.loot(LootContainer.Kind.CRATE, Vector3(-52.5, 0.0, 39.0), 0.0)
+	# 컨테이너 야적장 (맨 아래 줄만 엄폐 지점)
+	for z: float in [-22.0, -12.0, -2.0, 8.0, 18.0, 28.0]:
+		for x: float in [14.0, 30.0]:
+			IndustrialProps.cover_container(m, x, z, true)
+	m.loot(LootContainer.Kind.CRATE, Vector3(22.0, 0.0, -17.0), 0.0)
+	m.loot(LootContainer.Kind.CRATE, Vector3(22.0, 0.0, 13.0), 90.0)
+	m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(37.4, 0.0, 22.0), 90.0)
+	# 감시탑 (지오메트리는 ZoneInfra)
+	if m.add_zone(&"infra"):
+		_watchtower_gameplay(m)
+	else:
+		_watchtower(m)
+	# 흩어진 엄폐물과 시작 지점 소품
+	for pos: Vector3 in ZoneSite.BARRIERS:
+		IndustrialProps.cover_barrier(m, pos, int(pos.x + pos.z) % 2 == 0)
+	m.loot(LootContainer.Kind.CRATE, Vector3(28.0, 0.0, 70.0), 0.0)
+	IndustrialProps.cover_truck(m, Vector3(40.0, 0.0, 77.0))
+	IndustrialProps.cover_barrels(m, Vector3(18.0, 0.0, 81.0))
+	IndustrialProps.cover_pallet_stack(m, Vector3(32.0, 0.0, 72.0), 20.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(46.0, 0.0, 44.0), 0.0)
+	IndustrialProps.cover_pallet_stack(m, Vector3(-8.0, 0.0, 28.0), 90.0)
+	IndustrialProps.cover_barrels(m, Vector3(62.0, 0.0, 58.0))
+	IndustrialProps.cover_forklift(m, Vector3(6.0, 0.0, 33.0))
+
+
+## 감시탑의 엄폐 지점·루팅만 (옛 _watchtower와 같은 자리).
+static func _watchtower_gameplay(m: IndustrialMap) -> void:
+	m.loot(LootContainer.Kind.WEAPON_BOX, Vector3(-56.5, 9.0, -64.2), 0.0)
+	m.cover_markers(-58.0, -62.0, 3.5, 3.5, 9.0, 0.0)
+	m.loot(LootContainer.Kind.CRATE, Vector3(-64.0, 0.0, -57.0), 0.0)
 
 
 # --- 사무동 ---
@@ -73,7 +137,11 @@ static func _office(m: IndustrialMap) -> void:
 	m.loot(LootContainer.Kind.MEDBAG, Vector3(-28.0, STOREY, 20.5), 0.0)
 	m.loot(LootContainer.Kind.DRAWER, Vector3(-47.4, 0.0, 5.0), 90.0)
 	m.loot(LootContainer.Kind.DRAWER, Vector3(-27.0, 0.0, 21.4), 0.0)
-	# 전원 레버 (2층 북서 방)
+	_lever(m)
+
+
+## 전원 레버 (2층 북서 방). 구역 씬 여부와 상관없이 맵 코드가 둔다.
+static func _lever(m: IndustrialMap) -> void:
 	var lever := PowerLever.new()
 	lever.name = "PowerLever"
 	lever.position = Vector3(-47.5, STOREY, 3.0)
@@ -114,17 +182,7 @@ static func _gate_and_guard_post(m: IndustrialMap) -> void:
 	m.span(-6.0, 6.0, 0.0, 4.2, hh - 0.6, hh - 0.2, STEEL)
 	for x: float in [-4.0, -2.0, 0.0, 2.0, 4.0]:
 		m.box(Vector3(x, 2.1, hh - 0.75), Vector3(0.1, 4.2, 0.1), RUST, Basis.IDENTITY, false)
-	var sign_label := Label3D.new()
-	sign_label.text = "정문  ·  MAIN GATE"
-	sign_label.font = FONT
-	sign_label.font_size = 64
-	sign_label.pixel_size = 0.012
-	sign_label.position = Vector3(0.0, 5.75, hh - 1.05)
-	sign_label.rotation.y = PI
-	sign_label.modulate = Color(0.85, 0.82, 0.7, 0.85)
-	sign_label.outline_size = 0
-	sign_label.shaded = true
-	m.add_child(sign_label)
+	_gate_label(m)
 	# 경비초소: x -20..-8, z 75..83, 동쪽(도로 쪽)에 문
 	var t: float = 0.4
 	m.wall_z(75.0, 83.0, -8.0, 0.0, 3.2, t, CONCRETE, [Vector2(79.0, 1.6)])
@@ -143,6 +201,21 @@ static func _gate_and_guard_post(m: IndustrialMap) -> void:
 	for x: float in [-6.0, 7.0]:
 		IndustrialProps.barrier(m, Vector3(x, 0.0, 66.0), true)
 	IndustrialProps.barrier(m, Vector3(0.0, 0.0, 58.0), true)
+
+
+static func _gate_label(m: IndustrialMap) -> void:
+	var hh: float = IndustrialMap.HALF
+	var sign_label := Label3D.new()
+	sign_label.text = "정문  ·  MAIN GATE"
+	sign_label.font = FONT
+	sign_label.font_size = 64
+	sign_label.pixel_size = 0.012
+	sign_label.position = Vector3(0.0, 5.75, hh - 1.05)
+	sign_label.rotation.y = PI
+	sign_label.modulate = Color(0.85, 0.82, 0.7, 0.85)
+	sign_label.outline_size = 0
+	sign_label.shaded = true
+	m.add_child(sign_label)
 
 
 # --- 주차장 ---
