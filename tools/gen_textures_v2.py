@@ -219,6 +219,56 @@ class Strip:
         self.rough = self.rough * (1.0 - m) + 0.7 * m
         return m
 
+    def wear_concrete(self, spall=1.0, soot=0.3, streak=0.14, moss=0.0):
+        """콘크리트 가장자리 닳음 (녹 없음): 가장 바깥 2~6 px의 밝은 잔 칩, 아래쪽이 더 진한 그을음, 위에서 흘러내리는 가는 빗물 줄무늬,
+        (선택) 아래쪽 이끼 기운. 모두 줄 바깥 20% 안에만 둔다."""
+        h = self.h
+        e2 = 1.0 - smooth(self.de, 1.5, 6.0)
+        n = self.fbm([1.1, 2.6], [1.0, 0.7])
+        sp = smooth(n + 1.3 * e2 - 1.75, 0.0, 0.3) * e2 * spall
+        self.alb = self.alb * (1.0 - 0.7 * sp[..., None]) + CONC_LT * 1.08 * 0.7 * sp[..., None]
+        self.hgt -= 0.15 * sp
+        self.rough += 0.04 * sp
+        g = (0.95 * self.Eb + 0.3 * self.Et) * (0.3 + 0.7 * smooth(self.noise(16, 5), -0.6, 1.0))
+        self.mul(g, soot)
+        self.rough += 0.05 * g
+        col_len = smooth(fnoise(self.rng, h, W, 3.0, 4000.0), -1.0, 1.5)
+        length = h * (0.05 + 0.15 * col_len)
+        sn = smooth(self.noise(1.2, 30.0), 0.9, 2.0)
+        st = sn * (1.0 - smooth(self.Y, 0.0, length)) * self.Et
+        self.mul(st, streak)
+        if moss > 0.0:
+            mm = smooth(self.noise(20, 5), 0.3, 1.5) * self.Eb * moss
+            self.alb = self.alb * (1.0 - mm[..., None]) + c(104, 112, 92) * mm[..., None]
+
+    def wear_metal(self, amount=1.0, bottom=1.6, rust=0.35):
+        """도장 금속 닳음: 군집(어떤 구간은 심하고 어떤 구간은 깨끗) + 프랙털 크기(잔 칩 많고 큰 칩 거의 없음) + 아래쪽 비대칭.
+        칩 아래는 먼저 어두운 맨 강철, 녹은 일부만. 일부 칩에서 가는 녹물 줄이 짧게 흘러내린다."""
+        h = self.h
+        cluster = 0.1 + 0.9 * smooth(fnoise(self.rng, h, W, 90.0, max(h * 3.0, 80.0)), -0.6, 1.2)
+        e = np.minimum(np.maximum(self.Et * 0.55, self.Eb * 0.62 * bottom), 1.0) * cluster
+        n = self.fbm([1.4, 3.5, 9.0], [1.0, 0.9, 0.45])
+        score = 0.55 * n + 2.0 * e * amount - 1.7
+        chip = smooth(score, 0.0, 0.18) * smooth(self.edge, 0.0, 0.08)
+        bare = c(66, 68, 72)
+        rustc = RUST_A * 0.8 + RUST_B * 0.2
+        rm = smooth(self.noise(4.0, 3.0) + (rust - 0.35) * 2.5, 0.2, 1.0)
+        under = bare * (1.0 - rm[..., None]) + rustc * rm[..., None]
+        self.alb = self.alb * (1.0 - chip[..., None]) + under * chip[..., None]
+        run = np.zeros_like(chip)
+        L = 14
+        strong = (chip > 0.6).astype(np.float32)
+        for k in range(1, L):
+            run[k:] = np.maximum(run[k:], strong[:-k] * (1.0 - k / L))
+        colm = smooth(fnoise(self.rng, h, W, 0.9, 4000.0), 0.3, 1.2)
+        streak = run * colm * (1.0 - chip) * smooth(self.edge, 0.0, 0.1) * 0.8
+        self.alb = self.alb * (1.0 - 0.5 * streak[..., None]) + rustc * 0.5 * streak[..., None]
+        self.paint = self.paint * (1.0 - chip)
+        self.hgt -= 0.22 * chip
+        self.rough = self.rough * (1.0 - chip) + (0.55 + 0.3 * rm) * chip
+        self.metal = self.metal * (1.0 - chip) + 0.8 * (1.0 - rm) * chip
+        return chip
+
 
 def paint_set(s, pale, mask):
     """mask 자리를 페인트(옅은 회백색)로 칠한다. 아래 알베도는 mask 밖에 남는다."""
@@ -231,7 +281,7 @@ CONC_DK = c(94, 92, 89)
 CONC_LT = c(152, 149, 143)
 METAL = c(110, 115, 122)
 STEEL_DK = c(62, 66, 72)
-PALE = c(205, 203, 196)
+PALE = c(230, 227, 218)
 RUST_A = c(112, 57, 28)
 RUST_B = c(150, 84, 42)
 PRIMER = c(98, 72, 62)
@@ -257,11 +307,7 @@ def strip_wall(h):
     pores = smooth(s.noise(1.1), 1.6, 2.4) * s.edge
     s.hgt -= 0.20 * pores
     s.mul(pores, 0.18)
-    drip = smooth(s.noise(5.0, 28.0), 0.5, 1.7) * s.Et
-    s.mul(drip, 0.30)
-    s.grime(0.16)
-    s.chips(CONC_DK, side="bottom", thr=1.80)
-    s.chips(CONC_LT, side="top", thr=1.95, amount=0.7)
+    s.wear_concrete(spall=1.0, soot=0.30, streak=0.14)
     return s
 
 
@@ -284,10 +330,7 @@ def strip_panel(h):
                 bolt = disc(s.X, s.Y, sx + ox, by, 3.6)
                 s.hgt += 0.35 * bolt
                 s.alb = s.alb * (1.0 - 0.7 * bolt[..., None]) + CONC_DK * 0.7 * bolt[..., None]
-    drip = smooth(s.noise(5.0, 32.0), 0.5, 1.7) * s.Et
-    s.mul(drip, 0.28)
-    s.grime(0.18)
-    s.chips(CONC_DK, side="bottom", thr=1.80)
+    s.wear_concrete(spall=0.8, soot=0.26, streak=0.12, moss=0.25)
     return s
 
 
@@ -334,7 +377,7 @@ def strip_band(h):
     """페인트 띠: 가운데는 매끈한 도장, 가장자리부터 칠이 벗겨져 콘크리트가 드러난다."""
     s = Strip("band", h, CONC, 0.88)
     s.lowtone(0.02)
-    n = s.noise(12.0, 4.0)
+    n = s.fbm([2.0, 5.0, 12.0], [1.0, 0.8, 0.5])
     chip = smooth(0.5 * n + 1.9 * s.edge - 1.6, 0.0, 0.2) * smooth(s.edge, 0.0, 0.1)
     paint = 1.0 - chip
     paint_set(s, PALE, paint)
@@ -345,9 +388,7 @@ def strip_band(h):
     bead = (1.0 - smooth(np.abs(s.Y - 5.0), 1.0, 3.0)) + (1.0 - smooth(np.abs(s.Y - (h - 6.0)), 1.0, 3.0))
     s.hgt += 0.25 * bead
     s.ao *= 1.0 - 0.22 * bead
-    drip = smooth(s.noise(4.0, 26.0), 0.8, 1.8) * s.Et * paint
-    s.mul(drip, 0.18)
-    s.grime(0.20)
+    s.wear_concrete(spall=0.4, soot=0.22, streak=0.10)
     return s
 
 
@@ -427,8 +468,7 @@ def strip_shutter(h):
         s.hgt += 0.3 * lug
     # 슬랫 끝 가이드 레일 자국 (U 주기 이음)
     s.grime(0.22)
-    chip = s.chips(c(120, 118, 112), thr=1.85)
-    s.paint *= 1.0 - chip
+    s.wear_metal(0.9, 1.5, 0.3)
     s.rough = np.where(s.paint > 0.5, 0.55, s.rough)
     s.nstrength = 3.0
     return s
@@ -446,9 +486,7 @@ def strip_sill(h):
     s.mul(drip, 0.10)
     s.ao *= 1.0 - 0.5 * drip
     s.alb *= (1.0 + 0.04 * top)[..., None]
-    s.grime(0.22)
-    s.chips(CONC_DK, side="bottom", thr=1.70, depth=0.15)
-    s.nstrength = 3.0
+    s.wear_concrete(spall=1.2, soot=0.30, streak=0.10, moss=0.3)
     return s
 
 
@@ -469,14 +507,9 @@ def strip_corrugated(h):
             s.hgt += 0.3 * sc
             s.alb = s.alb * (1.0 - 0.5 * sc[..., None]) + c(120, 120, 120) * 0.5 * sc[..., None]
             s.paint *= 1.0 - sc * 0.8
-    s.grime(0.28, scale=(10, 5))
-    ru = smooth(s.noise(14, 5) + 1.9 * s.edge - 1.8, 0.0, 0.3) * smooth(s.edge, 0.0, 0.12)
-    ru_col = RUST_A * 0.5 + PRIMER * 0.5
-    s.alb = s.alb * (1.0 - ru[..., None]) + ru_col * ru[..., None]
-    s.paint *= 1.0 - ru
-    s.rough = np.where(ru > 0.3, 0.85, s.rough).astype(np.float32)
-    s.metal = s.metal * (1.0 - ru)
-    s.hgt -= 0.1 * ru
+    s.grime(0.20, scale=(10, 5))
+    chip = s.wear_metal(1.0, 1.7, 0.4)
+    s.paint *= 1.0 - chip
     return s
 
 
@@ -506,51 +539,38 @@ def strip_plate(h):
         s.hgt += 0.33 * r
         s.alb *= (1.0 - 0.10 * r)[..., None]
         s.ao *= 1.0 - 0.15 * disc(s.X, s.Y, px, py, 5.6)
-    s.grime(0.28, scale=(10, 5))
-    chip = s.chips(PRIMER, thr=1.70, depth=0.2)
-    s.paint *= 1.0 - chip
-    ru = smooth(s.noise(10, 4) + 1.9 * s.Eb - 1.8, 0.0, 0.3) * smooth(s.Eb, 0.0, 0.1)
-    s.alb = s.alb * (1.0 - ru[..., None]) + (RUST_A * 0.75 + RUST_B * 0.25) * ru[..., None]
-    s.paint *= 1.0 - ru
-    s.nstrength = 3.5
+    s.grime(0.20, scale=(10, 5))
+    s.wear_metal(1.15, 1.5, 0.3)
     return s
 
 
 def strip_chipped(h):
-    """도장 벗겨진 금속: 가운데는 온전한 칠, 벗겨짐은 가장자리에서 번진다. 칠 아래는 프라이머·녹·맨 금속."""
+    """도장 벗겨진 금속: 가운데는 온전한 칠, 벗겨짐은 가장자리에서 군집으로 번진다 (다른 줄보다 심하다)."""
     s = Strip("chipped", h, PALE, 0.55, 0.2)
     s.lowtone(0.03)
-    n = s.fbm([16, 5], [1.0, 0.6])
-    score = 0.5 * n + 1.8 * s.edge - 1.55
-    chip = smooth(score, 0.0, 0.14) * smooth(s.edge, 0.0, 0.15)
-    paint = 1.0 - chip
-    under_n = smooth(s.noise(8, 3), -0.3, 1.0)
-    under = PRIMER * (1.0 - under_n[..., None]) + RUST_B * under_n[..., None]
-    bare = smooth(s.noise(6, 2) + 0.8, 0.8, 1.6)[..., None]
-    under = under * (1.0 - 0.6 * bare) + c(124, 126, 130) * 0.6 * bare
-    s.alb = s.alb * (1.0 - chip[..., None]) + under * chip[..., None]
-    s.paint = paint
-    s.hgt = 0.5 - 0.16 * chip + 0.04 * smooth(blur(paint, 1.5), 0, 1)
-    s.rough = (0.55 + 0.3 * chip).astype(np.float32)
-    s.metal = (0.15 + 0.4 * chip * bare[..., 0]).astype(np.float32)
-    s.grime(0.30)
+    s.paint = np.ones((h, W), np.float32)
+    s.wear_metal(1.5, 1.8, 0.5)
+    s.grime(0.24)
     s.nstrength = 3.5
     return s
 
 
 def strip_rust(h):
-    """녹 줄 (무늬): 큰 얼룩만. #70391C ~ #96542A 사이를 저주파로 오가고, 잔 점은 없다."""
-    s = Strip("rust", h, RUST_A, 0.88, 0.1)
-    t = smooth(s.fbm([60, 22], [1.0, 0.6]), -1.2, 1.2)
-    s.alb = RUST_A * (1.0 - t[..., None]) + RUST_B * t[..., None]
-    streak = smooth(s.noise(6.0, 40.0), 0.4, 1.8)
-    s.alb *= (1.0 - 0.22 * streak)[..., None]
-    dark = smooth(s.noise(30, 12), 0.8, 2.0)
-    s.alb *= (1.0 - 0.25 * dark)[..., None]
-    s.hgt = 0.5 + 0.06 * s.fbm([14, 5]) - 0.10 * dark
-    s.rough = (0.82 + 0.1 * t).astype(np.float32)
+    """부식 강판 (무늬): 어두운 갈색~주황 얼룩, 등방성 잔 구멍(피팅)과 떨어져 나간 조각, 군데군데 남은 회청색 페인트 조각. 가로 줄무늬 없음."""
+    s = Strip("rust", h, RUST_A, 0.9, 0.1)
+    mott = smooth(s.fbm([14, 6, 2.2], [1.0, 0.8, 0.5]), -1.0, 1.2)
+    s.alb = RUST_A * 0.85 * (1.0 - mott[..., None]) + RUST_B * mott[..., None]
+    dark = smooth(s.fbm([26, 26]), 0.6, 1.6)
+    s.alb *= (1.0 - 0.35 * dark)[..., None]
+    pits = smooth(s.noise(1.3, 1.3), 1.5, 2.4)
+    flake = smooth(s.fbm([5, 5, 2]), 1.1, 1.9)
+    s.alb = s.alb * (1.0 - 0.55 * pits[..., None])
+    s.alb = s.alb * (1.0 - 0.55 * flake[..., None]) + c(100, 108, 116) * 0.55 * flake[..., None]
+    s.hgt = 0.5 - 0.30 * pits + 0.12 * flake + 0.05 * s.fbm([10, 4])
+    s.rough = (0.9 - 0.12 * mott - 0.2 * flake).astype(np.float32)
+    s.metal = (0.1 + 0.3 * flake).astype(np.float32)
     s.grime(0.2)
-    s.nstrength = 2.5
+    s.nstrength = 3.0
     return s
 
 
@@ -589,8 +609,7 @@ def strip_pipe(h):
     s.grime(0.22, scale=(14, 5), top_heavy=False)
     drip = smooth(s.noise(24.0, 3.0), 0.9, 1.9) * s.Et
     s.mul(drip, 0.18)
-    chip = s.chips(PRIMER, thr=1.85, depth=0.15)
-    s.paint *= 1.0 - chip
+    s.wear_metal(0.8, 1.4, 0.3)
     s.nstrength = 3.0
     return s
 
@@ -607,13 +626,8 @@ def strip_beam(h):
             s.alb = s.alb * (1.0 - 0.12 * r[..., None])
             s.ao *= 1.0 - 0.2 * disc(s.X, s.Y, sx, yy, 6.0)
     s.hgt += 0.15 * (1.0 - smooth(s.de, 0.0, 6.0))
-    s.grime(0.26, scale=(12, 5))
-    chip = s.chips(PRIMER, thr=1.65, depth=0.2)
-    s.paint *= 1.0 - chip
-    ru = smooth(s.noise(10, 4) + 1.9 * s.Eb - 1.8, 0.0, 0.3) * smooth(s.Eb, 0.0, 0.1)
-    s.alb = s.alb * (1.0 - ru[..., None]) + RUST_A * ru[..., None]
-    s.paint *= 1.0 - ru
-    s.nstrength = 3.2
+    s.grime(0.18, scale=(12, 5))
+    s.wear_metal(0.9, 1.9, 0.45)
     return s
 
 
@@ -791,8 +805,7 @@ def strip_cabinet(h):
     s.paint *= 1.0 - 0.5 * lab
     s.hgt += 0.08 * lab
     s.grime(0.28, scale=(12, 5))
-    chip = s.chips(PRIMER, thr=1.70, depth=0.2)
-    s.paint *= 1.0 - chip
+    s.wear_metal(1.0, 1.6, 0.35)
     s.mul(smooth(s.noise(4.0, 22.0), 0.8, 1.8) * s.Eb, 0.22)
     s.nstrength = 3.4
     return s
@@ -845,8 +858,7 @@ def strip_sign(h):
             s.paint *= 1.0 - 0.6 * b
     s.lowtone(0.03)
     s.grime(0.22)
-    chip = s.chips(c(100, 100, 100), thr=1.80, depth=0.1)
-    s.paint *= 1.0 - chip
+    s.wear_metal(0.6, 1.4, 0.2)
     s.nstrength = 3.0
     return s
 
@@ -925,8 +937,7 @@ def strip_door_hw(h):
     s.hgt -= 0.3 * lock
     s.alb *= (1.0 - 0.4 * lock)[..., None]
     s.grime(0.28, scale=(12, 5))
-    chip = s.chips(PRIMER, thr=1.70, depth=0.2)
-    s.paint *= 1.0 - chip
+    s.wear_metal(0.9, 1.3, 0.25)
     s.nstrength = 3.4
     return s
 
@@ -960,8 +971,7 @@ def strip_duct(h):
     s.grime(0.30, scale=(14, 5), top_heavy=False)
     dust = smooth(s.noise(10, 4), -0.2, 1.4) * s.Et
     s.alb = s.alb * (1.0 - 0.25 * dust[..., None]) + c(120, 112, 100) * 0.25 * dust[..., None]
-    s.chips(RUST_B * 0.8, thr=1.90, depth=0.1, amount=0.8)
-    s.nstrength = 3.0
+    s.wear_metal(0.8, 1.3, 0.5)
     return s
 
 
@@ -1080,13 +1090,17 @@ def make_asphalt():
     alb = alb * (1.0 - 0.5 * spec[..., None]) + c(120, 118, 114) * 0.5 * spec[..., None]
     hgt = 0.5 + 0.12 * coarse + 0.06 * grain + 0.1 * low
     rough = 0.9 - 0.08 * spec + 0.03 * low
-    # 보수 패치 (더 매끈하고 약간 어두운 직사각형) 여러 개를 흩어 둔다
+    # 보수 패치: 직사각형이지만 가장자리를 노이즈로 살짝 일그러뜨리고, 둘레에 가는 어두운 실란트 선을 두른다
+    Xw = X + 4.0 * fnoise(rng, W, W, 6.0)
+    Yw = Y + 4.0 * fnoise(rng, W, W, 6.0)
     for i, (px, py, pw, ph) in enumerate(((190, 260, 230, 150), (700, 140, 150, 220), (480, 760, 300, 120), (880, 830, 120, 160))):
-        p = rect_patch(X, Y, px, py, pw, ph, 1.8)
-        edge = p * (1.0 - smooth(pblur(p, 2.0), 0.0, 0.8))
-        alb = alb * (1.0 - 0.45 * p[..., None]) + c(52, 52, 55) * 0.45 * p[..., None] * (1.0 + 0.03 * low[..., None])
-        hgt = hgt * (1.0 - 0.6 * p) + 0.5 * 0.6 * p + 0.12 * edge
-        rough = rough * (1.0 - 0.5 * p) + 0.78 * 0.5 * p
+        p = rect_patch(Xw, Yw, px, py, pw, ph, 1.8)
+        line = smooth(4.0 * p * (1.0 - p), 0.55, 1.0)
+        alb = alb * (1.0 - (0.14 + 0.03 * i) * p[..., None])
+        alb = alb * (1.0 - 0.6 * line[..., None]) + c(26, 26, 28) * 0.6 * line[..., None]
+        hgt = hgt * (1.0 - 0.5 * p) + 0.5 * 0.5 * p + 0.06 * line
+        rough = rough * (1.0 - 0.4 * p) + 0.78 * 0.4 * p
+        rough = rough * (1.0 - 0.5 * line) + 0.55 * 0.5 * line
     # 잔 균열 (한 타일에 흩어진 가는 선)
     cr = pblur(crack_field(rng, 26, 70), 0.7)
     cr = np.clip(cr * 2.5, 0, 1)
@@ -1145,45 +1159,55 @@ def make_concrete():
 
 
 def make_gravel():
+    """자갈 + 흙: 낱개 조약돌 (대부분 지름 2~4 cm, 가끔 6 cm)을 빽빽하지 않게 흩뿌리고 사이에 흙이 보이게 한다.
+    돌마다 윗면 하이라이트, 둘레 접촉 AO, 은은한 색차. 양 축 주기 (스탬프를 모듈로 찍는다)."""
     rng = rng_for("ground_gravel")
-    g = 56
-    cell = W / g
-    jx = 0.15 + 0.7 * rng.random((g, g)).astype(np.float32)
-    jy = 0.15 + 0.7 * rng.random((g, g)).astype(np.float32)
-    X, Y = np.meshgrid(np.arange(W, dtype=np.float32) + 0.5, np.arange(W, dtype=np.float32) + 0.5)
-    ci = np.floor(X / cell).astype(np.int32)
-    cj = np.floor(Y / cell).astype(np.int32)
-    d1 = np.full((W, W), 1e9, np.float32)
-    d2 = np.full((W, W), 1e9, np.float32)
-    nid = np.zeros((W, W), np.int32)
-    for oy in (-1, 0, 1):
-        for ox in (-1, 0, 1):
-            ii = ci + ox
-            jj = cj + oy
-            px = (ii + jx[jj % g, ii % g]) * cell
-            py = (jj + jy[jj % g, ii % g]) * cell
-            d = np.hypot(X - px, Y - py)
-            closer = d < d1
-            d2 = np.where(closer, d1, np.minimum(d2, d))
-            nid = np.where(closer, (jj % g) * g + (ii % g), nid)
-            d1 = np.where(closer, d, d1)
-    pal = np.array([c(124, 120, 112), c(140, 131, 116), c(100, 96, 92), c(152, 144, 130), c(112, 102, 90), c(126, 124, 122)], np.float32)
-    pick = rng.integers(0, len(pal), g * g)
-    tone = 0.94 + 0.12 * rng.random(g * g).astype(np.float32)
-    col = pal[pick[nid]] * tone[nid][..., None]
-    edge = d2 - d1
-    dome = smooth(edge, 0.0, 5.0)
-    hgt = 0.15 + 0.6 * dome
-    # 흙이 덮인 곳 (저주파 임계): 자갈을 덮는 고운 흙
-    soil_n = fbm(rng, W, W, [70.0, 28.0], [1.0, 0.6])
-    soil = smooth(soil_n, 0.5, 1.4)
-    soil_col = c(88, 76, 62) * (1.0 + 0.03 * fnoise(rng, W, W, 60.0))[..., None]
-    alb = col * (1.0 - 0.8 * soil[..., None]) + soil_col * 0.8 * soil[..., None]
-    alb *= (0.72 + 0.28 * smooth(edge, 0.0, 3.0))[..., None]
+    soil_n = fnoise(rng, W, W, 60.0)
+    soil = c(86, 74, 60) * (1.0 + 0.04 * soil_n + 0.025 * fnoise(rng, W, W, 1.6))[..., None]
+    COL = soil.astype(np.float32).copy()
+    H = (0.10 + 0.02 * fnoise(rng, W, W, 2.5)).astype(np.float32)
+    pal = np.array([c(124, 120, 114), c(138, 130, 118), c(104, 100, 96), c(146, 140, 128), c(116, 106, 94), c(128, 126, 124)], np.float32)
+    n = 17000
+    cx = rng.random(n) * W
+    cy = rng.random(n) * W
+    big = rng.random(n) < 0.04
+    rad = np.where(big, 6.5 + rng.random(n) * 2.0, 2.4 + rng.random(n) * 2.6)
+    ratio = 1.0 + 0.35 * rng.random(n)
+    rot = rng.random(n) * np.pi
+    pick = rng.integers(0, len(pal), n)
+    tone = 0.93 + 0.14 * rng.random(n)
+    for i in range(n):
+        r = rad[i]
+        R = int(np.ceil(r * ratio[i])) + 1
+        ix, iy = int(cx[i]), int(cy[i])
+        ys = (iy + np.arange(-R, R + 1)) % W
+        xs = (ix + np.arange(-R, R + 1)) % W
+        dy, dx = np.mgrid[-R:R + 1, -R:R + 1].astype(np.float32)
+        dx -= cx[i] - ix
+        dy -= cy[i] - iy
+        ca, sa = np.cos(rot[i]), np.sin(rot[i])
+        u = (dx * ca + dy * sa) / (r * ratio[i])
+        v = (-dx * sa + dy * ca) / r
+        r2 = u * u + v * v
+        hh = np.sqrt(np.clip(1.0 - r2, 0.0, 1.0))
+        hn = 0.12 + hh * (0.12 + 0.05 * r)
+        reg = H[np.ix_(ys, xs)]
+        upd = (r2 < 1.0) & (hn > reg)
+        light = np.clip(-(dx + dy) / (r * 1.6), -1.0, 1.0)
+        shade = 0.62 + 0.30 * hh + 0.16 * light * (1.0 - 0.5 * hh) + 0.14 * hh ** 4
+        colp = pal[pick[i]] * tone[i] * shade[..., None]
+        reg_c = COL[np.ix_(ys, xs)]
+        H[np.ix_(ys, xs)] = np.where(upd, hn, reg)
+        COL[np.ix_(ys, xs)] = np.where(upd[..., None], colp, reg_c)
+    cover = smooth(H, 0.13, 0.17)
+    dark = pblur(cover, 2.5) * (1.0 - cover)
+    alb = COL * (1.0 - 0.45 * dark)[..., None]
     alb *= (1.0 + 0.03 * fnoise(rng, W, W, 120.0))[..., None]
-    hgt = hgt * (1.0 - 0.7 * soil) + 0.45 * 0.7 * soil
-    rough = 0.9 - 0.06 * dome
-    return ground_finish("gravel", alb, rough, hgt, 4.0)
+    damp = smooth(fnoise(rng, W, W, 55.0), 0.0, 1.8)
+    alb *= (1.0 - 0.2 * damp)[..., None]
+    rough = (0.95 - 0.15 * cover - 0.1 * damp).astype(np.float32)
+    ao_extra = 1.0 - 0.55 * dark
+    return ground_finish("gravel", alb, rough, H, 4.0, ao_extra)
 
 
 # ---------------------------------------------------------------- 디테일 v2 (선형 데이터)
