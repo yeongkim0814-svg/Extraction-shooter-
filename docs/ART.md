@@ -274,6 +274,14 @@ M10 체크포인트 결과: 스타일라이즈드로 전환하지 않고 세미�
 | 사무동 | 깜빡이는 형광등 |
 | 탱크 구역 | 바깥 연무, 역광 실루엣 |
 
+### 11.8 텍스처 v2 구현
+- 생성기: `tools/gen_textures_v2.py` -> `assets/textures/v2/`. 트림 `t1`(구조) `t2`(금속) `t3`(설비) x `{albedo,orm,normal,mask}.webp`, 바닥 `ground_{asphalt,concrete,gravel}_{albedo,orm,normal}.webp`, `detail_v2.webp`(512 px 선형: R 6 m 얼룩 / G 1.5 m 때 / B 잔 점, 0.5 = 중립), `decals.webp` + `decals.json`, `kit_layout.json`.
+- 채널 규약은 스타일 D와 같다: albedo sRGB, ORM = R AO / G 거칠기 / B 금속성, normal OpenGL(Y+), mask = R 높이 / G 페인트 / B 발광. 256 px/m, 시트 1024, U 4 m 주기, 줄 사이 4 px 여백.
+- "면" 줄(wall, panel, band, sill, corrugated, plate, beam, cabinet, duct)은 가운데 60% 알베도 명도 편차 <= 0.06을 생성기가 검사한다 (넘으면 비정상 종료). 줄 배치는 `scripts/core/geometry/kit_layout.gd`.
+- 셰이더: `kit_trim`(트림 + 페인트 재칠, 라이트맵용), `kit_flat`(단색 면 + 약한 얼룩·바닥 때·비 줄무늬), `kit_ground`(월드 XZ 4 m 타일, 두 배율 + 37도 회전 샘플 혼합). 재질은 `scripts/game/world/kit_materials.gd`.
+- **kit_ground 정점 색 규약** (정점 색이 없으면 COLOR = 흰색이므로 반전 채널): 젖음 = 1 - R, 흙 = 1 - G, 이끼 = 1 - B. 흰색 (1,1,1) = 마른 맨바닥. 웅덩이는 R을 0으로 칠한다.
+- 재생성: `python3 tools/gen_textures_v2.py && godot --headless --path . --import && python3 tools/gen_textures_v2.py --patch-import` (그다음 한 번 더 `--import`). 미리보기: `--preview 경로.png`.
+
 ### 11.7 제작 순서 (M10b)
 1. 아트 바이블 확정 (이 장)
 2. 텍스처 v2: 트림 3장 + 바닥 3종(반복 숨김 셰이더) + 데칼 아틀라스 + 단색 면 재질
