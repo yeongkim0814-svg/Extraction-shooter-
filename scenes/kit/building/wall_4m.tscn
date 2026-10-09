@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/kit/building/wall_4m_mesh.res" id="1_d2vaj"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_eam4x"]
+size = Vector3(4, 4, 0.35)
+
+[node name="Wall4m" type="Node3D" unique_id=1021500963]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1356193492]
+mesh = ExtResource("1_d2vaj")
+
+[node name="Body" type="StaticBody3D" parent="." unique_id=1003765687]
+
+[node name="Shape0" type="CollisionShape3D" parent="Body" unique_id=2127026046]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+shape = SubResource("BoxShape3D_eam4x")
+
+[node name="SNAP_L" type="Marker3D" parent="." unique_id=1609891978]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
+
+[node name="SNAP_R" type="Marker3D" parent="." unique_id=1868118645]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)

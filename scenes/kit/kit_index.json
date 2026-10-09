@@ -1,0 +1,49 @@
+{
+ "barrel": {
+  "category": "prop",
+  "lod": false,
+  "markers": [],
+  "shapes": 1,
+  "size": [
+   0.6,
+   0.9,
+   0.59
+  ],
+  "surfaces": 2,
+  "tris": 256,
+  "uv2": true
+ },
+ "lamp_sodium": {
+  "category": "prop",
+  "lod": false,
+  "markers": [
+   "LIGHT_sodium"
+  ],
+  "shapes": 0,
+  "size": [
+   0.64,
+   1.24,
+   0.64
+  ],
+  "surfaces": 3,
+  "tris": 196,
+  "uv2": true
+ },
+ "wall_4m": {
+  "category": "building",
+  "lod": false,
+  "markers": [
+   "SNAP_L",
+   "SNAP_R"
+  ],
+  "shapes": 1,
+  "size": [
+   4.0,
+   4.0,
+   0.45
+  ],
+  "surfaces": 3,
+  "tris": 148,
+  "uv2": true
+ }
+}
