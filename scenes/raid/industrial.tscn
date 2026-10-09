@@ -1,0 +1,58 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/raid/raid_controller.gd" id="1_raid"]
+[ext_resource type="Script" path="res://scripts/game/world/industrial_map.gd" id="2_map"]
+[ext_resource type="PackedScene" path="res://scenes/game/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="5_touch"]
+[ext_resource type="Script" path="res://scripts/game/player/desktop_input.gd" id="6_desktop"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.4, 0.5, 0.68, 1)
+sky_horizon_color = Color(0.72, 0.75, 0.78, 1)
+ground_horizon_color = Color(0.72, 0.75, 0.78, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.63, 0.66, 1)
+ambient_light_energy = 0.5
+tonemap_mode = 3
+fog_enabled = true
+fog_light_color = Color(0.68, 0.72, 0.76, 1)
+fog_density = 0.004
+
+[node name="Industrial" type="Node3D"]
+script = ExtResource("1_raid")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9, 0.6, 0)
+position = Vector3(0, 12, 0)
+light_energy = 0.8
+shadow_enabled = true
+directional_shadow_max_distance = 60.0
+
+[node name="Map" type="Node3D" parent="."]
+script = ExtResource("2_map")
+
+[node name="SpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 74)
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+
+[node name="DesktopInput" type="Node" parent="."]
+script = ExtResource("6_desktop")
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Hud" parent="UI" instance=ExtResource("4_hud")]
+
+[node name="TouchControls" parent="UI" instance=ExtResource("5_touch")]

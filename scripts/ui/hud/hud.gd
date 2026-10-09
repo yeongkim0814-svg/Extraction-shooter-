@@ -33,6 +33,11 @@ var _ads: bool = false
 var _ammo_box: StyleBoxFlat
 var _bag_button: Button
 var _interact_button: Button
+## 레이드 정보: 남은 시간 글자, 탈출 지점 안내 한 줄, 탈출 진행 (비율 < 0이면 숨김).
+var _raid_time: String = ""
+var _extraction_text: String = ""
+var _extract_seconds: int = 0
+var _extract_ratio: float = -1.0
 
 
 func _ready() -> void:
@@ -101,6 +106,18 @@ func set_hint(text: String) -> void:
 	_hint_text = text
 
 
+## 레이드 남은 시간 ("mm:ss")과 탈출 지점 안내 한 줄을 화면 위 가운데에 보인다. 둘 다 비우면 숨김.
+func set_raid_info(time_text: String, extraction_text: String) -> void:
+	_raid_time = time_text
+	_extraction_text = extraction_text
+
+
+## 탈출 지점 안에 있는 동안의 진행 (남은 초, 0~1 비율). ratio < 0이면 숨김.
+func set_extract_progress(seconds_left: int, ratio: float) -> void:
+	_extract_seconds = seconds_left
+	_extract_ratio = ratio
+
+
 ## 상호작용 버튼 문구 (빈 문자열이면 숨김). 누르면 interact_requested.
 func set_interact(text: String) -> void:
 	_interact_button.text = text
@@ -152,6 +169,7 @@ func _draw() -> void:
 	_draw_reload(font, center)
 	if _player.input.sprint_lock.is_locked():
 		_draw_sprint_lock(font)
+	_draw_raid_info(font)
 	if _toast_left > 0.0:
 		_draw_banner(font, _toast_text, BANNER_Y, 24)
 	elif not _hint_text.is_empty():
@@ -245,3 +263,19 @@ func _draw_sprint_lock(font: Font) -> void:
 
 func _draw_banner(font: Font, text: String, y: float, font_size: int) -> void:
 	_text(font, Vector2(0.0, y), text, font_size, Color(1.0, 0.92, 0.6), HORIZONTAL_ALIGNMENT_CENTER, size.x)
+
+
+func _draw_raid_info(font: Font) -> void:
+	if not _raid_time.is_empty():
+		_text(font, Vector2(0.0, MARGIN + 18.0), _raid_time, 30, InventoryStyle.TEXT, HORIZONTAL_ALIGNMENT_CENTER, size.x)
+	if not _extraction_text.is_empty():
+		_text(font, Vector2(0.0, MARGIN + 44.0), "탈출  " + _extraction_text, 16, InventoryStyle.TEXT_DIM,
+				HORIZONTAL_ALIGNMENT_CENTER, size.x)
+	if _extract_ratio >= 0.0:
+		var rect := Rect2(size.x * 0.5 - 130.0, size.y * 0.5 + 90.0, 260.0, 14.0)
+		draw_rect(rect, BAR_BG)
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(_extract_ratio, 0.0, 1.0), rect.size.y)),
+				Color(0.35, 0.85, 0.5))
+		draw_rect(rect, InventoryStyle.PANEL_BORDER, false, 1.5)
+		_text(font, Vector2(rect.position.x, rect.position.y - 8.0), "탈출 중 %d초" % _extract_seconds, 24,
+				Color(0.7, 1.0, 0.75), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x)

@@ -15,6 +15,8 @@ var selected_item_id: int = 0
 var clip_control: Control = null
 ## true면 그룹 테두리를 그린다 (컨테이너 내부 그리드).
 var bordered: bool = false
+## 수색이 필요한 월드 컨테이너면 그 수색 상태 (진행 중인 아이템의 진행도를 그린다). 아니면 null.
+var search: SearchState = null
 
 var _highlight_cell: Vector2i = Vector2i.ZERO
 var _highlight_size: Vector2i = Vector2i.ZERO
@@ -91,6 +93,12 @@ func _draw() -> void:
 	var selected: ItemInstance = null
 	for item: ItemInstance in grid.get_items():
 		var rect := Rect2(Vector2(item.position * cell), Vector2(item.size() * cell))
+		if inventory.is_hidden(item):
+			var progress: float = -1.0
+			if search != null and search.searching and search.current_item_id() == item.id:
+				progress = search.current_progress()
+			InventoryItemPainter.draw_hidden(self, font, rect, progress)
+			continue
 		var alpha: float = 0.3 if item.id == dragging_item_id else 1.0
 		InventoryItemPainter.draw_item(self, font, item, rect, item.rotated, alpha)
 		if item.id == selected_item_id:

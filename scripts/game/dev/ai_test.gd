@@ -15,9 +15,6 @@ extends CombatTest
 
 const AI_PREFIX: String = "AI_TEST: "
 const AI_HINT: String = CombatTest.HINT + "  ·  F 루팅  ·  K 가까운 적 처치(개발)"
-const LOOT_RANGE: float = 2.5
-## 시체가 정면에서 이 각도(코사인) 안에 있어야 루팅 버튼이 뜬다.
-const LOOT_FACING_DOT: float = 0.5
 const CORPSE_DEV_DISTANCE: float = 2.0
 const RESTART_DELAY: float = 3.0
 const ENEMY_COUNT: int = 3
@@ -34,13 +31,18 @@ func _hint_text() -> String:
 	return AI_HINT
 
 
+## 로그 줄 접두. 하위 씬(레이드)이 덮어쓴다.
+func _log_prefix() -> String:
+	return AI_PREFIX
+
+
 func _post_setup() -> void:
 	_director = AiDirector.new()
 	add_child(_director)
 	_director.bind_player(_player)
-	_director.player_shot_noise.connect(func(radius: float) -> void: print(AI_PREFIX + "noise %d" % roundi(radius)))
+	_director.player_shot_noise.connect(func(radius: float) -> void: print(_log_prefix() + "noise %d" % roundi(radius)))
 	_player.hit_target.damaged.connect(func(_result: DamageModel.HitResult) -> void:
-		print(AI_PREFIX + "player_hit hp=%d" % ceili(_player.health.hp)))
+		print(_log_prefix() + "player_hit hp=%d" % ceili(_player.health.hp)))
 	_hud.interact_requested.connect(_try_loot)
 	_death_label = Label.new()
 	_death_label.text = "사망 — %d초 뒤 재시작" % int(RESTART_DELAY)
@@ -86,81 +88,92 @@ func _start_world() -> void:
 	region.navigation_mesh = navmesh
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	print(AI_PREFIX + "navmesh polys=%d" % region.navigation_mesh.get_polygon_count())
+	print(_log_prefix() + "navmesh polys=%d" % region.navigation_mesh.get_polygon_count())
 	_spawn_enemies()
 	await get_tree().process_frame
-	print(AI_PREFIX + "ready")
+	print(_log_prefix() + "ready")
 
 
 func _spawn_enemies() -> void:
-	var table: LootTable = DemoLoot.build_table(_authority.content)
-	var base := AiProfile.new()
 	var routes: Node = $Routes
 	for i: int in range(mini(ENEMY_COUNT, routes.get_child_count())):
 		var points: Array[Vector3] = []
 		for marker: Node in routes.get_child(i).get_children():
 			points.append((marker as Marker3D).global_position)
-		var enemy := EnemyAgent.new()
-		enemy.enemy_name = "적%d" % (i + 1)
-		enemy.loot_table = table
-		add_child(enemy)
-		enemy.global_position = points[0]
-		if points.size() > 1:
-			var heading: Vector3 = points[1] - points[0]
-			enemy.rotation.y = atan2(-heading.x, -heading.z)
-		enemy.setup(_authority, _rng, _player, points, base.duplicate() as AiProfile, _director)
-		enemy.died.connect(_on_enemy_died)
-		enemy.shot_fired.connect(func(e: EnemyAgent) -> void: print(AI_PREFIX + "enemy_shot " + e.enemy_name))
-		enemy.state_changed.connect(_on_enemy_state)
-		_enemies.append(enemy)
+		_spawn_enemy(i, points)
+
+
+## 순찰 경로(points)의 첫 지점에 적 한 명을 세우고 AI를 시작한다.
+func _spawn_enemy(index: int, points: Array[Vector3]) -> EnemyAgent:
+	var enemy := EnemyAgent.new()
+	enemy.enemy_name = "적%d" % (index + 1)
+	enemy.loot_table = DemoLoot.build_table(_authority.content)
+	add_child(enemy)
+	enemy.global_position = points[0]
+	if points.size() > 1:
+		var heading: Vector3 = points[1] - points[0]
+		enemy.rotation.y = atan2(-heading.x, -heading.z)
+	enemy.setup(_authority, _rng, _player, points, AiProfile.new(), _director)
+	enemy.died.connect(_on_enemy_died)
+	enemy.shot_fired.connect(func(e: EnemyAgent) -> void: print(_log_prefix() + "enemy_shot " + e.enemy_name))
+	enemy.state_changed.connect(_on_enemy_state)
+	_enemies.append(enemy)
+	return enemy
 
 
 func _on_enemy_state(enemy: EnemyAgent, state: AiBrain.State) -> void:
-	print(AI_PREFIX + "state %s %s" % [enemy.enemy_name, String(AiBrain.State.keys()[state])])
+	print(_log_prefix() + "state %s %s" % [enemy.enemy_name, String(AiBrain.State.keys()[state])])
 
 
 func _on_enemy_died(enemy: EnemyAgent) -> void:
-	print(AI_PREFIX + "enemy_dead %s loot=%s items=%d" % [enemy.enemy_name, enemy.loot_key(), enemy.loot_item_count()])
+	print(_log_prefix() + "enemy_dead %s loot=%s items=%d" % [enemy.enemy_name, enemy.loot_key(), enemy.loot_item_count()])
 
 
-# --- 루팅 ---
+# --- 루팅·상호작용 ---
 
-## 루팅할 수 있는 가장 가까운 시체: 2.5 m 안, 정면 앞쪽.
-func _loot_candidate() -> EnemyAgent:
+## 상호작용 후보 목록 (하위 씬이 컨테이너·스위치를 더한다).
+func _finder_containers() -> Array[LootContainer]:
+	return []
+
+
+func _finder_switches() -> Array[PowerLever]:
+	return []
+
+
+## 지금 상호작용할 수 있는 가장 가까운 대상 (시체·컨테이너·스위치). 없으면 null.
+func _find_interactable() -> InteractionFinder.Target:
 	var forward: Vector3 = -_player.camera.global_basis.z
-	forward.y = 0.0
-	forward = forward.normalized()
-	var best: EnemyAgent = null
-	var best_dist: float = LOOT_RANGE
-	for enemy: EnemyAgent in _enemies:
-		if not enemy.is_dead() or enemy.loot_key() == &"":
-			continue
-		var offset: Vector3 = enemy.corpse_position() - _player.global_position
-		offset.y = 0.0
-		var dist: float = offset.length()
-		if dist > best_dist:
-			continue
-		if dist > 0.8 and forward.dot(offset / dist) < LOOT_FACING_DOT:
-			continue
-		best = enemy
-		best_dist = dist
-	return best
+	return InteractionFinder.find(_player.global_position, forward, _enemies, _finder_containers(), _finder_switches())
 
 
 func _try_loot() -> void:
 	if is_inventory_open() or _player_dead:
 		return
-	var enemy: EnemyAgent = _loot_candidate()
-	if enemy == null:
+	var target: InteractionFinder.Target = _find_interactable()
+	if target != null:
+		_interact(target)
+
+
+## 대상과 상호작용한다. 기본은 컨테이너(시체) 열기. 하위 씬이 스위치 등을 더한다.
+func _interact(target: InteractionFinder.Target) -> void:
+	if target.key == &"":
 		return
-	var key: StringName = enemy.loot_key()
+	if not _open_container(target.key):
+		return
+	var grid: ItemGrid = _authority.containers.get(target.key)
+	var count: int = grid.get_items().size() if grid != null else 0
+	print(_log_prefix() + "loot_open %s items=%d" % [target.key, count])
+	set_inventory_open(true)
+
+
+## 월드 컨테이너를 열고 열린 키를 기억한다. 실패하면 알림만 띄우고 false.
+func _open_container(key: StringName) -> bool:
 	var result: CommandResult = _authority.execute(OpenContainerCommand.new(key))
 	if not result.ok:
 		_hud.show_toast("열 수 없음")
-		return
+		return false
 	_open_loot = key
-	print(AI_PREFIX + "loot_open %s items=%d" % [key, enemy.loot_item_count()])
-	set_inventory_open(true)
+	return true
 
 
 ## 가방을 닫으면 열려 있던 월드 컨테이너도 닫는다.
@@ -171,7 +184,7 @@ func set_inventory_open(open: bool) -> void:
 	var key: StringName = _open_loot
 	_open_loot = &""
 	_authority.execute(CloseContainerCommand.new(key))
-	print(AI_PREFIX + "loot_close " + String(key))
+	print(_log_prefix() + "loot_close " + String(key))
 
 
 # --- 개발 키·갱신 ---
@@ -203,16 +216,16 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	if not _player_dead and _player.health.is_dead():
 		_on_player_dead()
-	var target: EnemyAgent = null if (is_inventory_open() or _player_dead) else _loot_candidate()
+	var target: InteractionFinder.Target = null if (is_inventory_open() or _player_dead) else _find_interactable()
 	if target == null:
 		_hud.set_interact("")
 	else:
-		_hud.set_interact("루팅" if _touch.is_active() else "F  루팅")
+		_hud.set_interact(target.prompt if _touch.is_active() else "F  " + target.prompt)
 
 
 func _on_player_dead() -> void:
 	_player_dead = true
-	print(AI_PREFIX + "player_dead")
+	print(_log_prefix() + "player_dead")
 	set_inventory_open(false)
 	_hud.set_interact("")
 	_player.input.release_source(InputState.Source.KEYBOARD)

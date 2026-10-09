@@ -112,6 +112,10 @@ docs/
 - 레이드 중에는 `Inventory.stash_locked`로 스태시를 잠근다. 소지품은 탈출 후에도 장비에 그대로 남으므로 별도 이전 단계가 없다
 - 월드 컨테이너(시체·상자, M8): `GameAuthority.register_container(grid, title)`가 키(`loot_<번호>`)를 발급하고, `OpenContainerCommand`/`CloseContainerCommand`로 인벤토리에 루트 그리드로 붙였다 뗀다 (`Inventory.attach_external`). 붙어 있는 동안은 일반 이동 명령으로 플레이어 컨테이너와 아이템을 옮길 수 있다. 인벤토리 화면은 스태시가 없으면 오른쪽 절반에 열린 컨테이너를 보여 준다
 
+- 레이드 흐름(M9, game 계층): `RaidController`(`scripts/game/raid/`)가 `AiTest`를 확장한 레이드 씬 루트다. 맵 구성 → 내비메시 굽기 → 컨테이너 내용물 굴림 → 적 스폰 → 탈출 지점 연결을 하고, 매 프레임 `GameAuthority.tick_searches`를 부르며 수색 소음(반경 8 m, 0.5초 간격)을 `AiDirector`로 넘기고 사격·피격·이동으로 수색을 중단시킨다. `RaidSession`이 시간·탈출·사망을 관리하고, 끝나면 `RaidSummary`(core, 반출 FIR 가치·시간 표기)로 집계해 결과 화면(`scenes/ui/raid_results.tscn`)을 띄운다
+- 월드 컨테이너·수색: `LootContainer`(종류별 도형·그리드 크기·이름 글자)가 레이드 시작 때 `RaidLoot`(종류별 `LootTable`)로 내용물을 굴려 `register_container`로 수색 가능 컨테이너로 등록한다. 인벤토리 화면은 공개 전 아이템을 `?` 블록으로 그리고(진행 중인 칸은 `SearchState.current_progress` 고리), `DropResolver`·`InventoryActions`는 공개 전 아이템을 선택·이동 불가(`NOT_REVEALED`)로 판정한다. 시체·컨테이너·레버의 상호작용 대상 선택은 `InteractionFinder`(순수 선택 함수 + 노드 조회)
+- 산업단지 맵: `IndustrialMap`이 코드로 상자 지오메트리를 만든다. 충돌은 상자마다 `StaticBody3D`+`BoxShape3D`, 눈에 보이는 면은 재질별 하나의 `ArrayMesh`로 합쳐 메시 인스턴스를 약 10개로 줄였다(탱크 4개만 별도 원기둥). 내비메시는 충돌 상자 면에서 동기로 굽는다(셀 0.4 m). 엄폐 지점은 `cover_point` 그룹 마커
+
 ### loot
 - `LootTable` (Resource): 가중치 기반, 시드 고정
 

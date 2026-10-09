@@ -139,4 +139,5 @@ static func _part(content: ContentDatabase, id: StringName, display_name: String
 	var item_def: ItemDef = ItemDef.create(id, item_size.x, item_size.y)
 	item_def.display_name = display_name
 	item_def.category = ItemDef.Category.ATTACHMENT
+	item_def.base_price = 3000   # 레이드에서 주우면 반출 가치가 있도록 (수색 시간에는 영향 없음: 5000 미만)
 	content.add_item(item_def)

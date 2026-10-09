@@ -52,6 +52,7 @@ static func _item(id: StringName, display_name: String, category: ItemDef.Catego
 static func _stack(authority: LocalAuthority, content: ContentDatabase, ammo: AmmoDef,
 		display_name: String, count: int, key: StringName, cell: Vector2i) -> void:
 	var def: ItemDef = _item(ammo.id, display_name, ItemDef.Category.AMMO, 1, 1, 60)
+	def.base_price = 60   # 레이드에서 주운 탄약도 반출 가치가 있다
 	content.add_item(def)
 	var result: CommandResult = authority.inventory.add_item(authority.create_item(def, count), key, cell, false)
 	assert(result.ok, "loadout ammo placement failed: %s" % ammo.id)

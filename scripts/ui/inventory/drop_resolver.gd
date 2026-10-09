@@ -39,11 +39,15 @@ static func resolve_grid(inventory: Inventory, item_id: int, key: StringName, ce
 	var grid: ItemGrid = inventory.get_grid(key)
 	if grid == null:
 		return Resolution.invalid(CommandResult.UNKNOWN_CONTAINER)
+	if inventory.access_error(item) == CommandResult.NOT_REVEALED:
+		return Resolution.invalid(CommandResult.NOT_REVEALED)
 	if _is_item_locked(inventory, item) or _is_key_locked(inventory, key):
 		return Resolution.invalid(CommandResult.STASH_LOCKED)
 
 	var merge_target: ItemInstance = _find_merge_target(grid, item, cell, p_rotated)
 	if merge_target != null:
+		if inventory.is_hidden(merge_target):
+			return Resolution.invalid(CommandResult.NOT_REVEALED)
 		if merge_target.free_stack_space() <= 0:
 			return Resolution.invalid(CommandResult.NO_SPACE)
 		var merge := Resolution.new()
@@ -66,6 +70,8 @@ static func resolve_slot(inventory: Inventory, item_id: int, slot: EquipmentSlot
 	var item: ItemInstance = inventory.get_item(item_id)
 	if item == null:
 		return Resolution.invalid(CommandResult.UNKNOWN_ITEM)
+	if inventory.access_error(item) == CommandResult.NOT_REVEALED:
+		return Resolution.invalid(CommandResult.NOT_REVEALED)
 	if _is_item_locked(inventory, item):
 		return Resolution.invalid(CommandResult.STASH_LOCKED)
 	var occupant: ItemInstance = inventory.equipment.get_item(slot)
@@ -86,7 +92,7 @@ static func resolve_slot(inventory: Inventory, item_id: int, slot: EquipmentSlot
 ## 나눌 수 없으면(스택 1, 장비 슬롯 안, 잠김, 빈자리 없음) null.
 static func plan_split(inventory: Inventory, item_id: int) -> SplitStackCommand:
 	var item: ItemInstance = inventory.get_item(item_id)
-	if item == null or item.stack_count < 2 or _is_item_locked(inventory, item):
+	if item == null or item.stack_count < 2 or _is_item_locked(inventory, item) or inventory.is_hidden(item):
 		return null
 	var grid: ItemGrid = inventory.get_grid(item.container_key)
 	if grid == null:
@@ -113,9 +119,13 @@ static func resolve_tap_grid(inventory: Inventory, item_id: int, key: StringName
 	var grid: ItemGrid = inventory.get_grid(key)
 	if grid == null:
 		return Resolution.invalid(CommandResult.UNKNOWN_CONTAINER)
+	if inventory.access_error(item) == CommandResult.NOT_REVEALED:
+		return Resolution.invalid(CommandResult.NOT_REVEALED)
 	if _is_item_locked(inventory, item) or _is_key_locked(inventory, key):
 		return Resolution.invalid(CommandResult.STASH_LOCKED)
 	var occupant: ItemInstance = grid.get_item_at(tapped)
+	if occupant != null and inventory.is_hidden(occupant):
+		return Resolution.invalid(CommandResult.NOT_REVEALED)
 	if occupant != null and occupant != item and item.can_stack_with(occupant):
 		if occupant.free_stack_space() <= 0:
 			return Resolution.invalid(CommandResult.NO_SPACE)
@@ -140,6 +150,8 @@ static func plan_equip(inventory: Inventory, item_id: int) -> Resolution:
 		return Resolution.invalid(CommandResult.UNKNOWN_ITEM)
 	if is_equipped(item):
 		return Resolution.invalid(CommandResult.SLOT_OCCUPIED)
+	if inventory.access_error(item) == CommandResult.NOT_REVEALED:
+		return Resolution.invalid(CommandResult.NOT_REVEALED)
 	if _is_item_locked(inventory, item):
 		return Resolution.invalid(CommandResult.STASH_LOCKED)
 	var error: StringName = CommandResult.SLOT_NOT_ALLOWED
@@ -178,7 +190,7 @@ static func plan_unequip(inventory: Inventory, item_id: int) -> Resolution:
 ## 제자리에서 회전하는 경우 (같은 칸, 반대 회전). 그리드 안의 아이템만 가능하고, 안 들어가면 null.
 static func plan_rotate_in_place(inventory: Inventory, item_id: int, target_rotated: bool) -> MoveItemCommand:
 	var item: ItemInstance = inventory.get_item(item_id)
-	if item == null or is_equipped(item) or _is_item_locked(inventory, item):
+	if item == null or is_equipped(item) or _is_item_locked(inventory, item) or inventory.is_hidden(item):
 		return null
 	var grid: ItemGrid = inventory.get_grid(item.container_key)
 	if grid == null or not grid.can_place(item, item.position, target_rotated):

@@ -10,6 +10,9 @@ const MIN_CELL_SIZE: int = 40
 const MAX_CELL_SIZE: int = 56
 ## 선택한 아이템의 윤곽선 색.
 const SELECT_COLOR := Color(1.0, 0.86, 0.15)
+## 수색 진행 표시 색 (채움 / 고리).
+const SEARCH_FILL := Color(0.3, 0.6, 0.95, 0.35)
+const SEARCH_RING := Color(0.55, 0.8, 1.0)
 
 const _CATEGORY_COLORS: Dictionary[ItemDef.Category, Color] = {
 	ItemDef.Category.MISC: Color("6b7280"),
@@ -80,3 +83,23 @@ static func _draw_label(canvas: CanvasItem, font: Font, text: String, inner: Rec
 			font_size, max_lines, Color(0, 0, 0, 0.9 * alpha), flags)
 	canvas.draw_multiline_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, width,
 			font_size, max_lines, Color(1, 1, 1, alpha), flags)
+
+
+## 아직 수색하지 않은 아이템: 실제 크기의 어두운 블록에 "?"만 그린다 (이름·색 없음).
+## progress가 0 이상이면 지금 수색 중인 아이템이라 아래에서 차오르는 채움과 둥근 진행 고리를 겹쳐 그린다.
+static func draw_hidden(canvas: CanvasItem, font: Font, rect: Rect2, progress: float = -1.0) -> void:
+	var inner: Rect2 = rect.grow(-1.5)
+	canvas.draw_rect(inner, Color(0.07, 0.075, 0.09))
+	canvas.draw_rect(inner, Color(0.3, 0.33, 0.4), false, 1.5)
+	var center: Vector2 = inner.get_center()
+	var radius: float = clampf(minf(inner.size.x, inner.size.y) * 0.34, 8.0, 22.0)
+	if progress >= 0.0:
+		var fill_h: float = inner.size.y * clampf(progress, 0.0, 1.0)
+		canvas.draw_rect(Rect2(inner.position.x, inner.end.y - fill_h, inner.size.x, fill_h), SEARCH_FILL)
+		canvas.draw_arc(center, radius, 0.0, TAU, 32, Color(0, 0, 0, 0.55), 5.0, true)
+		canvas.draw_arc(center, radius, -PI * 0.5, -PI * 0.5 + TAU * clampf(progress, 0.0, 1.0), 32, SEARCH_RING, 4.0, true)
+	var font_size: int = 22
+	var size: Vector2 = font.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var pos := Vector2(center.x - size.x * 0.5, center.y + size.y * 0.28)
+	canvas.draw_string(font, pos + Vector2(1, 1), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0, 0, 0, 0.9))
+	canvas.draw_string(font, pos, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.75, 0.8, 0.9))

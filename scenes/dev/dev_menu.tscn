@@ -65,3 +65,10 @@ custom_minimum_size = Vector2(360, 72)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "AI 테스트"
+
+[node name="RaidButton" type="Button" parent="Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "레이드 (산업단지)"

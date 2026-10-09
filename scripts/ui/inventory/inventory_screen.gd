@@ -88,13 +88,17 @@ const ERROR_TEXT: Dictionary[StringName, String] = {
 	CommandResult.SLOT_OCCUPIED: "슬롯이 이미 차 있습니다",
 	CommandResult.STASH_LOCKED: "스태시는 잠겨 있습니다",
 	CommandResult.NOT_STACKABLE: "합칠 수 없습니다",
+	CommandResult.NOT_REVEALED: "수색해야 볼 수 있습니다",
 }
+const SEARCH_BUTTON_SIZE := Vector2(130.0, 44.0)
 
 
 ## 화면 좌표 아래에서 찾은 뷰와 그 안의 아이템.
 class Hit:
 	var view: Control = null
 	var item: ItemInstance = null
+	## 수색 전이라 선택·드래그할 수 없는 아이템 (있으면 item은 null).
+	var hidden_item: ItemInstance = null
 
 
 var _authority: GameAuthority
@@ -110,6 +114,8 @@ var _container_signature: Array[int] = []
 var _stash_view: InventoryGridView = null
 ## 열린 월드 컨테이너(시체·상자)의 그리드 뷰. 스태시가 없을 때 오른쪽 절반에 그린다.
 var _loot_views: Array[InventoryGridView] = []
+## 월드 컨테이너 키 → 머리글의 수색 버튼.
+var _search_buttons: Dictionary[StringName, Button] = {}
 
 var _tracker := PressTracker.new()
 var _press_hit: Hit = null
@@ -171,6 +177,34 @@ func item_global_rect(item_id: int) -> Rect2:
 		var grid: ItemGrid = _inventory.get_grid(view.key)
 		if grid != null and grid.has_item(item):
 			return view.item_global_rect(item)
+	return Rect2()
+
+
+## 화면에 띄운 토스트 한 줄 (HUD가 가려져 있는 동안 게임 쪽 알림도 여기로 보낸다).
+func show_toast(text: String) -> void:
+	_show_toast(text)
+
+
+## 월드 컨테이너 머리글의 수색 버튼 전역 영역 (스모크·테스트용). 없으면 빈 Rect2.
+func search_button_rect(key: StringName) -> Rect2:
+	var button: Button = _search_buttons.get(key)
+	return button.get_global_rect() if button != null and button.is_visible_in_tree() else Rect2()
+
+
+func search_button_text(key: StringName) -> String:
+	var button: Button = _search_buttons.get(key)
+	return button.text if button != null else ""
+
+
+## 그리드(key)의 cell 칸에서 size 칸 크기 영역이 화면에 완전히 보이는 전역 영역. 안 보이면 빈 Rect2.
+func visible_cell_rect(key: StringName, cell: Vector2i, size: Vector2i) -> Rect2:
+	for view: InventoryGridView in _all_grid_views():
+		if view.key != key or not view.is_visible_in_tree():
+			continue
+		var rect := Rect2(view.global_position + Vector2(cell * _cell), Vector2(size * _cell))
+		var visible: Rect2 = view.visible_global_rect()
+		if visible.encloses(rect) and get_viewport_rect().encloses(rect):
+			return rect
 	return Rect2()
 
 
@@ -447,17 +481,74 @@ func _build_stash() -> void:
 
 ## 스태시가 없을 때 열려 있는 월드 컨테이너(시체·상자)를 오른쪽 절반에 보여 준다. 이름은 권한자의 container_titles.
 func _build_loot(keys: Array[StringName]) -> void:
+	_search_buttons.clear()
 	if keys.is_empty():
 		return
 	_right_scroll.scroll_vertical = 0
 	for key: StringName in keys:
 		var title: String = _authority.container_titles.get(key, "컨테이너")
-		_stash_content.add_child(_section_title("%s  LOOT" % title))
+		_stash_content.add_child(_loot_header(key, title))
 		var view: InventoryGridView = _make_grid_view(_stash_content, key, _right_scroll)
+		view.search = _authority.searches.get(key)
 		_loot_views.append(view)
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = InventoryActionBar.BAR_HEIGHT + 24.0
 	_stash_content.add_child(spacer)
+
+
+## 월드 컨테이너 머리글: 이름 + (수색이 필요하면) 수색/중단/수색 완료 버튼.
+func _loot_header(key: StringName, title: String) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", GAP)
+	var label := _section_title("%s  LOOT" % title)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(label)   # 버튼은 제목 바로 옆에 둔다 (오른쪽 끝은 닫기 버튼이 가린다)
+	if _authority.searches.has(key):
+		var button := Button.new()
+		InventoryStyle.style_button(button)
+		button.custom_minimum_size = SEARCH_BUTTON_SIZE
+		button.add_theme_font_size_override("font_size", 17)
+		button.pressed.connect(_on_search_pressed.bind(key))
+		row.add_child(button)
+		_search_buttons[key] = button
+		_refresh_search_button(key)
+	return row
+
+
+func _refresh_search_buttons() -> void:
+	for key: StringName in _search_buttons:
+		_refresh_search_button(key)
+
+
+func _refresh_search_button(key: StringName) -> void:
+	var button: Button = _search_buttons.get(key)
+	var search: SearchState = _authority.searches.get(key)
+	if button == null or search == null:
+		return
+	if search.is_complete():
+		button.text = "수색 완료"
+		button.disabled = true
+	elif search.searching:
+		button.text = "중단"
+		button.disabled = false
+	else:
+		button.text = "수색"
+		button.disabled = false
+
+
+func _on_search_pressed(key: StringName) -> void:
+	var search: SearchState = _authority.searches.get(key)
+	if search == null or search.is_complete():
+		return
+	_authority.execute(SearchContainerCommand.new(key, not search.searching))
+
+
+## 열자마자 수색을 시작한다 (끝나지 않은 컨테이너만). 이벤트 처리 중이 아니라 프레임 끝에 실행한다.
+func _auto_start_search(key: StringName) -> void:
+	var search: SearchState = _authority.searches.get(key)
+	if search == null or search.searching or search.is_complete() or _inventory.get_grid(key) == null:
+		return
+	_authority.execute(SearchContainerCommand.new(key, true))
 
 
 func _make_grid_view(parent: Node, key: StringName, clip: Control) -> InventoryGridView:
@@ -516,13 +607,21 @@ func _redraw_all() -> void:
 # --- 권한자 이벤트 → 화면 갱신 ---
 
 func _on_events(events: Array[DomainEvent]) -> void:
-	if _tracker.is_dragging():
+	var structural: bool = false   # 수색 진행(공개·시작·중단)만 있는 이벤트는 드래그를 끊지 않는다
+	for event: DomainEvent in events:
+		if event.type != DomainEvent.ITEM_REVEALED and event.type != DomainEvent.SEARCH_CHANGED:
+			structural = true
+	if structural and _tracker.is_dragging():
 		_end_drag()
 	for event: DomainEvent in events:
 		if event.type == DomainEvent.CONTAINER_OPENED or event.type == DomainEvent.CONTAINER_CLOSED:
 			_deselect()
 			_build_stash()
 			break
+	for event: DomainEvent in events:
+		if event.type == DomainEvent.CONTAINER_OPENED:
+			_auto_start_search.call_deferred(event.data["container"] as StringName)
+	_refresh_search_buttons()
 	_rebuild_containers()
 	if _selected_id != 0:
 		var item: ItemInstance = _inventory.get_item(_selected_id)
@@ -592,6 +691,8 @@ func _on_pointer_pressed(pos: Vector2) -> void:
 	var hit: Hit = _pick(pos)
 	_press_hit = hit
 	_scroll_target = null
+	if hit.hidden_item != null:
+		_show_toast(ERROR_TEXT[CommandResult.NOT_REVEALED])
 	if hit.item != null:
 		_grab_offset = _grab_offset_for(hit, pos)
 	else:
@@ -633,7 +734,11 @@ func _pick(pos: Vector2) -> Hit:
 	for view: InventoryGridView in _all_grid_views():
 		if view.is_visible_in_tree() and view.visible_global_rect().has_point(pos):
 			hit.view = view
-			hit.item = view.item_at_global(pos)
+			var found: ItemInstance = view.item_at_global(pos)
+			if found != null and _inventory.is_hidden(found):
+				hit.hidden_item = found
+			else:
+				hit.item = found
 			return hit
 	for view: InventorySlotView in _slot_views:
 		if view.is_visible_in_tree() and view.visible_global_rect().has_point(pos):
@@ -660,6 +765,8 @@ func _scroll_at(pos: Vector2) -> ScrollContainer:
 
 func _handle_tap(pos: Vector2) -> void:
 	var hit: Hit = _pick(pos)
+	if hit.hidden_item != null:
+		return   # 수색 전 아이템: 누를 때 이미 안내했고, 선택은 그대로 둔다
 	if _selected_id == 0:
 		if hit.item != null:
 			_select(hit.item.id)
@@ -729,7 +836,7 @@ func _schedule_flash_clear() -> void:
 
 func _select(item_id: int) -> void:
 	var item: ItemInstance = _inventory.get_item(item_id)
-	if item == null:
+	if item == null or _inventory.is_hidden(item):
 		return
 	_dialog.close()
 	_selected_id = item_id
@@ -932,6 +1039,10 @@ func _clear_highlights() -> void:
 func _process(delta: float) -> void:
 	if _tracker.is_dragging():
 		_auto_scroll(delta)
+	# 수색 진행 고리는 매 프레임 다시 그린다
+	for view: InventoryGridView in _loot_views:
+		if view.search != null and view.search.searching:
+			view.queue_redraw()
 
 
 ## 드래그 중 포인터가 스크롤 영역의 위/아래 끝 근처에 있으면 그 영역을 자동으로 스크롤한다.

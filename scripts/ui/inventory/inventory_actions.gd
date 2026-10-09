@@ -22,8 +22,8 @@ class Entry:
 static func for_item(inventory: Inventory, item_id: int) -> Array[Entry]:
 	var entries: Array[Entry] = []
 	var item: ItemInstance = inventory.get_item(item_id)
-	if item == null:
-		return entries
+	if item == null or inventory.is_hidden(item):
+		return entries   # 수색 전 아이템은 선택할 수 없으므로 버튼도 없다
 	entries.append(Entry.new(Action.ROTATE))
 	entries.append(Entry.new(Action.INFO))
 	if item.weapon != null:

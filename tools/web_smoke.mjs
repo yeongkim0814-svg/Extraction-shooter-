@@ -1,5 +1,5 @@
 // 웹 빌드 스모크 테스트: build/web을 헤드리스 Chromium(WebGL)으로 열고 씬별 마커 로그를 확인한다.
-// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod|ai] [마커 덮어쓰기]
+// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod|ai|raid] [마커 덮어쓰기]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
@@ -40,6 +40,17 @@ const MODES = {
     png: 'build/ai_smoke.png',
     pngLoot: 'build/ai_smoke_loot.png',
     log: 'build/ai_smoke_console.log',
+  },
+  // 레이드(산업단지): 지오메트리·내비메시·컨테이너·적 구성 → 적 전멸(K) → G/F로 컨테이너 열기 → 수색(공개·중단·재개·완료)
+  // → 첫 아이템 끌어 가져오기 → T로 정문 탈출 → 결과 화면 (RAID 로그)
+  raid: {
+    marker: 'RAID: ready',
+    urlScene: 'raid',
+    viewport: { width: 1280, height: 720 },
+    png: 'build/raid_smoke.png',
+    pngSearch: 'build/raid_smoke_search.png',
+    pngResults: 'build/raid_smoke_results.png',
+    log: 'build/raid_smoke_console.log',
   },
   // 인벤토리 데모에서 소총 선택 → 모딩 → 소음기 장착/분리 (MOD_SCREEN 로그와 weapon_changed 이벤트 확인)
   mod: {
@@ -458,6 +469,139 @@ if (scene === 'ai') {
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);
   console.log(lines.filter((l) => /AI_TEST: (enemy_dead|loot_)/.test(l)).join('\n'));
+  console.log('PASS');
+  process.exit(0);
+}
+
+// --- raid ---
+if (scene === 'raid') {
+  if (!sawMarker) { await browser.close(); finish(`${MARKER} 마커가 나타나지 않음`); process.exit(1); }
+  const failures = [];
+  const check = (ok, msg) => { if (!ok) failures.push(msg); };
+  const count = (re, from = 0) => lines.slice(from).filter((l) => re.test(l)).length;
+  const waitMatch = async (from, re, ms = 5000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const m = re.exec(lines.slice(from).join('\n'));
+      if (m) return m;
+      await page.waitForTimeout(100);
+    }
+    return null;
+  };
+  const num = (re) => { const m = re.exec(lines.join('\n')); return m ? +m[1] : 0; };
+  const clickAt = async (x, y) => { await page.mouse.move(x, y); await page.mouse.down(); await page.waitForTimeout(60); await page.mouse.up(); };
+  const dragFromTo = async (a, b) => {
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(a.x + (b.x - a.x) * i / 20, a.y + (b.y - a.y) * i / 20);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+  };
+
+  // 1) 구성: 상자 수·내비메시·컨테이너·적
+  const boxes = num(/RAID: geometry boxes=(\d+)/);
+  const polys = num(/RAID: navmesh polys=(\d+)/);
+  const containers = num(/RAID: containers=(\d+)/);
+  const enemies = num(/RAID: enemies=(\d+)/);
+  check(boxes > 0, `geometry boxes=${boxes}`);
+  check(polys > 0, `navmesh polys=${polys}`);
+  check(containers >= 15, `containers=${containers} (15 이상이어야 함)`);
+  check(enemies >= 5, `enemies=${enemies} (5 이상이어야 함)`);
+  await page.waitForTimeout(1500);
+  await page.mouse.move(640, 360);
+  await page.screenshot({ path: mode.png });
+
+  // 2) K: 적 전멸 (결정적인 나머지를 위해)
+  for (let i = 0; i < enemies + 4 && count(/RAID: enemy_dead/) < enemies; i++) {
+    const before = lines.length;
+    await page.keyboard.press('k');
+    await waitMatch(before, /RAID: enemy_dead/, 3000);
+  }
+  check(count(/RAID: enemy_dead/) === enemies, `K로 적 ${enemies}명을 모두 처치해야 함 (실제 ${count(/RAID: enemy_dead/)}명)`);
+  check(!has('RAID: player_dead'), '적 전멸 전에 플레이어가 죽음');
+
+  // 3) G → F → 수색 시작 → 공개 → (화면) → 버튼으로 중단 → 버튼으로 재개 → 완료. 수색이 너무 빨리 끝나면 다음 컨테이너로 다시 시도한다.
+  let key = null;
+  let stopped = false;
+  for (let attempt = 0; attempt < 5 && !stopped; attempt++) {
+    const g0 = lines.length;
+    await page.keyboard.press('g');
+    await page.waitForTimeout(700);
+    await page.keyboard.press('f');
+    const open = await waitMatch(g0, /RAID: open (loot_\d+) (\S+)/, 4000);
+    if (!open) { check(false, `G, F 뒤에 "RAID: open" 로그가 없음 (시도 ${attempt + 1})`); break; }
+    key = open[1];
+    const start = await waitMatch(g0, new RegExp(`RAID: search start ${key}`), 4000);
+    check(start, '컨테이너를 열었는데 자동으로 "search start"가 되지 않음');
+    const btn = await waitMatch(g0, /RAID: search_button at (\d+),(\d+)/, 4000);
+    check(btn, '"RAID: search_button at" 로그가 없음');
+    console.log(`  ${open[0]}  button=${btn ? btn[1] + ',' + btn[2] : '-'}`);
+    const rev = await waitMatch(g0, new RegExp(`RAID: revealed ${key} (\\d+)`), 10000);
+    check(rev, '10초 안에 "revealed"가 없음');
+    await page.waitForTimeout(150);
+    if (attempt === 0 || !has('RAID: search stop')) await page.screenshot({ path: mode.pngSearch });
+    if (has(`RAID: search complete ${key}`) || !btn) {
+      // 이미 끝났다: 닫고 다음 컨테이너
+      const cb = /COMBAT_TEST: close_button at (\d+),(\d+)/.exec(lines.slice(g0).join('\n'));
+      if (cb) await clickAt(+cb[1], +cb[2]);
+      await page.waitForTimeout(500);
+      continue;
+    }
+    const s0 = lines.length;
+    await clickAt(+btn[1], +btn[2]);
+    stopped = !!(await waitMatch(s0, new RegExp(`RAID: search stop ${key} button`), 3000));
+    if (!stopped && has(`RAID: search complete ${key}`)) {
+      const cb = /COMBAT_TEST: close_button at (\d+),(\d+)/.exec(lines.slice(g0).join('\n'));
+      if (cb) await clickAt(+cb[1], +cb[2]);
+      await page.waitForTimeout(500);
+      continue;
+    }
+    check(stopped, `중단 버튼을 눌렀는데 "search stop ${key} button" 로그가 없음`);
+    await page.waitForTimeout(500);
+    const r0 = lines.length;
+    await clickAt(+btn[1], +btn[2]);   // 같은 버튼이 이제 "수색" → 재개
+    check(await waitMatch(r0, new RegExp(`RAID: search start ${key}`), 3000), '재개 버튼을 눌렀는데 "search start"가 없음');
+    check(await waitMatch(r0, new RegExp(`RAID: search complete ${key}`), 40000), '40초 안에 "search complete"가 없음');
+    // 4) 첫 공개 아이템을 내 가방 빈 자리로 끌어다 놓기
+    const hint = await waitMatch(r0, /RAID: take_hint item=(\d+) from=(\d+),(\d+) to=(\d+),(\d+)/, 4000);
+    check(hint, '"RAID: take_hint" 로그가 없음');
+    if (hint) {
+      console.log(`  take_hint: item ${hint[1]} (${hint[2]},${hint[3]}) -> (${hint[4]},${hint[5]})`);
+      const t0 = lines.length;
+      await dragFromTo({ x: +hint[2], y: +hint[3] }, { x: +hint[4], y: +hint[5] });
+      check(await waitMatch(t0, /RAID: take \d+/, 3000), '끌어다 놓았는데 "RAID: take" 로그가 없음');
+    }
+    // 5) 가방 닫기 (닫기 버튼)
+    const cb = [...lines.join('\n').matchAll(/COMBAT_TEST: close_button at (\d+),(\d+)/g)].pop();
+    const c0 = lines.length;
+    if (cb) await clickAt(+cb[1], +cb[2]);
+    check(await waitMatch(c0, /COMBAT_TEST: inventory close/, 3000), '닫기 버튼 뒤에 "inventory close"가 없음');
+  }
+  check(stopped, '수색 중단 시험을 끝내지 못함');
+  await page.waitForTimeout(500);
+
+  // 6) 전원 (개발 키 P) → 탈출: T = 정문
+  const p0 = lines.length;
+  await page.keyboard.press('p');
+  check(await waitMatch(p0, /RAID: power_on/, 3000), 'P 키 뒤에 "RAID: power_on"이 없음');
+  const e0 = lines.length;
+  await page.keyboard.press('t');
+  check(await waitMatch(e0, /RAID: extract_enter main_gate/, 4000), 'T 키 뒤에 "extract_enter main_gate"가 없음');
+  check(await waitMatch(e0, /RAID: extracted main_gate/, 45000), '45초 안에 "extracted main_gate"가 없음');
+  check(count(/RAID: extract_progress main_gate (25|50|75)/, e0) >= 3, 'extract_progress 25/50/75 로그가 모자람');
+  const res = await waitMatch(e0, /RAID: results EXTRACTED value=(\d+) lost=(\d+)/, 4000);
+  check(res && +res[1] > 0, `results EXTRACTED value가 0이거나 로그가 없음: ${res ? res[0] : '-'}`);
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: mode.pngResults });
+
+  await browser.close();
+  if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }
+  finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
+  if (process.exitCode) process.exit(1);
+  console.log(lines.filter((l) => /RAID: (geometry|navmesh|containers|enemies|open|search (start|stop|complete)|take|power_on|extract|results)/.test(l)).join('\n'));
   console.log('PASS');
   process.exit(0);
 }
