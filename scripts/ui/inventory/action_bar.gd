@@ -9,6 +9,7 @@ const BAR_HEIGHT: float = 76.0
 const _LABELS: Dictionary[InventoryActions.Action, String] = {
 	InventoryActions.Action.ROTATE: "회전",
 	InventoryActions.Action.INFO: "정보",
+	InventoryActions.Action.MOD: "모딩",
 	InventoryActions.Action.SPLIT: "나누기",
 	InventoryActions.Action.EQUIP: "장착",
 	InventoryActions.Action.UNEQUIP: "해제",
@@ -18,6 +19,7 @@ const _LABELS: Dictionary[InventoryActions.Action, String] = {
 const _KEYS: Dictionary[InventoryActions.Action, String] = {
 	InventoryActions.Action.ROTATE: "rotate",
 	InventoryActions.Action.INFO: "info",
+	InventoryActions.Action.MOD: "mod",
 	InventoryActions.Action.SPLIT: "split",
 	InventoryActions.Action.EQUIP: "equip",
 	InventoryActions.Action.UNEQUIP: "unequip",
@@ -114,7 +116,8 @@ func update_rotation(item: ItemInstance, next_rotated: bool) -> void:
 	var shape: String = "세로" if footprint.y > footprint.x else ("가로" if footprint.x > footprint.y else "정사각")
 	_subtitle.text = "다음 이동: %s %d×%d" % [shape, footprint.x, footprint.y]
 	if not DropResolver.can_rotate(item):
-		_subtitle.text = "크기 %d×%d (회전 불가)" % [item.def.width, item.def.height]
+		var base: Vector2i = item.size_for(false)
+		_subtitle.text = "크기 %d×%d (회전 불가)" % [base.x, base.y]
 
 
 func hide_bar() -> void:

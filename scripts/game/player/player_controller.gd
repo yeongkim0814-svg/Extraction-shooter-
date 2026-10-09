@@ -22,9 +22,7 @@ const BODY_RADIUS: float = 0.35
 const EYE_LERP: float = 12.0
 
 const PITCH_LIMIT: float = 1.48353  # 85도
-const FOV_NORMAL: float = 75.0
-const FOV_ADS: float = 45.0
-const FOV_LERP: float = 14.0
+const FOV_NORMAL: float = WeaponMotion.FOV_NORMAL
 const RECOIL_RECOVERY: float = 9.0
 
 var input: InputState = InputState.new()
@@ -36,6 +34,7 @@ var health: Health = Health.new(100.0)
 @onready var _shape_node: CollisionShape3D = $CollisionShape3D
 
 var _pitch: float = 0.0
+var _last_look: Vector2 = Vector2.ZERO
 var _recoil: Vector2 = Vector2.ZERO
 var _crouching: bool = false
 var _crouch_toggled: bool = false
@@ -76,6 +75,24 @@ func look_pitch() -> float:
 	return _pitch
 
 
+## 이번 프레임에 시점이 돌아간 양 (라디안, x 오른쪽 +, y 아래 +). 무기 룩 스웨이용.
+func last_look() -> Vector2:
+	return _last_look
+
+
+## 실제로 달리는 중인가: 달리기 입력이 유효하고, 앞으로 가며, 조준·앉기 중이 아님.
+func is_sprinting() -> bool:
+	return not _crouching and not is_ads() and input.sprint_active() and input.effective_move().y < -0.1
+
+
+## 수평 속력 / 걷기 속력 (공중이면 0). 무기 보빙용.
+func move_speed_ratio() -> float:
+	if not is_on_floor():
+		return 0.0
+	var real: Vector3 = get_real_velocity()
+	return Vector2(real.x, real.z).length() / WALK_SPEED
+
+
 func _process(delta: float) -> void:
 	var ads: bool = is_ads()
 	if ads != _ads_last:
@@ -83,6 +100,7 @@ func _process(delta: float) -> void:
 		ads_changed.emit(ads)
 	# 시점
 	var look: Vector2 = input.consume_look()
+	_last_look = look
 	if ads:
 		look *= InputState.ADS_LOOK_SCALE
 	rotation.y -= look.x
@@ -90,7 +108,7 @@ func _process(delta: float) -> void:
 	_recoil *= exp(-RECOIL_RECOVERY * delta)
 	head.rotation = Vector3(_pitch + _recoil.x, _recoil.y, 0.0)
 	# 시야각 / 눈높이
-	camera.fov = lerpf(camera.fov, FOV_ADS if ads else FOV_NORMAL, 1.0 - exp(-FOV_LERP * delta))
+	camera.fov = weapons.fov()
 	var target_eye: float = CROUCH_EYE if _crouching else STAND_EYE
 	_eye_height = lerpf(_eye_height, target_eye, 1.0 - exp(-EYE_LERP * delta))
 	head.position.y = _eye_height
@@ -116,7 +134,7 @@ func _physics_process(delta: float) -> void:
 	var speed: float = WALK_SPEED
 	if _crouching:
 		speed = CROUCH_SPEED
-	elif input.sprint_active() and move.y < -0.1 and not is_ads():
+	elif is_sprinting():
 		speed = SPRINT_SPEED
 	if is_ads():
 		speed *= ADS_SPEED_MULT

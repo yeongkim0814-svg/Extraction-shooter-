@@ -2,7 +2,7 @@ extends Control
 ## M5 인벤토리 UI 데모: 샘플 아이템으로 인벤토리를 만들고 화면을 붙인다.
 ## 웹 스모크 테스트가 읽는 로그 (모든 좌표는 창 픽셀, 스트레치 반영):
 ##   "INVENTORY_DEMO: ready"
-##   "INVENTORY_DEMO: event <type> <item_id> [to=<container>@x,y rot=0|1]"
+##   "INVENTORY_DEMO: event <type> <item_id> [to=<container>@x,y rot=0|1]"   (weapon_changed는 size=WxH)
 ##   "INVENTORY_DEMO: scroll left=N right=N"                        스크롤 위치가 바뀔 때마다
 ##   "INVENTORY_DEMO: stash origin=x,y cell=N"
 ##   "INVENTORY_DEMO: item <id> at x,y size WxH (<def id>)"       화면에 그려진 모든 아이템
@@ -23,6 +23,8 @@ var _last_scroll: Vector2i = Vector2i.ZERO
 
 func _ready() -> void:
 	_authority = LocalAuthority.new(Inventory.new(Vector2i(10, 30)))
+	_authority.content = ContentDatabase.new()
+	DemoWeapons.register(_authority.content)
 	_populate(_authority)
 	_screen = SCREEN_SCENE.instantiate() as InventoryScreen
 	add_child(_screen)
@@ -48,6 +50,9 @@ func _process(_delta: float) -> void:
 func _on_events(events: Array[DomainEvent]) -> void:
 	for event: DomainEvent in events:
 		var line: String = "INVENTORY_DEMO: event %s %d" % [event.type, int(event.data.get("item_id", 0))]
+		if event.type == DomainEvent.WEAPON_CHANGED:
+			var size: Array = event.data.get("size", [0, 0])
+			line += " size=%dx%d" % [size[0], size[1]]
 		var to: Variant = event.data.get("to")
 		if to is Dictionary:
 			var cell: Vector2i = (to as Dictionary).get("cell", Vector2i.ZERO)
@@ -159,6 +164,14 @@ func _populate(authority: LocalAuthority) -> void:
 	_put(authority, bandage, 2, Inventory.item_grid_key(vest.id, 1), Vector2i(1, 0))
 	_put(authority, ammo_9, 15, Inventory.item_grid_key(vest.id, 3), Vector2i(0, 0))
 	_pack_id = pack.id
+	# 모딩용 여분 부품 (id는 맨 뒤라 위 아이템 id에 영향 없음). 스태시 아래쪽 + 배낭 + 주머니
+	var spare_cells: Array[Vector2i] = [Vector2i(0, 12), Vector2i(3, 12), Vector2i(4, 12), Vector2i(6, 12),
+			Vector2i(0, 14), Vector2i(2, 14)]
+	var spares: Array[StringName] = DemoWeapons.spare_part_ids()
+	for i: int in range(spare_cells.size()):
+		_put(authority, authority.content.get_item(spares[i]), 1, Inventory.STASH, spare_cells[i])
+	_put(authority, authority.content.get_item(DemoWeapons.SUPPRESSOR), 1, Inventory.item_grid_key(pack.id, 0), Vector2i(0, 2))
+	_put(authority, authority.content.get_item(DemoWeapons.RED_DOT), 1, Inventory.pocket_key(2), Vector2i.ZERO)
 
 
 func _def(id: StringName, display_name: String, category: ItemDef.Category, width: int, height: int,
@@ -171,6 +184,7 @@ func _def(id: StringName, display_name: String, category: ItemDef.Category, widt
 
 func _put(authority: LocalAuthority, def: ItemDef, count: int, key: StringName, cell: Vector2i) -> ItemInstance:
 	var item: ItemInstance = authority.create_item(def, count)
+	_arm(authority, item)
 	var result: CommandResult = authority.inventory.add_item(item, key, cell, false)
 	assert(result.ok, "demo item placement failed: %s" % def.id)
 	return item
@@ -178,6 +192,13 @@ func _put(authority: LocalAuthority, def: ItemDef, count: int, key: StringName, 
 
 func _equip_new(authority: LocalAuthority, def: ItemDef, slot: EquipmentSlots.Slot) -> ItemInstance:
 	var item: ItemInstance = authority.create_item(def, 1)
+	_arm(authority, item)
 	var result: CommandResult = authority.inventory.add_equipped(item, slot)
 	assert(result.ok, "demo equip failed: %s" % def.id)
 	return item
+
+
+## 무기 아이템이면 기본 부품이 달린 부품 트리를 붙인다.
+func _arm(authority: LocalAuthority, item: ItemInstance) -> void:
+	if DemoWeapons.is_weapon_item(item.def):
+		item.weapon = DemoWeapons.assemble(authority.content, item.def.id)

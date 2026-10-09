@@ -77,7 +77,7 @@ func item_local_rect() -> Rect2:
 	if item == null:
 		return Rect2()
 	var inner := Rect2(Vector2.ZERO, size).grow(-3)
-	var natural := Vector2(item.def.width, item.def.height) * float(cell)
+	var natural := Vector2(item.size_for(false)) * float(cell)   # 부품으로 커진 무기는 그만큼 크게 계산해 슬롯에 맞춘다
 	var fit: float = minf(inner.size.x / natural.x, inner.size.y / natural.y)
 	if fit < MIN_FIT_SCALE:
 		return inner

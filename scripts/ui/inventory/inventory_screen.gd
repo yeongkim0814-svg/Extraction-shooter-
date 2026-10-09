@@ -11,6 +11,10 @@ extends Control
 ##  - R = 회전, ESC = 취소·선택 해제. 드래그 중에는 두 번째 손가락 탭도 회전.
 
 signal selection_changed(item_id: int)
+## 모딩 화면이 열리거나 닫혔다.
+signal mod_screen_toggled(open: bool)
+
+const MOD_SCENE: PackedScene = preload("res://scenes/ui/mod_screen.tscn")
 
 const EDGE_SCROLL_ZONE: float = 56.0
 const EDGE_SCROLL_SPEED: float = 700.0
@@ -123,6 +127,7 @@ var _flash_serial: int = 0
 
 var _action_bar: InventoryActionBar
 var _dialog: InventoryItemDialog
+var _mod_screen: ModScreen
 
 @onready var _left_scroll: ScrollContainer = %LeftScroll
 @onready var _right_scroll: ScrollContainer = %RightScroll
@@ -195,6 +200,14 @@ func all_slots() -> Array[EquipmentSlots.Slot]:
 	return slots
 
 
+func is_mod_screen_open() -> bool:
+	return _mod_screen != null and _mod_screen.is_open()
+
+
+func mod_screen() -> ModScreen:
+	return _mod_screen
+
+
 func action_button_rects() -> Dictionary[String, Rect2]:
 	return _action_bar.button_rects()
 
@@ -217,6 +230,9 @@ func _ready() -> void:
 	_dialog = InventoryItemDialog.new()
 	_overlay.add_child(_dialog)
 	_dialog.discard_confirmed.connect(_on_discard_confirmed)
+	_mod_screen = MOD_SCENE.instantiate() as ModScreen
+	add_child(_mod_screen)
+	_mod_screen.closed.connect(func() -> void: mod_screen_toggled.emit(false))
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
 
@@ -469,6 +485,8 @@ func _on_events(_events: Array[DomainEvent]) -> void:
 # --- 입력 ---
 
 func _input(event: InputEvent) -> void:
+	if is_mod_screen_open():
+		return   # 모딩 화면이 입력을 가져간다
 	var key := event as InputEventKey
 	if key != null:
 		if key.pressed and not key.echo:
@@ -734,6 +752,9 @@ func _on_action_pressed(action: InventoryActions.Action) -> void:
 				_run_command(unequip.command, false)
 			else:
 				_show_toast(ERROR_TEXT.get(unequip.error, String(unequip.error)))
+		InventoryActions.Action.MOD:
+			_mod_screen.open(_authority, item.id)
+			mod_screen_toggled.emit(true)
 		InventoryActions.Action.DISCARD:
 			_dialog.show_discard_confirm(item)
 		InventoryActions.Action.SELL:

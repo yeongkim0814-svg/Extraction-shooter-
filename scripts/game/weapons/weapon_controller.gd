@@ -52,6 +52,7 @@ func setup(authority: GameAuthority, player: PlayerController, camera: Camera3D,
 	_view = WeaponView.new()
 	camera.add_child(_view)
 	_build_impact_assets()
+	authority.events_emitted.connect(_on_events)
 	refresh()
 
 
@@ -75,12 +76,55 @@ func refresh() -> void:
 	weapon_changed.emit()
 
 
+## 권한자 이벤트: 부품이 바뀐 무기는 스탯·모델을 다시 만들고, 장비 슬롯이 바뀌면 들고 있는 무기를 다시 읽는다.
+func _on_events(events: Array[DomainEvent]) -> void:
+	var changed: bool = false
+	var refresh_slots: bool = false
+	for event: DomainEvent in events:
+		if event.type == DomainEvent.WEAPON_CHANGED:
+			var item_id: int = int(event.data.get("item_id", 0))
+			for runtime: WeaponRuntime in _runtimes:
+				if runtime != null and runtime.item.id == item_id:
+					runtime.refresh_stats()
+					changed = true
+		elif event.type == DomainEvent.ITEM_MOVED or event.type == DomainEvent.ITEM_ADDED \
+				or event.type == DomainEvent.ITEM_REMOVED:
+			refresh_slots = refresh_slots or _touches_equipment(event)
+	if refresh_slots:
+		refresh()
+	elif changed:
+		_update_view()
+		weapon_changed.emit()
+
+
+static func _touches_equipment(event: DomainEvent) -> bool:
+	for key: String in ["from", "to"]:
+		var location: Variant = event.data.get(key)
+		if location is Dictionary and String((location as Dictionary).get("container", "")).begins_with("slot_"):
+			return true
+	return false
+
+
 func current_runtime() -> WeaponRuntime:
 	return _runtimes[_current] if _current >= 0 else null
 
 
 func current_index() -> int:
 	return _current
+
+
+## 카메라 시야각 (ADS 진행과 광학기기 배율이 반영된 값).
+func fov() -> float:
+	return _view.fov() if _view != null else WeaponMotion.FOV_NORMAL
+
+
+## 확대 조준경 ADS 오버레이 강도 0..1.
+func scope_overlay() -> float:
+	return _view.scope_overlay() if _view != null else 0.0
+
+
+func view() -> WeaponView:
+	return _view
 
 
 func is_reloading() -> bool:
@@ -151,6 +195,13 @@ static func reload_error_text(error: StringName) -> String:
 			return "재장전 실패"
 
 
+func _process(delta: float) -> void:
+	if _player == null or _view == null:
+		return
+	_view.drive(delta, _player.is_ads(), _player.is_sprinting(), _reloading,
+			_player.move_speed_ratio(), _player.last_look())
+
+
 func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
@@ -167,7 +218,6 @@ func _physics_process(_delta: float) -> void:
 	if pressed:
 		_trigger.press(now)
 	_trigger.set_held(input.is_fire_held())
-	_view.set_ads_amount(1.0 if _player.is_ads() else 0.0)
 
 	if _reloading and now >= _reload_end:
 		_finish_reload()
@@ -181,6 +231,11 @@ func _physics_process(_delta: float) -> void:
 		# 달리기를 접고 총을 들어 올리는 중: 눌림은 유지해 두었다가 끝나면 쏜다
 		if pressed or input.is_fire_held():
 			_trigger.press(now + raise_wait)
+		return
+	if runtime.item.weapon != null and not runtime.item.weapon.is_operational():
+		if pressed:
+			toast.emit("필수 부품이 없어 쏠 수 없습니다 (%s)" % ModTree.missing_required_text(runtime.item.weapon))
+		_trigger.clear()
 		return
 	if runtime.rounds() <= 0:
 		if pressed:
@@ -231,15 +286,20 @@ func _shoot(runtime: WeaponRuntime, ammo_id: StringName) -> void:
 			if result != null:
 				hit_registered.emit(target, result)
 		_spawn_impact(position, normal, target != null)
-	_view.flash()
-	_player.add_recoil(FireMath.recoil_kick(runtime.stats.get(WeaponStats.RECOIL, 0.0), ads, _rng))
+	var recoil: float = WeaponMotion.effective_recoil(runtime.stats.get(WeaponStats.RECOIL, 0.0),
+			runtime.stats.get(WeaponStats.ERGONOMICS, 0.0))
+	_view.flash(runtime.stats.get(WeaponStats.LOUDNESS, 1.0))
+	_view.kick(recoil, _rng.randf_range(-1.0, 1.0))
+	_player.add_recoil(FireMath.recoil_kick(recoil, ads, _rng))
 	shot_fired.emit(ammo_id, runtime.rounds())
 
 
 func _update_view() -> void:
 	var runtime: WeaponRuntime = current_runtime()
 	if runtime != null:
-		_view.set_weapon_length(0.1 * runtime.item.def.width + 0.1)
+		_view.set_weapon(runtime.item, runtime.stats)
+	else:
+		_view.set_weapon(null, {})
 
 
 static func _now() -> float:

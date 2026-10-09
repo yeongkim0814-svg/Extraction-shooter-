@@ -2,7 +2,7 @@ class_name InventoryActions
 extends RefCounted
 ## 선택한 아이템에 대해 액션 바에 어떤 버튼을 보여 줄지 정하는 순수 로직.
 
-enum Action { ROTATE, INFO, SPLIT, EQUIP, UNEQUIP, SELL, DISCARD }
+enum Action { ROTATE, INFO, SPLIT, EQUIP, UNEQUIP, SELL, DISCARD, MOD }
 
 ## 판매(상인) 기능이 생기면 true로 바꾸면 버튼이 나타난다 (M6 이후). 실제 판매 명령은 그때 연결한다.
 const SELL_ENABLED: bool = false
@@ -26,6 +26,9 @@ static func for_item(inventory: Inventory, item_id: int) -> Array[Entry]:
 		return entries
 	entries.append(Entry.new(Action.ROTATE))
 	entries.append(Entry.new(Action.INFO))
+	if item.weapon != null:
+		# 부품 트리가 있는 무기: 모딩 화면. 레이드 중 잠긴 스태시 안의 무기는 만질 수 없다.
+		entries.append(Entry.new(Action.MOD, not inventory.is_locked(item)))
 	if item.stack_count > 1:
 		entries.append(Entry.new(Action.SPLIT, DropResolver.plan_split(inventory, item_id) != null))
 	if DropResolver.is_equipped(item):

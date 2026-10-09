@@ -88,3 +88,35 @@ func test_unequip_disabled_without_room() -> void:
 			assert_false(entry.enabled)
 			return
 	fail_test("UNEQUIP entry missing")
+
+
+func _weapon_item(with_assembly: bool) -> ItemInstance:
+	var item: ItemInstance = _stash(_def(&"rifle", ItemDef.Category.WEAPON, 5, 2), Vector2i.ZERO)
+	if with_assembly:
+		item.weapon = WeaponAssembly.new(WeaponPartDef.create(&"rifle_receiver", &"receiver"))
+	return item
+
+
+func test_weapon_with_assembly_gets_enabled_mod_button() -> void:
+	var entries: Array[InventoryActions.Entry] = _actions(_weapon_item(true))
+	assert_true(InventoryActions.has_action(entries, A.MOD))
+	for entry: InventoryActions.Entry in entries:
+		if entry.action == A.MOD:
+			assert_true(entry.enabled)
+
+
+func test_weapon_without_assembly_and_plain_items_have_no_mod_button() -> void:
+	assert_false(InventoryActions.has_action(_actions(_weapon_item(false)), A.MOD))
+	var gpu: ItemInstance = _stash(_def(&"gpu", ItemDef.Category.VALUABLE, 2, 1), Vector2i(0, 5))
+	assert_false(InventoryActions.has_action(_actions(gpu), A.MOD))
+
+
+func test_mod_button_sits_right_after_info_and_is_disabled_when_stash_is_locked() -> void:
+	var rifle: ItemInstance = _weapon_item(true)
+	var entries: Array[InventoryActions.Entry] = _actions(rifle)
+	assert_eq(entries[1].action, A.INFO)
+	assert_eq(entries[2].action, A.MOD)
+	_inv.stash_locked = true
+	for entry: InventoryActions.Entry in _actions(rifle):
+		if entry.action == A.MOD:
+			assert_false(entry.enabled, "레이드 중 잠긴 스태시의 무기는 모딩 불가")

@@ -1,5 +1,5 @@
 // 웹 빌드 스모크 테스트: build/web을 헤드리스 Chromium(WebGL)으로 열고 씬별 마커 로그를 확인한다.
-// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat] [마커 덮어쓰기]
+// 사용법: node tools/web_smoke.mjs <index.html URL> [platform|inventory|combat|mod] [마커 덮어쓰기]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
@@ -29,7 +29,21 @@ const MODES = {
     png2: 'build/combat_smoke_after.png',
     pngTouch: 'build/combat_smoke_touch.png',
     pngSprint: 'build/combat_smoke_sprint.png',
+    pngInventory: 'build/combat_smoke_inventory.png',
     log: 'build/combat_smoke_console.log',
+  },
+  // 인벤토리 데모에서 소총 선택 → 모딩 → 소음기 장착/분리 (MOD_SCREEN 로그와 weapon_changed 이벤트 확인)
+  mod: {
+    marker: 'INVENTORY_DEMO: ready',
+    urlScene: 'inventory',
+    viewport: { width: 1280, height: 720 },
+    png: 'build/mod_smoke.png',
+    pngPreview: 'build/mod_smoke_preview.png',
+    pngAttached: 'build/mod_smoke_attached.png',
+    pngGrown: 'build/mod_smoke_grown.png',
+    pngDetached: 'build/mod_smoke_detached.png',
+    pngClosed: 'build/mod_smoke_closed.png',
+    log: 'build/mod_smoke_console.log',
   },
 };
 const mode = MODES[scene];
@@ -46,7 +60,7 @@ const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader',
          '--ignore-gpu-blocklist', '--enable-webgl', '--no-sandbox'],
 });
-const page = await browser.newPage({ viewport: mode.viewport, hasTouch: scene === 'inventory' });
+const page = await browser.newPage({ viewport: mode.viewport, hasTouch: scene === 'inventory' || scene === 'mod' });
 const lines = [];
 let errors = 0;
 const has = (needle) => lines.some((l) => l.includes(needle));
@@ -69,7 +83,7 @@ function finish(failure) {
 }
 
 fs.mkdirSync('build', { recursive: true });
-await page.goto(`${baseUrl}?scene=${scene}`);
+await page.goto(`${baseUrl}?scene=${mode.urlScene ?? scene}`);
 const sawMarker = await waitFor(MARKER, 60000);
 
 if (scene === 'platform') {
@@ -120,6 +134,25 @@ if (scene === 'combat') {
   check(reloaded, 'R 후 "COMBAT_TEST: reload ok" 로그가 없음');
   await page.waitForTimeout(500);
   await page.screenshot({ path: mode.png2 });
+
+  // 2b) 가방: I 키로 열면 플레이어 입력이 멈추고(로그), 다시 누르면 닫힌다. 열린 화면을 찍는다.
+  {
+    const o = lines.length;
+    await page.keyboard.press('i');
+    check(await waitMatch(o, /COMBAT_TEST: inventory open/, 4000), 'I 키 후 "COMBAT_TEST: inventory open" 로그가 없음');
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: mode.pngInventory });
+    const before = count(/COMBAT_TEST: shot /);
+    await page.mouse.move(640, 360);
+    await page.mouse.down();
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+    check(count(/COMBAT_TEST: shot /) === before, '가방이 열려 있는 동안 사격이 일어남');
+    const c = lines.length;
+    await page.keyboard.press('i');
+    check(await waitMatch(c, /COMBAT_TEST: inventory close/, 4000), '다시 I 키 후 "COMBAT_TEST: inventory close" 로그가 없음');
+    await page.waitForTimeout(400);
+  }
 
   // 3) 터치(멀티터치): 왼쪽 조이스틱(앞으로) + 사격 버튼 유지 + 오른쪽 드래그 시점을 동시에.
   await page.evaluate(() => document.exitPointerLock && document.exitPointerLock());   // 마우스 잠금 해제 (Esc와 같음)
@@ -197,6 +230,131 @@ if (scene === 'combat') {
   finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
   if (process.exitCode) process.exit(1);
   console.log(lines.filter((l) => l.includes('COMBAT_TEST:') && !/ pos /.test(l)).slice(0, 40).join('\n'));
+  console.log('PASS');
+  process.exit(0);
+}
+
+// --- mod ---
+if (scene === 'mod') {
+  if (!sawMarker) { await browser.close(); finish(`${MARKER} 마커가 나타나지 않음`); process.exit(1); }
+  const failures = [];
+  const check = (ok, msg) => { if (!ok) failures.push(msg); };
+  const RECT = '(-?\\d+),(-?\\d+) size (\\d+)x(\\d+)';
+  const rectOf = (m) => m && { x: +m[1], y: +m[2], w: +m[3], h: +m[4] };
+  const center = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+  const tap = async (p) => { await page.mouse.move(p.x, p.y); await page.mouse.down(); await page.waitForTimeout(60); await page.mouse.up(); };
+  const waitMatch = async (from, re, ms = 5000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const m = re.exec(lines.slice(from).join('\n'));
+      if (m) return m;
+      await page.waitForTimeout(100);
+    }
+    return null;
+  };
+  // from 이후 마지막으로 찍힌 좌표 로그 (화면이 갱신될 때마다 다시 찍힌다)
+  const lastRect = (from, re) => {
+    const all = [...lines.slice(from).join('\n').matchAll(new RegExp(re.source, 'g'))];
+    return all.length ? rectOf(all[all.length - 1]) : null;
+  };
+  await page.waitForTimeout(1000);
+  const text0 = lines.join('\n');
+  const RIFLE = 3;
+  const rifleM = new RegExp(`INVENTORY_DEMO: item ${RIFLE} at ${RECT}`).exec(text0);
+  check(rifleM, '레이아웃 로그에 소총(item 3)이 없음');
+  if (!rifleM) { await browser.close(); finish(failures.join('\n      ')); process.exit(1); }
+
+  // 1) 소총 선택 → 액션 바에 모딩 버튼
+  let from = lines.length;
+  await tap(center(rectOf(rifleM)));
+  check(await waitMatch(from, new RegExp(`INVENTORY_DEMO: selected ${RIFLE}\\b`)), '소총 탭 후 selected 로그가 없음');
+  await page.waitForTimeout(500);
+  const modBtn = lastRect(from, new RegExp(`INVENTORY_DEMO: button mod at ${RECT}`));
+  check(modBtn, '소총 선택 시 모딩(mod) 버튼이 없음');
+  if (!modBtn) { await browser.close(); finish(failures.join('\n      ')); process.exit(1); }
+
+  // 2) 모딩 화면 열기
+  from = lines.length;
+  await tap(center(modBtn));
+  check(await waitMatch(from, /MOD_SCREEN: open rifle/), '"MOD_SCREEN: open rifle" 로그가 없음');
+  const statsM = await waitMatch(from, /MOD_SCREEN: stats recoil=([\d.]+) ergo=([\d.]+)/);
+  check(statsM, '열 때 "MOD_SCREEN: stats" 로그가 없음');
+  await page.waitForTimeout(1800);   // 3D 미리보기가 그려질 시간
+  check(await waitMatch(from, /MOD_SCREEN: socket barrel\/muzzle at/), '소켓 목록 좌표 로그(barrel/muzzle)가 없음');
+  await page.screenshot({ path: mode.png });
+  const recoil0 = statsM ? +statsM[1] : NaN;
+  const ergo0 = statsM ? +statsM[2] : NaN;
+
+  // 3) 총구 소켓 선택 (이미 선택돼 있어도 탭은 무해) → 소음기 후보 탭 = 미리보기 → 장착 버튼
+  const sock = lastRect(from, new RegExp(`MOD_SCREEN: socket barrel/muzzle at ${RECT}`));
+  check(sock, 'barrel/muzzle 소켓 좌표가 없음');
+  if (sock) { await tap(center(sock)); await page.waitForTimeout(500); }
+  from = lines.length;
+  const partRe = new RegExp(`MOD_SCREEN: part suppressor at ${RECT} enabled=1`);
+  let part = lastRect(0, partRe);
+  check(part, '후보 목록에 사용 가능한 소음기가 없음');
+  if (!part) { await browser.close(); finish(failures.join('\n      ')); process.exit(1); }
+  await tap(center(part));
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: mode.pngPreview });
+  const attachBtn = lastRect(from, new RegExp(`MOD_SCREEN: button attach at ${RECT} enabled=1`));
+  check(attachBtn, '후보를 고른 뒤 장착 버튼이 활성화되지 않음');
+  from = lines.length;
+  if (attachBtn) await tap(center(attachBtn));
+  const att = await waitMatch(from, /MOD_SCREEN: attach suppressor -> barrel\/muzzle ok/);
+  check(att, '"MOD_SCREEN: attach suppressor -> barrel/muzzle ok" 로그가 없음');
+  const evt = await waitMatch(from, /INVENTORY_DEMO: event weapon_changed 3 size=(\d+)x(\d+)/);
+  check(evt, '장착 뒤 weapon_changed 이벤트 로그가 없음');
+  if (evt) check(+evt[1] === 6 && +evt[2] === 2, `소음기를 달면 소총이 6x2여야 함: ${evt[1]}x${evt[2]}`);
+  const st1 = await waitMatch(from, /MOD_SCREEN: stats recoil=([\d.]+) ergo=([\d.]+)/);
+  check(st1, '장착 뒤 stats 로그가 없음');
+  if (st1) check(+st1[1] < recoil0 && +st1[2] < ergo0, `소음기: 반동↓ 조작성↓ 기대 (전 ${recoil0}/${ergo0}, 후 ${st1[1]}/${st1[2]})`);
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: mode.pngAttached });
+
+  // 3b) 닫으면 커진 소총(6x2)이 인벤토리에 제대로 그려진다 → 다시 열기
+  let closeBtn = lastRect(from, new RegExp(`MOD_SCREEN: button close at ${RECT}`));
+  check(closeBtn, '닫기 버튼 좌표가 없음');
+  from = lines.length;
+  if (closeBtn) await tap(center(closeBtn));
+  check(await waitMatch(from, /MOD_SCREEN: close/), '(1) "MOD_SCREEN: close" 로그가 없음');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: mode.pngGrown });
+  from = lines.length;
+  await tap(center(modBtn));
+  check(await waitMatch(from, /MOD_SCREEN: open rifle/), '다시 열 때 "MOD_SCREEN: open rifle" 로그가 없음');
+  await page.waitForTimeout(1200);
+
+  // 4) 분리: 총구 소켓을 골라 분리 버튼 (아래에 부품이 없으니 활성)
+  const sock2 = lastRect(from, new RegExp(`MOD_SCREEN: socket barrel/muzzle at ${RECT}`));
+  check(sock2, '다시 연 뒤 barrel/muzzle 소켓 좌표가 없음');
+  if (sock2) { await tap(center(sock2)); await page.waitForTimeout(700); }
+  const detachBtn = lastRect(from, new RegExp(`MOD_SCREEN: button detach at ${RECT} enabled=1`));
+  check(detachBtn, '소음기가 달린 소켓을 고르면 분리(detach) 버튼 좌표가 있어야 함');
+  from = lines.length;
+  if (detachBtn) await tap(center(detachBtn));
+  check(await waitMatch(from, /MOD_SCREEN: detach barrel\/muzzle ok/), '"MOD_SCREEN: detach barrel/muzzle ok" 로그가 없음');
+  const evt2 = await waitMatch(from, /INVENTORY_DEMO: event weapon_changed 3 size=(\d+)x(\d+)/);
+  check(evt2 && +evt2[1] === 5 && +evt2[2] === 2, '분리 뒤 소총이 5x2로 돌아와야 함');
+  const st2 = await waitMatch(from, /MOD_SCREEN: stats recoil=([\d.]+) ergo=([\d.]+)/);
+  check(st2 && +st2[1] === recoil0 && +st2[2] === ergo0, '분리 뒤 스탯이 처음 값으로 돌아와야 함');
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: mode.pngDetached });
+
+  // 5) 닫기 → 인벤토리로 복귀
+  closeBtn = lastRect(from, new RegExp(`MOD_SCREEN: button close at ${RECT}`));
+  check(closeBtn, '닫기 버튼 좌표가 없음');
+  from = lines.length;
+  if (closeBtn) await tap(center(closeBtn));
+  check(await waitMatch(from, /MOD_SCREEN: close/), '"MOD_SCREEN: close" 로그가 없음');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: mode.pngClosed });
+
+  await browser.close();
+  if (failures.length) { finish(failures.join('\n      ')); process.exit(1); }
+  finish(errors > 0 ? `콘솔 error ${errors}건 (${mode.log} 참조)` : null);
+  if (process.exitCode) process.exit(1);
+  console.log(lines.filter((l) => /MOD_SCREEN: (open|attach|detach|stats|close|select)|weapon_changed/.test(l)).join('\n'));
   console.log('PASS');
   process.exit(0);
 }

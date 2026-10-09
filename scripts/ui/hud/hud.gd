@@ -11,6 +11,11 @@ const DRY_FLASH_TIME: float = 0.35
 const TOAST_TIME: float = 2.0
 const BAR_BG := Color(0.05, 0.06, 0.08, 0.6)
 const MARGIN: float = 24.0
+## 알림·안내 줄의 세로 위치 (왼쪽 위 체력 바·오른쪽 위 가방 버튼 아래).
+const BANNER_Y: float = 112.0
+
+## 가방(인벤토리·모딩) 버튼을 눌렀다. 키보드 Tab/I는 전투 테스트 씬이 처리한다.
+signal inventory_requested
 
 var _player: PlayerController
 var _weapons: WeaponController
@@ -24,6 +29,7 @@ var _hit_penetrated: bool = true
 var _dry_left: float = 0.0
 var _ads: bool = false
 var _ammo_box: StyleBoxFlat
+var _bag_button: Button
 
 
 func _ready() -> void:
@@ -33,6 +39,22 @@ func _ready() -> void:
 	_ammo_box.border_color = Color(InventoryStyle.PANEL_BORDER, 0.8)
 	_ammo_box.set_border_width_all(2)
 	_ammo_box.set_corner_radius_all(8)
+	_bag_button = Button.new()
+	_bag_button.text = "가방"
+	InventoryStyle.style_button(_bag_button)
+	_bag_button.custom_minimum_size = Vector2(112, 52)
+	_bag_button.pressed.connect(func() -> void: inventory_requested.emit())
+	add_child(_bag_button)
+	_bag_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_bag_button.offset_left = -MARGIN - 112.0
+	_bag_button.offset_right = -MARGIN
+	_bag_button.offset_top = MARGIN
+	_bag_button.offset_bottom = MARGIN + 52.0
+
+
+## 가방 버튼의 전역 영역 (스모크·테스트용).
+func bag_button_rect() -> Rect2:
+	return _bag_button.get_global_rect()
 
 
 func bind(player: PlayerController, weapons: WeaponController, authority: GameAuthority) -> void:
@@ -89,9 +111,12 @@ func _draw() -> void:
 	if _player == null:
 		return
 	var font: Font = get_theme_default_font()
+	var center: Vector2 = size * 0.5
+	var scope: float = _weapons.scope_overlay()
+	if scope > 0.01:
+		_draw_scope(center, scope)   # 다른 HUD 요소 아래에 깔린다
 	_draw_health(font)
 	_draw_ammo(font)
-	var center: Vector2 = size * 0.5
 	if not _ads:
 		_draw_crosshair(center)
 	if _hit_left > 0.0:
@@ -100,9 +125,9 @@ func _draw() -> void:
 	if _player.input.sprint_lock.is_locked():
 		_draw_sprint_lock(font)
 	if _toast_left > 0.0:
-		_draw_banner(font, _toast_text, 64.0, 24)
+		_draw_banner(font, _toast_text, BANNER_Y, 24)
 	elif not _hint_text.is_empty():
-		_draw_banner(font, _hint_text, 64.0, 20)
+		_draw_banner(font, _hint_text, BANNER_Y, 18)
 
 
 func _text(font: Font, pos: Vector2, text: String, font_size: int, color: Color,
@@ -118,6 +143,19 @@ func _draw_crosshair(center: Vector2) -> void:
 		draw_line(from, to, Color(0, 0, 0, 0.6), 5.0)
 		draw_line(from, to, CROSSHAIR_COLOR, 2.5)
 	draw_circle(center, 2.0, CROSSHAIR_COLOR)
+
+
+## 확대 조준경 ADS: 둥근 시야 밖을 어둡게 + 가는 십자선.
+func _draw_scope(center: Vector2, amount: float) -> void:
+	var radius: float = size.y * 0.4
+	var outer: float = size.length() * 0.5 + 8.0
+	draw_arc(center, (radius + outer) * 0.5, 0.0, TAU, 128, Color(0, 0, 0, amount), outer - radius)
+	draw_arc(center, radius, 0.0, TAU, 96, Color(0, 0, 0, amount), 3.0, true)
+	var line := Color(0, 0, 0, 0.85 * amount)
+	draw_line(center + Vector2(-radius, 0), center + Vector2(-6, 0), line, 2.0)
+	draw_line(center + Vector2(6, 0), center + Vector2(radius, 0), line, 2.0)
+	draw_line(center + Vector2(0, -radius), center + Vector2(0, -6), line, 2.0)
+	draw_line(center + Vector2(0, 6), center + Vector2(0, radius), line, 2.0)
 
 
 func _draw_hit_marker(center: Vector2) -> void:

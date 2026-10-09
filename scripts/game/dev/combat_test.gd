@@ -7,11 +7,14 @@ extends Node3D
 ##   "COMBAT_TEST: reload <ok|error [코드]>"
 ##   "COMBAT_TEST: kill <target>"
 ##   "COMBAT_TEST: dry"
+##   "COMBAT_TEST: inventory open" / "COMBAT_TEST: inventory close"   Tab·I 키 또는 HUD 가방 버튼 (열려 있는 동안 플레이어 입력 정지)
+##   "COMBAT_TEST: weapon_changed <슬롯 번호> recoil=<v> ergo=<v>"   부품이 바뀐 뒤 무기 스탯이 갱신됐을 때
 ##   "COMBAT_TEST: sprint_lock on" / "COMBAT_TEST: sprint_lock off <touch|pull_down|ads|fire|crouch|wall|key_back|toggle|focus>"
 ##   "COMBAT_TEST: pos x=<m> z=<m> yaw=<deg>"   위치·시점이 바뀌었을 때만 (최대 0.5초에 한 번)
 
 const PREFIX: String = "COMBAT_TEST: "
-const HINT: String = "화면을 클릭해 마우스 시점 켜기  ·  WASD 이동  ·  좌클릭 사격  ·  우클릭 조준  ·  R 재장전  ·  1/2/3 무기  ·  Esc 해제"
+const HINT: String = "클릭: 마우스 시점  ·  WASD 이동  ·  좌클릭 사격  ·  우클릭 조준  ·  R 재장전  ·  1/2/3 무기  ·  Tab 가방(모딩)  ·  Esc 해제"
+const SCREEN_SCENE: PackedScene = preload("res://scenes/ui/inventory_screen.tscn")
 
 @onready var _player: PlayerController = $Player
 @onready var _hud: Hud = $UI/Hud
@@ -23,6 +26,8 @@ var _authority: LocalAuthority
 var _rng := RandomNumberGenerator.new()
 var _pos_timer: float = 0.0
 var _last_pose: Vector3 = Vector3.INF
+var _screen: InventoryScreen
+var _touch_was_active: bool = false
 
 
 func _ready() -> void:
@@ -42,8 +47,61 @@ func _ready() -> void:
 	lock.engaged.connect(func() -> void: print(PREFIX + "sprint_lock on"))
 	lock.cancelled.connect(func(reason: StringName) -> void: print(PREFIX + "sprint_lock off " + String(reason)))
 	weapons.dry_fired.connect(func() -> void: print(PREFIX + "dry"))
+	weapons.weapon_changed.connect(_on_weapon_changed)
+	_screen = SCREEN_SCENE.instantiate() as InventoryScreen
+	$UI.add_child(_screen)
+	_screen.setup(_authority)
+	_screen.visible = false
+	_screen.process_mode = Node.PROCESS_MODE_DISABLED
+	_hud.inventory_requested.connect(func() -> void: set_inventory_open(not is_inventory_open()))
 	await get_tree().process_frame
 	print(PREFIX + "ready")
+
+
+func is_inventory_open() -> bool:
+	return _screen != null and _screen.visible
+
+
+## 가방(인벤토리·모딩 화면)을 열고 닫는다. 열려 있는 동안 플레이어·입력·HUD는 멈춘다.
+func set_inventory_open(open: bool) -> void:
+	if open == is_inventory_open():
+		return
+	if open:
+		_touch_was_active = _touch.is_active()
+		_player.input.release_source(InputState.Source.KEYBOARD)
+		_player.input.release_source(InputState.Source.TOUCH)
+		_player.input.sprint_lock.cancel(SprintLock.Reason.FOCUS, false)
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_touch.set_active(false)
+	_player.process_mode = Node.PROCESS_MODE_DISABLED if open else Node.PROCESS_MODE_INHERIT
+	_desktop.process_mode = Node.PROCESS_MODE_DISABLED if open else Node.PROCESS_MODE_INHERIT
+	_touch.process_mode = Node.PROCESS_MODE_DISABLED if open else Node.PROCESS_MODE_INHERIT
+	_hud.visible = not open
+	_screen.visible = open
+	_screen.process_mode = Node.PROCESS_MODE_INHERIT if open else Node.PROCESS_MODE_DISABLED
+	if not open:
+		_screen.mod_screen().close()
+		_touch.set_active(_touch_was_active)
+	print(PREFIX + ("inventory open" if open else "inventory close"))
+
+
+func _input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo or (_screen != null and _screen.is_mod_screen_open()):
+		return
+	if key.physical_keycode == KEY_TAB or key.physical_keycode == KEY_I:
+		set_inventory_open(not is_inventory_open())
+		get_viewport().set_input_as_handled()
+	elif key.physical_keycode == KEY_ESCAPE and is_inventory_open():
+		set_inventory_open(false)
+		get_viewport().set_input_as_handled()
+
+
+func _on_weapon_changed() -> void:
+	var runtime: WeaponRuntime = _player.weapons.current_runtime()
+	if runtime != null:
+		print(PREFIX + "weapon_changed %d recoil=%.1f ergo=%.1f" % [_player.weapons.current_index() + 1,
+				runtime.stats.get(WeaponStats.RECOIL, 0.0), runtime.stats.get(WeaponStats.ERGONOMICS, 0.0)])
 
 
 func _process(delta: float) -> void:
