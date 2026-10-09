@@ -1,31 +1,89 @@
 [gd_scene format=3]
 
-[ext_resource type="Shader" path="res://assets/shaders/industrial_sky.gdshader" id="1_otxtp"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/farground.res" id="2_5qjr0"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground.res" id="3_dfmqf"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers.res" id="4_gbryv"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/truck.res" id="5_eij0m"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barriers.res" id="6_vumrw"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/pallets.res" id="7_nptpd"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barrels.res" id="8_cwhgx"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack.res" id="9_ggxgc"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/lamppost.res" id="10_7f8gg"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/fence.res" id="11_oqb36"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/puddle.res" id="12_8s0kb"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/weeds.res" id="13_jqvrq"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory.res" id="14_pwyyg"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior.res" id="15_5nodk"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/forklift.res" id="16_3v1bb"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates.res" id="17_oittk"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/shaft.res" id="18_n6eow"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/glow.res" id="19_m6urm"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ivy.res" id="20_rbknn"]
-[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/skyline.res" id="21_4m00l"]
-[ext_resource type="Script" path="res://scripts/game/world/smoke_plume.gd" id="22_ofiwq"]
-[ext_resource type="Script" path="res://scripts/game/dev/style_shot_camera.gd" id="23_h3xyl"]
+[ext_resource type="Shader" path="res://assets/shaders/industrial_sky.gdshader" id="1_67aqp"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/farground.res" id="2_f3p5o"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c0.res" id="3_1ydnm"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c1.res" id="4_j1fsq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c2.res" id="5_rvmyl"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c3.res" id="6_obn41"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c4.res" id="7_8vkwu"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c5.res" id="8_s36be"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c6.res" id="9_gx1bu"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c7.res" id="10_gk0hq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c8.res" id="11_yn2iy"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c9.res" id="12_1iln5"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c10.res" id="13_fxrwy"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c11.res" id="14_quhyg"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c12.res" id="15_obbw5"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c13.res" id="16_jrpse"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c14.res" id="17_xf8li"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ground_c15.res" id="18_54gaq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c0.res" id="19_m2qej"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c1.res" id="20_q8wio"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c2.res" id="21_5nlhs"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c3.res" id="22_gyn5f"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c4.res" id="23_17klc"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/containers_c5.res" id="24_tph7x"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/truck.res" id="25_0a18s"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barriers.res" id="26_w3h5m"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/pallets_c0.res" id="27_mmds6"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/pallets_c1.res" id="28_ivlbd"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/pallets_c2.res" id="29_ub38b"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barrels_c0.res" id="30_ggu4w"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barrels_c1.res" id="31_tj7it"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/barrels_c2.res" id="32_hlbrt"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c0.res" id="33_qdwa3"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c1.res" id="34_gmox7"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c2.res" id="35_q2fh3"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c3.res" id="36_1hvrs"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c4.res" id="37_dmkut"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c5.res" id="38_l265q"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c6.res" id="39_oj3cr"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/rack_c7.res" id="40_3r3at"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/lamppost.res" id="41_gk0pk"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/fence_c0.res" id="42_cucya"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/fence_c1.res" id="43_lhqrx"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/fence_c2.res" id="44_g6m5c"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/puddle.res" id="45_5pef6"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/weeds.res" id="46_omtc4"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c0.res" id="47_m63rr"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c1.res" id="48_qucva"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c2.res" id="49_upqud"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c3.res" id="50_i0thg"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c4.res" id="51_a6j66"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c5.res" id="52_olqmb"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c6.res" id="53_xfn12"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c7.res" id="54_vxosq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c8.res" id="55_qmi2f"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c9.res" id="56_rmntm"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c10.res" id="57_spd8t"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/factory_c11.res" id="58_c2hog"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c0.res" id="59_b5q4l"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c1.res" id="60_smuqb"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c2.res" id="61_os2s2"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c3.res" id="62_y67o3"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c4.res" id="63_nmuqi"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c5.res" id="64_ymabd"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c6.res" id="65_5rgyg"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c7.res" id="66_yeeiu"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c8.res" id="67_a5wmk"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/interior_c9.res" id="68_8hjgr"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/forklift.res" id="69_mqbl8"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c0.res" id="70_yxctq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c1.res" id="71_g2x0e"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c2.res" id="72_6dra8"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c3.res" id="73_coxje"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c4.res" id="74_6v7gq"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/crates_c5.res" id="75_tsnsm"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/shaft.res" id="76_dex5r"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/glow.res" id="77_5rnnu"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/ivy.res" id="78_ypaic"]
+[ext_resource type="ArrayMesh" path="res://scenes/dev/style_d_bake/skyline.res" id="79_b16eh"]
+[ext_resource type="Script" path="res://scripts/game/world/smoke_plume.gd" id="80_t5143"]
+[ext_resource type="Script" path="res://scripts/game/dev/style_shot_camera.gd" id="81_khfx5"]
 
 [sub_resource type="ShaderMaterial" id="Sky_mat"]
-shader = ExtResource("1_otxtp")
+shader = ExtResource("1_67aqp")
 shader_parameter/zenith_color = null
 shader_parameter/horizon_color = null
 shader_parameter/ground_color = null
@@ -39,7 +97,7 @@ shader_parameter/sun_glow = null
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("Sky_mat")
 
-[sub_resource type="Environment" id="Environment_p7htq"]
+[sub_resource type="Environment" id="Environment_2c87w"]
 background_mode = 2
 sky = SubResource("Sky_1")
 ambient_light_source = 3
@@ -63,21 +121,21 @@ adjustment_enabled = true
 adjustment_contrast = 1.12
 adjustment_saturation = 0.9
 
-[sub_resource type="Gradient" id="Gradient_2acoy"]
+[sub_resource type="Gradient" id="Gradient_sc4yf"]
 offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
 colors = PackedColorArray(0.14, 0.15, 0.17, 0, 0.17, 0.18, 0.2, 0.5, 0.26, 0.28, 0.31, 0.32, 0.34, 0.36, 0.4, 0)
 
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_qs48a"]
-gradient = SubResource("Gradient_2acoy")
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_q4h2g"]
+gradient = SubResource("Gradient_sc4yf")
 
-[sub_resource type="Curve" id="Curve_xvc18"]
+[sub_resource type="Curve" id="Curve_dxbk0"]
 _data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="CurveTexture" id="CurveTexture_qecmx"]
-curve = SubResource("Curve_xvc18")
+[sub_resource type="CurveTexture" id="CurveTexture_hu7pk"]
+curve = SubResource("Curve_dxbk0")
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_28bs2"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_6vsmq"]
 emission_shape = 1
 emission_sphere_radius = 0.8
 angle_max = 360.0
@@ -90,40 +148,40 @@ damping_min = 0.15
 damping_max = 0.3
 scale_min = 7.0
 scale_max = 11.0
-scale_curve = SubResource("CurveTexture_qecmx")
-color_ramp = SubResource("GradientTexture1D_qs48a")
+scale_curve = SubResource("CurveTexture_hu7pk")
+color_ramp = SubResource("GradientTexture1D_q4h2g")
 
-[sub_resource type="Gradient" id="Gradient_55u2m"]
+[sub_resource type="Gradient" id="Gradient_t2cb7"]
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_r651l"]
-gradient = SubResource("Gradient_55u2m")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ndepl"]
+gradient = SubResource("Gradient_t2cb7")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rjjcq"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f70ie"]
 transparency = 1
 cull_mode = 2
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_r651l")
+albedo_texture = SubResource("GradientTexture2D_ndepl")
 billboard_mode = 3
 billboard_keep_scale = true
 particles_anim_h_frames = 1
 particles_anim_v_frames = 1
 particles_anim_loop = false
 
-[sub_resource type="QuadMesh" id="QuadMesh_hw7vx"]
-material = SubResource("StandardMaterial3D_rjjcq")
+[sub_resource type="QuadMesh" id="QuadMesh_h5hph"]
+material = SubResource("StandardMaterial3D_f70ie")
 
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_8xkpu"]
-gradient = SubResource("Gradient_2acoy")
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_2717j"]
+gradient = SubResource("Gradient_sc4yf")
 
-[sub_resource type="CurveTexture" id="CurveTexture_vtukn"]
-curve = SubResource("Curve_xvc18")
+[sub_resource type="CurveTexture" id="CurveTexture_lk3rc"]
+curve = SubResource("Curve_dxbk0")
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_xbhnu"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_gfdxc"]
 emission_shape = 1
 emission_sphere_radius = 0.8
 angle_max = 360.0
@@ -136,18 +194,18 @@ damping_min = 0.15
 damping_max = 0.3
 scale_min = 7.0
 scale_max = 11.0
-scale_curve = SubResource("CurveTexture_vtukn")
-color_ramp = SubResource("GradientTexture1D_8xkpu")
+scale_curve = SubResource("CurveTexture_lk3rc")
+color_ramp = SubResource("GradientTexture1D_2717j")
 
-[sub_resource type="QuadMesh" id="QuadMesh_26srl"]
-material = SubResource("StandardMaterial3D_rjjcq")
+[sub_resource type="QuadMesh" id="QuadMesh_46frr"]
+material = SubResource("StandardMaterial3D_f70ie")
 
-[node name="StyleDBake" type="Node3D" unique_id=526081392]
+[node name="StyleDBake" type="Node3D" unique_id=15276630]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1077995048]
-environment = SubResource("Environment_p7htq")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=59674661]
+environment = SubResource("Environment_2c87w")
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=2022893660]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=811435090]
 transform = Transform3D(0.69542146, 0.36031133, -0.6217433, 0, 0.8652122, 0.5014059, 0.7186021, -0.34868842, 0.60168713, 0, 12, 0)
 light_color = Color(0.86, 0.92, 1, 1)
 light_energy = 1.35
@@ -161,77 +219,252 @@ directional_shadow_split_1 = 0.28
 directional_shadow_blend_splits = true
 directional_shadow_max_distance = 45.0
 
-[node name="FarGround" type="MeshInstance3D" parent="." unique_id=113219378]
-cast_shadow = 0
-mesh = ExtResource("2_5qjr0")
-
-[node name="Ground" type="MeshInstance3D" parent="." unique_id=1889696001]
-mesh = ExtResource("3_dfmqf")
-
-[node name="Containers" type="MeshInstance3D" parent="." unique_id=1138496468]
-mesh = ExtResource("4_gbryv")
-
-[node name="Truck" type="MeshInstance3D" parent="." unique_id=1390995409]
-mesh = ExtResource("5_eij0m")
-
-[node name="Barriers" type="MeshInstance3D" parent="." unique_id=1219949032]
-mesh = ExtResource("6_vumrw")
-
-[node name="Pallets" type="MeshInstance3D" parent="." unique_id=677130687]
-mesh = ExtResource("7_nptpd")
-
-[node name="Barrels" type="MeshInstance3D" parent="." unique_id=1293097723]
-mesh = ExtResource("8_cwhgx")
-
-[node name="Rack" type="MeshInstance3D" parent="." unique_id=1665431195]
-mesh = ExtResource("9_ggxgc")
-
-[node name="LampPost" type="MeshInstance3D" parent="." unique_id=1393610804]
-mesh = ExtResource("10_7f8gg")
-
-[node name="Fence" type="MeshInstance3D" parent="." unique_id=597039514]
-mesh = ExtResource("11_oqb36")
-
-[node name="Puddle" type="MeshInstance3D" parent="." unique_id=943813977]
-gi_mode = 0
-mesh = ExtResource("12_8s0kb")
-
-[node name="Weeds" type="MeshInstance3D" parent="." unique_id=1161968873]
-gi_mode = 0
-mesh = ExtResource("13_jqvrq")
-
-[node name="Factory" type="MeshInstance3D" parent="." unique_id=1623741414]
-mesh = ExtResource("14_pwyyg")
-
-[node name="Interior" type="MeshInstance3D" parent="." unique_id=387669231]
-mesh = ExtResource("15_5nodk")
-
-[node name="Forklift" type="MeshInstance3D" parent="." unique_id=1074496763]
-mesh = ExtResource("16_3v1bb")
-
-[node name="Crates" type="MeshInstance3D" parent="." unique_id=1641742101]
-mesh = ExtResource("17_oittk")
-
-[node name="Shaft" type="MeshInstance3D" parent="." unique_id=1536147762]
+[node name="FarGround" type="MeshInstance3D" parent="." unique_id=1807180201]
 cast_shadow = 0
 gi_mode = 0
-mesh = ExtResource("18_n6eow")
+mesh = ExtResource("2_f3p5o")
 
-[node name="Glow" type="MeshInstance3D" parent="." unique_id=1503793737]
+[node name="Ground_c0" type="MeshInstance3D" parent="." unique_id=1287211906]
+mesh = ExtResource("3_1ydnm")
+
+[node name="Ground_c1" type="MeshInstance3D" parent="." unique_id=2005550314]
+mesh = ExtResource("4_j1fsq")
+
+[node name="Ground_c2" type="MeshInstance3D" parent="." unique_id=1515583438]
+mesh = ExtResource("5_rvmyl")
+
+[node name="Ground_c3" type="MeshInstance3D" parent="." unique_id=1940389840]
+mesh = ExtResource("6_obn41")
+
+[node name="Ground_c4" type="MeshInstance3D" parent="." unique_id=1426264440]
+mesh = ExtResource("7_8vkwu")
+
+[node name="Ground_c5" type="MeshInstance3D" parent="." unique_id=1341195001]
+mesh = ExtResource("8_s36be")
+
+[node name="Ground_c6" type="MeshInstance3D" parent="." unique_id=1572524340]
+mesh = ExtResource("9_gx1bu")
+
+[node name="Ground_c7" type="MeshInstance3D" parent="." unique_id=454900883]
+mesh = ExtResource("10_gk0hq")
+
+[node name="Ground_c8" type="MeshInstance3D" parent="." unique_id=654233306]
+mesh = ExtResource("11_yn2iy")
+
+[node name="Ground_c9" type="MeshInstance3D" parent="." unique_id=553746700]
+mesh = ExtResource("12_1iln5")
+
+[node name="Ground_c10" type="MeshInstance3D" parent="." unique_id=612330093]
+mesh = ExtResource("13_fxrwy")
+
+[node name="Ground_c11" type="MeshInstance3D" parent="." unique_id=275328148]
+mesh = ExtResource("14_quhyg")
+
+[node name="Ground_c12" type="MeshInstance3D" parent="." unique_id=2115142923]
+mesh = ExtResource("15_obbw5")
+
+[node name="Ground_c13" type="MeshInstance3D" parent="." unique_id=231567068]
+mesh = ExtResource("16_jrpse")
+
+[node name="Ground_c14" type="MeshInstance3D" parent="." unique_id=1230426503]
+mesh = ExtResource("17_xf8li")
+
+[node name="Ground_c15" type="MeshInstance3D" parent="." unique_id=1045657850]
+mesh = ExtResource("18_54gaq")
+
+[node name="Containers_c0" type="MeshInstance3D" parent="." unique_id=347790096]
+mesh = ExtResource("19_m2qej")
+
+[node name="Containers_c1" type="MeshInstance3D" parent="." unique_id=1889242172]
+mesh = ExtResource("20_q8wio")
+
+[node name="Containers_c2" type="MeshInstance3D" parent="." unique_id=1622652918]
+mesh = ExtResource("21_5nlhs")
+
+[node name="Containers_c3" type="MeshInstance3D" parent="." unique_id=589186093]
+mesh = ExtResource("22_gyn5f")
+
+[node name="Containers_c4" type="MeshInstance3D" parent="." unique_id=648733815]
+mesh = ExtResource("23_17klc")
+
+[node name="Containers_c5" type="MeshInstance3D" parent="." unique_id=1627175148]
+mesh = ExtResource("24_tph7x")
+
+[node name="Truck" type="MeshInstance3D" parent="." unique_id=1420766583]
+mesh = ExtResource("25_0a18s")
+
+[node name="Barriers" type="MeshInstance3D" parent="." unique_id=1490043941]
+mesh = ExtResource("26_w3h5m")
+
+[node name="Pallets_c0" type="MeshInstance3D" parent="." unique_id=1544527247]
+mesh = ExtResource("27_mmds6")
+
+[node name="Pallets_c1" type="MeshInstance3D" parent="." unique_id=836558304]
+mesh = ExtResource("28_ivlbd")
+
+[node name="Pallets_c2" type="MeshInstance3D" parent="." unique_id=1993279555]
+mesh = ExtResource("29_ub38b")
+
+[node name="Barrels_c0" type="MeshInstance3D" parent="." unique_id=1431852495]
+mesh = ExtResource("30_ggu4w")
+
+[node name="Barrels_c1" type="MeshInstance3D" parent="." unique_id=1453099184]
+mesh = ExtResource("31_tj7it")
+
+[node name="Barrels_c2" type="MeshInstance3D" parent="." unique_id=1030043216]
+mesh = ExtResource("32_hlbrt")
+
+[node name="Rack_c0" type="MeshInstance3D" parent="." unique_id=73679640]
+mesh = ExtResource("33_qdwa3")
+
+[node name="Rack_c1" type="MeshInstance3D" parent="." unique_id=1483883288]
+mesh = ExtResource("34_gmox7")
+
+[node name="Rack_c2" type="MeshInstance3D" parent="." unique_id=108595868]
+mesh = ExtResource("35_q2fh3")
+
+[node name="Rack_c3" type="MeshInstance3D" parent="." unique_id=1438505393]
+mesh = ExtResource("36_1hvrs")
+
+[node name="Rack_c4" type="MeshInstance3D" parent="." unique_id=1065314163]
+mesh = ExtResource("37_dmkut")
+
+[node name="Rack_c5" type="MeshInstance3D" parent="." unique_id=184739043]
+mesh = ExtResource("38_l265q")
+
+[node name="Rack_c6" type="MeshInstance3D" parent="." unique_id=16629935]
+mesh = ExtResource("39_oj3cr")
+
+[node name="Rack_c7" type="MeshInstance3D" parent="." unique_id=1513732920]
+mesh = ExtResource("40_3r3at")
+
+[node name="LampPost" type="MeshInstance3D" parent="." unique_id=1710850844]
+mesh = ExtResource("41_gk0pk")
+
+[node name="Fence_c0" type="MeshInstance3D" parent="." unique_id=41053908]
+mesh = ExtResource("42_cucya")
+
+[node name="Fence_c1" type="MeshInstance3D" parent="." unique_id=1220942283]
+mesh = ExtResource("43_lhqrx")
+
+[node name="Fence_c2" type="MeshInstance3D" parent="." unique_id=533956785]
+mesh = ExtResource("44_g6m5c")
+
+[node name="Puddle" type="MeshInstance3D" parent="." unique_id=339891529]
+gi_mode = 0
+mesh = ExtResource("45_5pef6")
+
+[node name="Weeds" type="MeshInstance3D" parent="." unique_id=808392347]
+gi_mode = 0
+mesh = ExtResource("46_omtc4")
+
+[node name="Factory_c0" type="MeshInstance3D" parent="." unique_id=98847040]
+mesh = ExtResource("47_m63rr")
+
+[node name="Factory_c1" type="MeshInstance3D" parent="." unique_id=1207445121]
+mesh = ExtResource("48_qucva")
+
+[node name="Factory_c2" type="MeshInstance3D" parent="." unique_id=625369183]
+mesh = ExtResource("49_upqud")
+
+[node name="Factory_c3" type="MeshInstance3D" parent="." unique_id=1576812995]
+mesh = ExtResource("50_i0thg")
+
+[node name="Factory_c4" type="MeshInstance3D" parent="." unique_id=773818807]
+mesh = ExtResource("51_a6j66")
+
+[node name="Factory_c5" type="MeshInstance3D" parent="." unique_id=434459335]
+mesh = ExtResource("52_olqmb")
+
+[node name="Factory_c6" type="MeshInstance3D" parent="." unique_id=593888528]
+mesh = ExtResource("53_xfn12")
+
+[node name="Factory_c7" type="MeshInstance3D" parent="." unique_id=218286182]
+mesh = ExtResource("54_vxosq")
+
+[node name="Factory_c8" type="MeshInstance3D" parent="." unique_id=1031383987]
+mesh = ExtResource("55_qmi2f")
+
+[node name="Factory_c9" type="MeshInstance3D" parent="." unique_id=1677732710]
+mesh = ExtResource("56_rmntm")
+
+[node name="Factory_c10" type="MeshInstance3D" parent="." unique_id=1774964366]
+mesh = ExtResource("57_spd8t")
+
+[node name="Factory_c11" type="MeshInstance3D" parent="." unique_id=587540836]
+mesh = ExtResource("58_c2hog")
+
+[node name="Interior_c0" type="MeshInstance3D" parent="." unique_id=620590578]
+mesh = ExtResource("59_b5q4l")
+
+[node name="Interior_c1" type="MeshInstance3D" parent="." unique_id=48923872]
+mesh = ExtResource("60_smuqb")
+
+[node name="Interior_c2" type="MeshInstance3D" parent="." unique_id=652736596]
+mesh = ExtResource("61_os2s2")
+
+[node name="Interior_c3" type="MeshInstance3D" parent="." unique_id=2127596945]
+mesh = ExtResource("62_y67o3")
+
+[node name="Interior_c4" type="MeshInstance3D" parent="." unique_id=180393894]
+mesh = ExtResource("63_nmuqi")
+
+[node name="Interior_c5" type="MeshInstance3D" parent="." unique_id=975269210]
+mesh = ExtResource("64_ymabd")
+
+[node name="Interior_c6" type="MeshInstance3D" parent="." unique_id=1128634369]
+mesh = ExtResource("65_5rgyg")
+
+[node name="Interior_c7" type="MeshInstance3D" parent="." unique_id=1660263197]
+mesh = ExtResource("66_yeeiu")
+
+[node name="Interior_c8" type="MeshInstance3D" parent="." unique_id=2141221901]
+mesh = ExtResource("67_a5wmk")
+
+[node name="Interior_c9" type="MeshInstance3D" parent="." unique_id=1186367416]
+mesh = ExtResource("68_8hjgr")
+
+[node name="Forklift" type="MeshInstance3D" parent="." unique_id=64900751]
+mesh = ExtResource("69_mqbl8")
+
+[node name="Crates_c0" type="MeshInstance3D" parent="." unique_id=767587448]
+mesh = ExtResource("70_yxctq")
+
+[node name="Crates_c1" type="MeshInstance3D" parent="." unique_id=979102951]
+mesh = ExtResource("71_g2x0e")
+
+[node name="Crates_c2" type="MeshInstance3D" parent="." unique_id=379698042]
+mesh = ExtResource("72_6dra8")
+
+[node name="Crates_c3" type="MeshInstance3D" parent="." unique_id=1545484842]
+mesh = ExtResource("73_coxje")
+
+[node name="Crates_c4" type="MeshInstance3D" parent="." unique_id=1365601739]
+mesh = ExtResource("74_6v7gq")
+
+[node name="Crates_c5" type="MeshInstance3D" parent="." unique_id=1650217800]
+mesh = ExtResource("75_tsnsm")
+
+[node name="Shaft" type="MeshInstance3D" parent="." unique_id=1114380832]
 cast_shadow = 0
 gi_mode = 0
-mesh = ExtResource("19_m6urm")
+mesh = ExtResource("76_dex5r")
 
-[node name="Ivy" type="MeshInstance3D" parent="." unique_id=983786086]
-gi_mode = 0
-mesh = ExtResource("20_rbknn")
-
-[node name="Skyline" type="MeshInstance3D" parent="." unique_id=370445776]
+[node name="Glow" type="MeshInstance3D" parent="." unique_id=95853541]
 cast_shadow = 0
 gi_mode = 0
-mesh = ExtResource("21_4m00l")
+mesh = ExtResource("77_5rnnu")
 
-[node name="Lamp1" type="OmniLight3D" parent="." unique_id=766356961]
+[node name="Ivy" type="MeshInstance3D" parent="." unique_id=1832040444]
+gi_mode = 0
+mesh = ExtResource("78_ypaic")
+
+[node name="Skyline" type="MeshInstance3D" parent="." unique_id=1584696018]
+cast_shadow = 0
+gi_mode = 0
+mesh = ExtResource("79_b16eh")
+
+[node name="Lamp1" type="OmniLight3D" parent="." unique_id=191933673]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 5.96, -15.5)
 light_color = Color(1, 0.64, 0.32, 1)
 light_energy = 7.0
@@ -239,7 +472,7 @@ light_bake_mode = 1
 omni_range = 13.0
 omni_attenuation = 1.3
 
-[node name="Lamp2" type="OmniLight3D" parent="." unique_id=1380717879]
+[node name="Lamp2" type="OmniLight3D" parent="." unique_id=1901931380]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 5.96, -21)
 light_color = Color(1, 0.64, 0.32, 1)
 light_energy = 5.0
@@ -247,48 +480,48 @@ light_bake_mode = 1
 omni_range = 10.0
 omni_attenuation = 1.3
 
-[node name="Smoke-44" type="Node3D" parent="." unique_id=294058769]
+[node name="Smoke-44" type="Node3D" parent="." unique_id=1891937698]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 46.5, -78)
-script = ExtResource("22_ofiwq")
+script = ExtResource("80_t5143")
 
-[node name="@GPUParticles3D@2" type="GPUParticles3D" parent="Smoke-44" unique_id=755970417]
+[node name="@GPUParticles3D@2" type="GPUParticles3D" parent="Smoke-44" unique_id=340644979]
 cast_shadow = 0
 amount = 26
 lifetime = 18.0
 preprocess = 15.299999999999999
 visibility_aabb = AABB(-30, -4, -30, 150, 90, 60)
 draw_order = 1
-process_material = SubResource("ParticleProcessMaterial_28bs2")
-draw_pass_1 = SubResource("QuadMesh_hw7vx")
+process_material = SubResource("ParticleProcessMaterial_6vsmq")
+draw_pass_1 = SubResource("QuadMesh_h5hph")
 
-[node name="Smoke-37" type="Node3D" parent="." unique_id=659319920]
+[node name="Smoke-37" type="Node3D" parent="." unique_id=1084913247]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37, 36.5, -74)
-script = ExtResource("22_ofiwq")
+script = ExtResource("80_t5143")
 
-[node name="@GPUParticles3D@3" type="GPUParticles3D" parent="Smoke-37" unique_id=1419577984]
+[node name="@GPUParticles3D@3" type="GPUParticles3D" parent="Smoke-37" unique_id=2035223405]
 cast_shadow = 0
 amount = 26
 lifetime = 18.0
 preprocess = 15.299999999999999
 visibility_aabb = AABB(-30, -4, -30, 150, 90, 60)
 draw_order = 1
-process_material = SubResource("ParticleProcessMaterial_xbhnu")
-draw_pass_1 = SubResource("QuadMesh_26srl")
+process_material = SubResource("ParticleProcessMaterial_gfdxc")
+draw_pass_1 = SubResource("QuadMesh_46frr")
 
-[node name="ReflectionProbe" type="ReflectionProbe" parent="." unique_id=1100367655]
+[node name="ReflectionProbe" type="ReflectionProbe" parent="." unique_id=1418328108]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 2)
 intensity = 0.7
 size = Vector3(30, 8, 26)
 box_projection = true
 
-[node name="@ReflectionProbe@4" type="ReflectionProbe" parent="." unique_id=385231076]
+[node name="@ReflectionProbe@4" type="ReflectionProbe" parent="." unique_id=625307375]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, -18)
 intensity = 0.7
 size = Vector3(23, 9, 14)
 box_projection = true
 
-[node name="Camera" type="Camera3D" parent="." unique_id=520062514]
-script = ExtResource("23_h3xyl")
+[node name="Camera" type="Camera3D" parent="." unique_id=1371614218]
+script = ExtResource("81_khfx5")
 
-[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1378500185]
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1330706190]
 max_texture_size = 2048
