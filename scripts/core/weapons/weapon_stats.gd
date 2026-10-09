@@ -10,6 +10,7 @@ const SPREAD := &"spread"             # 탄 퍼짐 각도(도) (낮을수록 좋
 const WEIGHT := &"weight"             # kg
 const LOUDNESS := &"loudness"         # 총성 크기 배율 (소음기 < 1)
 const RANGE := &"range"               # 유효 사거리 (m)
+const AUTO := &"auto"                 # 1이면 연사 가능, 0이면 단발
 
 ## 스탯마다 허용 하한. 배율 적용 후 이 값 아래로 내려가지 않는다.
 const MIN_VALUES: Dictionary[StringName, float] = {

@@ -203,6 +203,21 @@ func split(item_id: int, amount: int, new_id: int, key: StringName, cell: Vector
 	return result
 
 
+## 스택에서 amount만큼 소비한다 (탄약 장전·약품 사용). 0이 되면 아이템이 사라진다.
+func consume(item_id: int, amount: int) -> CommandResult:
+	var item: ItemInstance = get_item(item_id)
+	if item == null:
+		return CommandResult.failure(CommandResult.UNKNOWN_ITEM)
+	if _is_locked(item):
+		return CommandResult.failure(CommandResult.STASH_LOCKED)
+	if amount <= 0 or amount > item.stack_count:
+		return CommandResult.failure(CommandResult.INVALID_AMOUNT)
+	item.stack_count -= amount
+	if item.stack_count == 0:
+		return CommandResult.success(_remove(item))
+	return CommandResult.success([_event_stack(item)])
+
+
 ## 아이템과 그 안의 내용물을 인벤토리에서 없앤다 (버리기·사망 소실·판매).
 func discard(item_id: int) -> CommandResult:
 	var item: ItemInstance = get_item(item_id)

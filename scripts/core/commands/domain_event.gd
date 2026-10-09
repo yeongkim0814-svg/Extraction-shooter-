@@ -6,6 +6,7 @@ const ITEM_ADDED := &"item_added"
 const ITEM_MOVED := &"item_moved"
 const ITEM_REMOVED := &"item_removed"
 const STACK_CHANGED := &"stack_changed"
+const MAGAZINE_CHANGED := &"magazine_changed"
 
 var type: StringName
 var data: Dictionary

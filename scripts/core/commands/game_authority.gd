@@ -8,6 +8,8 @@ signal events_emitted(events: Array[DomainEvent])
 
 var inventory: Inventory
 var ids := IdGenerator.new()
+## 탄종 등 정의 조회 (재장전에 필요). 없으면 재장전 불가.
+var content: ContentDatabase = null
 
 
 func _init(p_inventory: Inventory) -> void:

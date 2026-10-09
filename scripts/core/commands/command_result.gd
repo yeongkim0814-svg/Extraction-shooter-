@@ -12,6 +12,10 @@ const NOT_STACKABLE := &"not_stackable"
 const INVALID_AMOUNT := &"invalid_amount"
 const ALREADY_ADDED := &"already_added"
 const STASH_LOCKED := &"stash_locked"
+const NOT_A_WEAPON := &"not_a_weapon"
+const WEAPON_NOT_EQUIPPED := &"weapon_not_equipped"
+const MAGAZINE_FULL := &"magazine_full"
+const NO_AMMO := &"no_ammo"
 const NOT_IMPLEMENTED := &"not_implemented"
 
 var ok: bool
